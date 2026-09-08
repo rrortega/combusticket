@@ -29,17 +29,53 @@ export class S3StorageService implements IStorageService {
   private readonly config: S3StorageConfig;
 
   constructor(config: S3StorageConfig) {
-    this.config = config;
+    let normalizedEndpoint = config.endpoint ? config.endpoint.trim() : undefined;
+    if (normalizedEndpoint) {
+      // Ensure HTTP/HTTPS protocol is present
+      if (!/^https?:\/\//i.test(normalizedEndpoint)) {
+        if (/:9000|:9001|:5000|localhost|127\.0\.0\.1/i.test(normalizedEndpoint)) {
+          normalizedEndpoint = `http://${normalizedEndpoint}`;
+        } else {
+          normalizedEndpoint = `https://${normalizedEndpoint}`;
+        }
+      }
+      // Strip trailing slashes
+      normalizedEndpoint = normalizedEndpoint.replace(/\/+$/, '');
 
-    const isMinioOrCustomEndpoint = Boolean(config.endpoint);
+      // Check hostname for underscores (common cause of MinIO "Invalid Request (invalid hostname)" error)
+      try {
+        const u = new URL(normalizedEndpoint);
+        if (u.hostname.includes('_')) {
+          console.error(
+            `\n[S3StorageService] ⚠️ CRITICAL WARNING: S3/MinIO endpoint hostname "${u.hostname}" contains an underscore ("_").` +
+            `\nRFC 1123 / DNS standards forbid underscores in hostnames. MinIO will reject requests with: "Invalid Request (invalid hostname)".` +
+            `\nACTION REQUIRED: Rename your Docker service/container or domain to use hyphens (e.g., "minio-service" instead of "minio_service").\n`
+          );
+        }
+      } catch (err: any) {
+        console.warn(`[S3StorageService] Warning: Could not parse endpoint URL "${normalizedEndpoint}":`, err.message);
+      }
+    }
+
+    const normalizedBucket = (config.bucket || 'combusticket').trim().toLowerCase();
+
+    // For MinIO or any custom endpoint, forcePathStyle MUST be true unless explicitly disabled
+    const isCustomEndpoint = Boolean(normalizedEndpoint);
     const forcePathStyle =
       config.forcePathStyle !== undefined
         ? config.forcePathStyle
-        : isMinioOrCustomEndpoint;
+        : isCustomEndpoint;
+
+    this.config = {
+      ...config,
+      bucket: normalizedBucket,
+      endpoint: normalizedEndpoint,
+      forcePathStyle,
+    };
 
     this.client = new S3Client({
       region: config.region || 'us-east-1',
-      endpoint: config.endpoint || undefined,
+      endpoint: normalizedEndpoint || undefined,
       forcePathStyle,
       credentials:
         config.accessKeyId && config.secretAccessKey
@@ -119,14 +155,28 @@ export class S3StorageService implements IStorageService {
     const cleanKey = this.sanitizeKey(key);
     const contentType = options?.contentType || this.detectContentType(cleanKey);
 
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: this.config.bucket,
-        Key: cleanKey,
-        Body: data,
-        ContentType: contentType,
-      })
-    );
+    try {
+      await this.client.send(
+        new PutObjectCommand({
+          Bucket: this.config.bucket,
+          Key: cleanKey,
+          Body: data,
+          ContentType: contentType,
+        })
+      );
+    } catch (err: any) {
+      if (err.message && err.message.toLowerCase().includes('invalid hostname')) {
+        console.error(
+          `\n[S3StorageService] ❌ MinIO/S3 rejected upload with: "${err.message}"\n` +
+          `Diagnostic: This occurs when:\n` +
+          ` 1. S3_ENDPOINT hostname contains underscores "_" (RFC 1123 violation). MinIO requires hyphens "-".\n` +
+          ` 2. S3_ENDPOINT protocol is mismatched (e.g. https instead of http or vice versa).\n` +
+          ` 3. MinIO requires S3_FORCE_PATH_STYLE=true.\n` +
+          `Configured Endpoint: "${this.config.endpoint}", Bucket: "${this.config.bucket}"\n`
+        );
+      }
+      throw err;
+    }
 
     return {
       key: cleanKey,

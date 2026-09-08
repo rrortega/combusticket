@@ -170,10 +170,18 @@ export class GasInvoiceService {
     console.log(`Selected Adapter: ${adapter.descriptor.name} [id: ${adapter.descriptor.id}]`);
     console.log(`Billing Profile: ${profile.razonSocial} (RFC: ${profile.rfc})`);
 
+    const rawRfc = (profile?.rfc || 'GENERAL').toString().trim().toUpperCase();
+    const rfcFolder = rawRfc.replace(/[^A-Z0-9&Ñ]/g, '') || 'GENERAL';
+    const rfcBaseDir = path.resolve(ENV.SCREENSHOT_DIR, rfcFolder);
+    const rfcScreenshotDir = path.join(rfcBaseDir, 'screenshots');
+    const rfcVideoDir = path.resolve(options.videoDir || path.join(rfcBaseDir, 'videos'));
+
     const recordVideo = options.recordVideo !== undefined ? options.recordVideo : ENV.RECORD_VIDEO;
     const dryRun = options.dryRun !== undefined ? options.dryRun : ENV.DRY_RUN;
     const effectiveOptions: AutomationOptions = {
       ...options,
+      screenshotDir: options.screenshotDir || rfcScreenshotDir,
+      videoDir: rfcVideoDir,
       recordVideo,
       dryRun,
     };
@@ -183,7 +191,7 @@ export class GasInvoiceService {
     const cdpUrl = await this.browserManager.start();
     console.log(`Obscura ready at CDP: ${cdpUrl}`);
 
-    const videoDir = path.resolve(effectiveOptions.videoDir || ENV.VIDEO_DIR);
+    const videoDir = rfcVideoDir;
     if (recordVideo && !fs.existsSync(videoDir)) {
       fs.mkdirSync(videoDir, { recursive: true });
     }
@@ -235,12 +243,12 @@ export class GasInvoiceService {
           }
         }
 
-        // Upload generated evidence artifacts to configured storage service (local, s3, or minio)
+        // Upload generated evidence artifacts to configured storage service (local, s3, or minio) scoped by RFC
         if (result.screenshotPath && fs.existsSync(result.screenshotPath)) {
           try {
             const fileName = path.basename(result.screenshotPath);
             const uploadRes = await this.storageService.uploadFromPath(
-              `screenshots/${fileName}`,
+              `${rfcFolder}/screenshots/${fileName}`,
               result.screenshotPath
             );
             result.screenshotUrl = uploadRes.url;
@@ -253,7 +261,7 @@ export class GasInvoiceService {
           try {
             const fileName = path.basename(result.videoPath);
             const uploadRes = await this.storageService.uploadFromPath(
-              `videos/${fileName}`,
+              `${rfcFolder}/videos/${fileName}`,
               result.videoPath
             );
             result.videoUrl = uploadRes.url;
@@ -266,12 +274,25 @@ export class GasInvoiceService {
           try {
             const fileName = path.basename(result.pdfPath);
             const uploadRes = await this.storageService.uploadFromPath(
-              `invoices/${fileName}`,
+              `${rfcFolder}/invoices/${fileName}`,
               result.pdfPath
             );
             result.pdfUrl = uploadRes.url;
           } catch (err: any) {
             console.warn('[GasInvoiceService] Storage upload error for PDF:', err.message);
+          }
+        }
+
+        if (result.xmlPath && fs.existsSync(result.xmlPath)) {
+          try {
+            const fileName = path.basename(result.xmlPath);
+            const uploadRes = await this.storageService.uploadFromPath(
+              `${rfcFolder}/invoices/${fileName}`,
+              result.xmlPath
+            );
+            result.xmlUrl = uploadRes.url;
+          } catch (err: any) {
+            console.warn('[GasInvoiceService] Storage upload error for XML:', err.message);
           }
         }
 

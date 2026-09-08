@@ -156,9 +156,13 @@ export async function createHttpServer(
         });
       }
 
-      const receiptsDir = path.join(ENV.SCREENSHOT_DIR, 'receipts');
-      if (!fs.existsSync(receiptsDir)) {
-        fs.mkdirSync(receiptsDir, { recursive: true });
+      // Extract and sanitize RFC for scoping storage and local folders
+      const rawRfc = (req.body?.rfc || req.query?.rfc || '').toString().trim().toUpperCase();
+      const rfcFolder = rawRfc.replace(/[^A-Z0-9&Ñ]/g, '') || 'GENERAL';
+
+      const localRfcReceiptsDir = path.resolve(ENV.SCREENSHOT_DIR, rfcFolder, 'receipts');
+      if (!fs.existsSync(localRfcReceiptsDir)) {
+        fs.mkdirSync(localRfcReceiptsDir, { recursive: true });
       }
 
       const parsedResults: Array<{
@@ -172,16 +176,36 @@ export async function createHttpServer(
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         try {
+          // 1. Run OCR FIRST on in-memory buffer so OCR never fails due to storage misconfiguration
+          const parsed = await service.parseReceiptOnly(file.buffer);
+
+          // 2. Prepare destination filenames and keys scoped by RFC
           const ext = path.extname(file.originalname) || '.png';
           const savedFileName = `receipt_${Date.now()}_${i}${ext}`;
-          const key = `receipts/${savedFileName}`;
+          const key = `${rfcFolder}/receipts/${savedFileName}`;
 
-          const uploadResult = await storageService.upload(key, file.buffer, {
-            contentType: file.mimetype || 'image/png',
-          });
-          const receiptImageUrl = uploadResult.url;
+          // Always write a local backup copy to disk
+          const localFilePath = path.join(localRfcReceiptsDir, savedFileName);
+          try {
+            fs.writeFileSync(localFilePath, file.buffer);
+          } catch (writeErr: any) {
+            console.warn('[Server] Could not write local receipt backup:', writeErr.message);
+          }
 
-          const parsed = await service.parseReceiptOnly(file.buffer);
+          // 3. Upload to configured storage (MinIO / S3 / Local)
+          let receiptImageUrl = `/output/${rfcFolder}/receipts/${savedFileName}`;
+          try {
+            const uploadResult = await storageService.upload(key, file.buffer, {
+              contentType: file.mimetype || 'image/png',
+            });
+            if (uploadResult?.url) {
+              receiptImageUrl = uploadResult.url;
+            }
+          } catch (storageErr: any) {
+            console.warn(`[Server] Storage upload failed for key "${key}":`, storageErr.message);
+            // Non-fatal: receiptImageUrl safely retains local fallback URL
+          }
+
           parsed.receiptImageUrl = receiptImageUrl;
 
           parsedResults.push({
@@ -190,12 +214,13 @@ export async function createHttpServer(
             success: true,
             receipt: parsed,
           });
-        } catch (err: any) {
+        } catch (ocrErr: any) {
+          console.error(`[Server] OCR parsing failed for file "${file.originalname}":`, ocrErr.message);
           parsedResults.push({
             index: i,
             filename: file.originalname,
             success: false,
-            error: err.message || 'No se pudo extraer texto del ticket',
+            error: ocrErr.message || 'No se pudo extraer texto del ticket con OCR',
           });
         }
       }
@@ -330,17 +355,27 @@ export async function createHttpServer(
       const state = await job.getState();
       const progress = job.progress;
 
-      let screenshotUrl: string | undefined;
-      let videoUrl: string | undefined;
+      const rawRfc = (job.data?.billingProfile?.rfc || 'GENERAL').toString().trim().toUpperCase();
+      const rfcFolder = rawRfc.replace(/[^A-Z0-9&Ñ]/g, '') || 'GENERAL';
 
-      if (job.returnvalue?.screenshotPath) {
+      let screenshotUrl = job.returnvalue?.screenshotUrl;
+      let videoUrl = job.returnvalue?.videoUrl;
+      let pdfUrl = job.returnvalue?.pdfUrl;
+      let xmlUrl = job.returnvalue?.xmlUrl;
+
+      if (!screenshotUrl && job.returnvalue?.screenshotPath) {
         const filename = job.returnvalue.screenshotPath.split('/').pop();
-        screenshotUrl = `/output/${filename}`;
+        screenshotUrl = `/output/${rfcFolder}/screenshots/${filename}`;
       }
 
-      if (job.returnvalue?.videoPath) {
+      if (!videoUrl && job.returnvalue?.videoPath) {
         const filename = job.returnvalue.videoPath.split('/').pop();
-        videoUrl = `/output/videos/${filename}`;
+        videoUrl = `/output/${rfcFolder}/videos/${filename}`;
+      }
+
+      if (!pdfUrl && job.returnvalue?.pdfPath) {
+        const filename = job.returnvalue.pdfPath.split('/').pop();
+        pdfUrl = `/output/${rfcFolder}/invoices/${filename}`;
       }
 
       res.json({
@@ -398,13 +433,28 @@ export async function createHttpServer(
               } else if (state === 'completed') {
                 item.status = 'completed';
                 item.progress = 100;
-                if (bJob.returnvalue?.screenshotPath) {
+                const jobRfc = (bJob.data?.billingProfile?.rfc || rfc || 'GENERAL').toString().trim().toUpperCase();
+                const jobRfcFolder = jobRfc.replace(/[^A-Z0-9&Ñ]/g, '') || 'GENERAL';
+
+                if (bJob.returnvalue?.screenshotUrl) {
+                  item.screenshotUrl = bJob.returnvalue.screenshotUrl;
+                } else if (bJob.returnvalue?.screenshotPath) {
                   const fn = bJob.returnvalue.screenshotPath.split('/').pop();
-                  item.screenshotUrl = `/output/${fn}`;
+                  item.screenshotUrl = `/output/${jobRfcFolder}/screenshots/${fn}`;
                 }
-                if (bJob.returnvalue?.videoPath) {
+
+                if (bJob.returnvalue?.videoUrl) {
+                  item.videoUrl = bJob.returnvalue.videoUrl;
+                } else if (bJob.returnvalue?.videoPath) {
                   const fn = bJob.returnvalue.videoPath.split('/').pop();
-                  item.videoUrl = `/output/videos/${fn}`;
+                  item.videoUrl = `/output/${jobRfcFolder}/videos/${fn}`;
+                }
+
+                if (bJob.returnvalue?.pdfUrl) {
+                  item.pdfUrl = bJob.returnvalue.pdfUrl;
+                } else if (bJob.returnvalue?.pdfPath) {
+                  const fn = bJob.returnvalue.pdfPath.split('/').pop();
+                  item.pdfUrl = `/output/${jobRfcFolder}/invoices/${fn}`;
                 }
               } else if (state === 'failed') {
                 item.status = 'failed';

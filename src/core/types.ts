@@ -60,6 +60,8 @@ export interface InvoiceResult {
   videoUrl?: string;
   pdfPath?: string;
   pdfUrl?: string;
+  xmlPath?: string;
+  xmlUrl?: string;
   message: string;
   extraData?: Record<string, any>;
 }

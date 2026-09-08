@@ -1505,6 +1505,10 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 0; i < fileList.length; i++) {
       formData.append('receipts', fileList[i]);
     }
+    const currentProfile = getProfile();
+    if (currentProfile && currentProfile.rfc) {
+      formData.append('rfc', currentProfile.rfc);
+    }
 
     try {
       const res = await fetch('/api/receipts/scan', {
@@ -1589,6 +1593,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Pass along blob
       const formData = new FormData();
       formData.append('receipts', file);
+      const currentProfile = getProfile();
+      if (currentProfile && currentProfile.rfc) {
+        formData.append('rfc', currentProfile.rfc);
+      }
 
       const res = await fetch('/api/receipts/scan', {
         method: 'POST',
