@@ -1,4 +1,4 @@
-const CACHE_NAME = 'combusticket-shell-v1';
+const CACHE_NAME = 'combusticket-shell-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -52,7 +52,36 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // 1. API calls and output media should ALWAYS go network-first / direct
+  // 1. Catalogs and Stations: Network-first with cache fallback (never leaves UI empty)
+  if (url.pathname === '/api/catalogs' || url.pathname === '/api/stations') {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Modo sin conexión: cargando catálogo local de contingencia.',
+            }),
+            {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+        })
+    );
+    return;
+  }
+
+  // 2. Other API calls and output media: Network-first direct
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/health') ||

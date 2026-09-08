@@ -180,14 +180,16 @@
             <!-- RFC -->
             <div class="form-group">
               <label for="prof-rfc" class="form-label">RFC (Registro Federal de Contribuyentes) <span class="req">*</span></label>
-              <input type="text" id="prof-rfc" name="rfc" class="form-input text-uppercase" placeholder="Ej. MADR600405BK1" maxlength="13" required autocomplete="off">
-              <span class="form-hint">12 caracteres para empresas, 13 para personas físicas.</span>
+              <input type="text" id="prof-rfc" name="rfc" class="form-input text-uppercase" placeholder="Ej. MADR600405BK1" maxlength="13" required autocomplete="off" spellcheck="false">
+              <div class="validation-feedback" id="prof-rfc-feedback" aria-live="polite"></div>
+              <span class="form-hint" id="prof-rfc-hint">12 caracteres para empresas, 13 para personas físicas.</span>
             </div>
 
             <!-- Razón Social -->
             <div class="form-group">
               <label for="prof-razon" class="form-label">Razón Social o Nombre Completo <span class="req">*</span></label>
               <input type="text" id="prof-razon" name="razonSocial" class="form-input text-uppercase" placeholder="Ej. REYNOL MARTINEZ DIAZ" required autocomplete="off">
+              <div class="validation-feedback" id="prof-razon-feedback" aria-live="polite"></div>
               <span class="form-hint">Tal como aparece en tu Constancia de Situación Fiscal.</span>
             </div>
 
@@ -195,23 +197,66 @@
             <div class="form-group">
               <label for="prof-email" class="form-label">Correo Electrónico para Recibir Facturas <span class="req">*</span></label>
               <input type="email" id="prof-email" name="email" class="form-input" placeholder="correo@ejemplo.com" required autocomplete="email">
+              <div class="validation-feedback" id="prof-email-feedback" aria-live="polite"></div>
               <span class="form-hint">Aquí te llegarán los archivos PDF y XML de cada factura.</span>
             </div>
 
             <!-- Código Postal -->
             <div class="form-group">
               <label for="prof-cp" class="form-label">Código Postal Fiscal <span class="req">*</span></label>
-              <input type="text" id="prof-cp" name="codigoPostal" class="form-input" placeholder="Ej. 77536" maxlength="5" pattern="[0-9]{5}" required autocomplete="postal-code">
-              <span class="form-hint">Código postal de tu domicilio fiscal registrado en el SAT.</span>
+              <input type="text" id="prof-cp" name="codigoPostal" class="form-input" placeholder="Ej. 77536" maxlength="5" pattern="[0-9]{5}" inputmode="numeric" required autocomplete="postal-code">
+              <div class="validation-feedback" id="prof-cp-feedback" aria-live="polite"></div>
+              <span class="form-hint">Código postal de tu domicilio fiscal registrado en el SAT (5 dígitos).</span>
             </div>
 
-            <!-- Régimen Fiscal Dropdown -->
+            <!-- Régimen Fiscal Custom Searchable Choice -->
             <div class="form-group form-group-full">
               <label for="prof-regimen" class="form-label">Régimen Fiscal <span class="req">*</span></label>
-              <select id="prof-regimen" name="regimenFiscal" class="form-select" required>
-                <option value="">Cargando regímenes fiscales del SAT...</option>
-              </select>
-              <span class="form-hint">Selecciona el régimen que corresponda a tu actividad registrada.</span>
+              
+              <div class="custom-select-container" id="custom-regimen-container">
+                <button type="button" class="custom-select-trigger" id="regimen-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                  <div class="custom-select-content">
+                    <span class="custom-select-placeholder" id="regimen-select-placeholder">-- Selecciona tu Régimen Fiscal del SAT --</span>
+                    <div class="custom-select-selected-value hidden" id="regimen-selected-value">
+                      <span class="regimen-code-tag" id="regimen-selected-code"></span>
+                      <span class="regimen-name" id="regimen-selected-desc"></span>
+                    </div>
+                  </div>
+                  <div class="custom-select-actions">
+                    <span class="custom-select-clear hidden" id="regimen-select-clear" title="Quitar selección" role="button">&times;</span>
+                    <svg class="custom-select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                </button>
+                
+                <div class="custom-select-dropdown hidden" id="regimen-select-dropdown">
+                  <div class="custom-select-search-wrapper">
+                    <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="custom-select-search" id="regimen-search-input" placeholder="Buscar por código (ej. 625) o nombre (ej. plataformas, sueldos)..." autocomplete="off" spellcheck="false">
+                    <button type="button" class="custom-search-clear hidden" id="regimen-search-clear">&times;</button>
+                  </div>
+                  
+                  <div class="custom-select-filters" id="regimen-filters">
+                    <button type="button" class="filter-chip active" data-filter="ALL" id="chip-filter-all">Todos</button>
+                    <button type="button" class="filter-chip" data-filter="FISICA" id="chip-filter-fisica">Personas Físicas</button>
+                    <button type="button" class="filter-chip" data-filter="MORAL" id="chip-filter-moral">Personas Morales</button>
+                  </div>
+                  
+                  <ul class="custom-select-options" id="regimen-options-list" role="listbox" tabindex="-1">
+                  </ul>
+                  
+                  <div class="custom-select-empty hidden" id="regimen-empty-state">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                    <span>No se encontraron regímenes que coincidan con la búsqueda.</span>
+                  </div>
+                </div>
+
+                <!-- Hidden native select for form serialization and programmatic compatibility -->
+                <select id="prof-regimen" name="regimenFiscal" class="sr-only" required tabindex="-1" aria-hidden="true">
+                  <option value="">-- Selecciona tu Régimen Fiscal --</option>
+                </select>
+              </div>
+              <div class="validation-feedback" id="prof-regimen-feedback" aria-live="polite"></div>
+              <span class="form-hint">Selecciona el régimen que corresponda a tu actividad registrada ante el SAT.</span>
             </div>
 
             <!-- Uso de CFDI Dropdown -->
@@ -220,6 +265,7 @@
               <select id="prof-uso" name="usoCfdi" class="form-select" required>
                 <option value="">Cargando usos de CFDI...</option>
               </select>
+              <div class="validation-feedback" id="prof-uso-feedback" aria-live="polite"></div>
               <span class="form-hint">Uso preferente para deducción de gasolina (comúnmente G03 - Gastos en general).</span>
             </div>
           </div>

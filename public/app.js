@@ -4,8 +4,68 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // State
-  let catalogs = { regimenes: null, usosCfdi: null, formasPago: null };
+  // Embedded SAT Catalogs Fallback (ensures local dev & offline never show empty dropdowns)
+  const DEFAULT_SAT_REGIMENES = [
+    { code: '601', description: 'General de Ley Personas Morales', tipoPersona: 'MORAL' },
+    { code: '603', description: 'Personas Morales con Fines no Lucrativos', tipoPersona: 'MORAL' },
+    { code: '605', description: 'Sueldos y Salarios e Ingresos Asimilados a Salarios', tipoPersona: 'FISICA' },
+    { code: '606', description: 'Arrendamiento', tipoPersona: 'FISICA' },
+    { code: '607', description: 'Régimen de Enajenación o Adquisición de Bienes', tipoPersona: 'FISICA' },
+    { code: '608', description: 'Demás ingresos', tipoPersona: 'FISICA' },
+    { code: '610', description: 'Residentes en el Extranjero sin Establecimiento Permanente en México', tipoPersona: 'AMBAS' },
+    { code: '611', description: 'Ingresos por Dividendos (socios y accionistas)', tipoPersona: 'FISICA' },
+    { code: '612', description: 'Personas Físicas con Actividades Empresariales y Profesionales', tipoPersona: 'FISICA' },
+    { code: '614', description: 'Ingresos por intereses', tipoPersona: 'FISICA' },
+    { code: '615', description: 'Régimen de los ingresos por obtención de premios', tipoPersona: 'FISICA' },
+    { code: '616', description: 'Sin obligaciones fiscales', tipoPersona: 'FISICA' },
+    { code: '620', description: 'Sociedades Cooperativas de Producción que optan por diferir sus ingresos', tipoPersona: 'MORAL' },
+    { code: '621', description: 'Incorporación Fiscal', tipoPersona: 'FISICA' },
+    { code: '622', description: 'Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras', tipoPersona: 'AMBAS' },
+    { code: '623', description: 'Opcional para Grupos de Sociedades', tipoPersona: 'MORAL' },
+    { code: '624', description: 'Coordinados', tipoPersona: 'MORAL' },
+    { code: '625', description: 'Régimen de las Actividades Empresariales con ingresos a través de Plataformas Tecnológicas', tipoPersona: 'FISICA' },
+    { code: '626', description: 'Régimen Simplificado de Confianza', tipoPersona: 'AMBAS' }
+  ];
+
+  const DEFAULT_SAT_USOS = [
+    { code: 'G03', description: 'Gastos en general', defaultGasolina: true },
+    { code: 'G01', description: 'Adquisición de mercancías', defaultGasolina: false },
+    { code: 'G02', description: 'Devoluciones, descuentos o bonificaciones', defaultGasolina: false },
+    { code: 'I03', description: 'Equipo de transporte', defaultGasolina: false },
+    { code: 'I01', description: 'Construcciones', defaultGasolina: false },
+    { code: 'I02', description: 'Mobiliario y equipo de oficina por inversiones', defaultGasolina: false },
+    { code: 'I04', description: 'Equipo de computo y accesorios', defaultGasolina: false },
+    { code: 'I05', description: 'Dados, troqueles, moldes, matrices y herramental', defaultGasolina: false },
+    { code: 'I06', description: 'Comunicaciones telefónicas', defaultGasolina: false },
+    { code: 'I07', description: 'Comunicaciones satelitales', defaultGasolina: false },
+    { code: 'I08', description: 'Otra maquinaria y equipo', defaultGasolina: false },
+    { code: 'D01', description: 'Honorarios médicos, dentales y gastos hospitalarios', defaultGasolina: false },
+    { code: 'D02', description: 'Gastos médicos por incapacidad o discapacidad', defaultGasolina: false },
+    { code: 'D03', description: 'Gastos funerales', defaultGasolina: false },
+    { code: 'D04', description: 'Donativos', defaultGasolina: false },
+    { code: 'D05', description: 'Intereses reales efectivamente pagados por créditos hipotecarios (casa habitación)', defaultGasolina: false },
+    { code: 'D06', description: 'Aportaciones voluntarias al SAR', defaultGasolina: false },
+    { code: 'D07', description: 'Primas por seguros de gastos médicos', defaultGasolina: false },
+    { code: 'D08', description: 'Gastos de transportación escolar obligatoria', defaultGasolina: false },
+    { code: 'D09', description: 'Depósitos en cuentas para el ahorro, primas con base en planes de pensiones', defaultGasolina: false },
+    { code: 'D10', description: 'Pagos por servicios educativos (colegiaturas)', defaultGasolina: false },
+    { code: 'S01', description: 'Sin efectos fiscales', defaultGasolina: false },
+    { code: 'CP01', description: 'Pagos', defaultGasolina: false },
+    { code: 'CN01', description: 'Nómina', defaultGasolina: false }
+  ];
+
+  // State: Initialize catalogs with local cache or robust embedded fallbacks
+  let cachedCatalogs = null;
+  try {
+    cachedCatalogs = JSON.parse(localStorage.getItem('combusticket_catalogs') || 'null');
+  } catch {}
+
+  let catalogs = cachedCatalogs || {
+    regimenes: { regimenes: DEFAULT_SAT_REGIMENES },
+    usosCfdi: { usos: DEFAULT_SAT_USOS },
+    formasPago: null
+  };
+
   let supportedStations = [];
   let currentScannedReceipts = []; // Array of ParsedReceiptData objects currently in review
   let activeJobs = [];
@@ -38,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnWelcomeStart = document.getElementById('btn-welcome-start');
   const stationsGrid = document.getElementById('stations-grid');
 
-  // Profile Form
+  // Profile Form Elements
   const profileForm = document.getElementById('profile-form');
   const profRfc = document.getElementById('prof-rfc');
   const profRazon = document.getElementById('prof-razon');
@@ -48,6 +108,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const profUso = document.getElementById('prof-uso');
   const btnCancelProfile = document.getElementById('btn-cancel-profile');
   const btnSaveProfile = document.getElementById('btn-save-profile');
+
+  // Profile Form Real-time Validation Feedback Nodes
+  const profRfcFeedback = document.getElementById('prof-rfc-feedback');
+  const profRazonFeedback = document.getElementById('prof-razon-feedback');
+  const profEmailFeedback = document.getElementById('prof-email-feedback');
+  const profCpFeedback = document.getElementById('prof-cp-feedback');
+  const profRegimenFeedback = document.getElementById('prof-regimen-feedback');
+  const profUsoFeedback = document.getElementById('prof-uso-feedback');
+
+  // Custom Searchable Régimen Fiscal Choice
+  const customRegimenContainer = document.getElementById('custom-regimen-container');
+  const regimenSelectTrigger = document.getElementById('regimen-select-trigger');
+  const regimenSelectPlaceholder = document.getElementById('regimen-select-placeholder');
+  const regimenSelectedValue = document.getElementById('regimen-selected-value');
+  const regimenSelectedCode = document.getElementById('regimen-selected-code');
+  const regimenSelectedDesc = document.getElementById('regimen-selected-desc');
+  const regimenSelectClear = document.getElementById('regimen-select-clear');
+  const regimenSelectDropdown = document.getElementById('regimen-select-dropdown');
+  const regimenSearchInput = document.getElementById('regimen-search-input');
+  const regimenSearchClear = document.getElementById('regimen-search-clear');
+  const chipFilterAll = document.getElementById('chip-filter-all');
+  const chipFilterFisica = document.getElementById('chip-filter-fisica');
+  const chipFilterMoral = document.getElementById('chip-filter-moral');
+  const regimenOptionsList = document.getElementById('regimen-options-list');
+  const regimenEmptyState = document.getElementById('regimen-empty-state');
 
   // Workbench
   const dropzone = document.getElementById('dropzone');
@@ -134,16 +219,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- INITIALIZATION ---
   async function init() {
-    // 1. Immediately evaluate local profile state synchronously to prevent any render jump
+    // 1. Immediately populate select options with fallback/cached data synchronously
+    populateSelectOptions();
+
+    // 2. Immediately evaluate local profile state synchronously to prevent any render jump
     checkExistingProfile();
 
-    // 2. Clear legacy local active jobs cache if present
+    // 3. Clear legacy local active jobs cache if present
     try { localStorage.removeItem('facturagas_active_jobs'); } catch {}
 
     setupEventListeners();
     checkDevEnvironment();
 
-    // 3. Load server config and refresh history if active
+    // 4. Load server config and refresh history if active
     loadServerConfig().then(() => {
       const profile = getProfile();
       if (profile && profile.rfc && currentScreen === 'history') {
@@ -151,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // 4. Load catalogs and stations in background without blocking screen paint
+    // 5. Load catalogs and stations in background without blocking screen paint
     loadCatalogs();
     loadSupportedStations();
   }
@@ -259,22 +347,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- CATALOG & STATIONS LOADING ---
-  async function loadCatalogs() {
+  async function loadCatalogs(retryCount = 0) {
     try {
       const res = await fetch('/api/catalogs');
       const data = await res.json();
-      if (data.success) {
+      if (data && data.success && data.regimenes) {
         catalogs = data;
+        try {
+          localStorage.setItem('combusticket_catalogs', JSON.stringify(data));
+        } catch {}
         populateSelectOptions();
       }
     } catch (err) {
-      console.warn('Error loading catalogs:', err);
+      console.warn('Error loading /api/catalogs (using embedded fallback):', err);
+      if (retryCount < 2) {
+        setTimeout(() => loadCatalogs(retryCount + 1), 2000);
+      }
     }
   }
 
   function populateSelectOptions() {
-    // Régimen Fiscal
-    if (catalogs.regimenes?.regimenes) {
+    const savedRegimenVal = profRegimen ? profRegimen.value : '';
+    const savedUsoVal = profUso ? profUso.value : '';
+
+    // 1. Régimen Fiscal (Native select options)
+    if (catalogs.regimenes?.regimenes && profRegimen) {
       profRegimen.innerHTML = '<option value="">-- Selecciona tu Régimen Fiscal --</option>';
       for (const item of catalogs.regimenes.regimenes) {
         const code = item.code || item.codigo;
@@ -284,10 +381,15 @@ document.addEventListener('DOMContentLoaded', () => {
         opt.textContent = `${code} - ${desc}`;
         profRegimen.appendChild(opt);
       }
+      if (savedRegimenVal) {
+        profRegimen.value = savedRegimenVal;
+      }
+      syncCustomRegimenFromValue(profRegimen.value);
+      renderRegimenOptions();
     }
 
-    // Uso de CFDI
-    if (catalogs.usosCfdi?.usos) {
+    // 2. Uso de CFDI
+    if (catalogs.usosCfdi?.usos && profUso) {
       profUso.innerHTML = '<option value="">-- Selecciona el Uso de CFDI --</option>';
       for (const item of catalogs.usosCfdi.usos) {
         const code = item.code || item.codigo;
@@ -297,6 +399,395 @@ document.addEventListener('DOMContentLoaded', () => {
         opt.textContent = `${code} - ${desc}`;
         profUso.appendChild(opt);
       }
+      if (savedUsoVal) {
+        profUso.value = savedUsoVal;
+      } else if (profUso.querySelector('option[value="G03"]')) {
+        profUso.value = 'G03';
+      }
+    }
+  }
+
+  // --- CUSTOM ACCESSIBLE SEARCHABLE SELECT (COMBOBOX) FOR RÉGIMEN FISCAL ---
+  let activeRegimenFilter = 'ALL'; // 'ALL' | 'FISICA' | 'MORAL'
+  let activeRegimenSearch = '';
+  let activeHighlightedIndex = -1;
+
+  function initCustomRegimenSelect() {
+    if (!customRegimenContainer || !regimenSelectTrigger) return;
+
+    // Trigger open/close
+    regimenSelectTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleRegimenDropdown();
+    });
+
+    // Clear selection button
+    regimenSelectClear?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearRegimenSelection();
+    });
+
+    // Live search input
+    regimenSearchInput?.addEventListener('input', (e) => {
+      activeRegimenSearch = e.target.value;
+      if (regimenSearchClear) {
+        regimenSearchClear.classList.toggle('hidden', !activeRegimenSearch);
+      }
+      renderRegimenOptions();
+    });
+
+    // Clear search query button
+    regimenSearchClear?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      regimenSearchInput.value = '';
+      activeRegimenSearch = '';
+      regimenSearchClear.classList.add('hidden');
+      regimenSearchInput.focus();
+      renderRegimenOptions();
+    });
+
+    // Persona filter chips (Todos / Físicas / Morales)
+    const chips = [
+      { el: chipFilterAll, filter: 'ALL' },
+      { el: chipFilterFisica, filter: 'FISICA' },
+      { el: chipFilterMoral, filter: 'MORAL' },
+    ];
+
+    chips.forEach(({ el, filter }) => {
+      if (!el) return;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        chips.forEach(c => c.el?.classList.remove('active'));
+        el.classList.add('active');
+        activeRegimenFilter = filter;
+        renderRegimenOptions();
+      });
+    });
+
+    // Keyboard navigation
+    customRegimenContainer.addEventListener('keydown', handleRegimenKeydown);
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+      if (!customRegimenContainer.contains(e.target)) {
+        closeRegimenDropdown();
+      }
+    });
+
+    // Listen to changes on native select
+    profRegimen?.addEventListener('change', () => {
+      syncCustomRegimenFromValue(profRegimen.value);
+      validateRegimenField(false);
+    });
+
+    // Initial setup
+    renderRegimenOptions();
+    syncCustomRegimenFromValue(profRegimen ? profRegimen.value : '');
+  }
+
+  function renderRegimenOptions() {
+    if (!regimenOptionsList) return;
+    const items = catalogs.regimenes?.regimenes || DEFAULT_SAT_REGIMENES;
+    const query = (activeRegimenSearch || '').trim().toLowerCase();
+
+    // 1. Filter by Persona type
+    let filtered = items.filter(item => {
+      if (activeRegimenFilter === 'FISICA') {
+        return item.tipoPersona === 'FISICA' || item.tipoPersona === 'AMBAS';
+      }
+      if (activeRegimenFilter === 'MORAL') {
+        return item.tipoPersona === 'MORAL' || item.tipoPersona === 'AMBAS';
+      }
+      return true;
+    });
+
+    // 2. Filter by search query
+    if (query) {
+      filtered = filtered.filter(item => {
+        const code = (item.code || item.codigo || '').toLowerCase();
+        const desc = (item.description || item.descripcion || '').toLowerCase();
+        return code.includes(query) || desc.includes(query);
+      });
+    }
+
+    regimenOptionsList.innerHTML = '';
+    activeHighlightedIndex = -1;
+
+    if (filtered.length === 0) {
+      regimenEmptyState?.classList.remove('hidden');
+      return;
+    }
+
+    regimenEmptyState?.classList.add('hidden');
+
+    filtered.forEach((item, index) => {
+      const code = item.code || item.codigo;
+      const desc = item.description || item.descripcion;
+      const tipo = item.tipoPersona || 'AMBAS';
+      const isSelected = profRegimen && profRegimen.value === code;
+
+      const li = document.createElement('li');
+      li.className = `custom-select-option ${isSelected ? 'is-selected' : ''}`;
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      li.dataset.code = code;
+      li.dataset.index = index;
+
+      const highlightedDesc = highlightText(desc, query);
+      const highlightedCode = highlightText(code, query);
+      const personaLabel = tipo === 'FISICA' ? 'Física' : (tipo === 'MORAL' ? 'Moral' : 'Física / Moral');
+      const personaClass = tipo === 'FISICA' ? 'fisica' : (tipo === 'MORAL' ? 'moral' : 'ambas');
+
+      li.innerHTML = `
+        <div class="option-main">
+          <span class="regimen-code-tag">${highlightedCode}</span>
+          <span class="option-desc">${highlightedDesc}</span>
+        </div>
+        <div class="option-meta">
+          <span class="persona-tag ${personaClass}">${personaLabel}</span>
+          ${isSelected ? '<span class="option-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>' : ''}
+        </div>
+      `;
+
+      li.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectRegimen(code, desc);
+        closeRegimenDropdown();
+      });
+
+      regimenOptionsList.appendChild(li);
+    });
+  }
+
+  function highlightText(text, query) {
+    if (!query) return escapeHtml(text);
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    return escapeHtml(text).replace(regex, '<mark>$1</mark>');
+  }
+
+  function selectRegimen(code, desc) {
+    if (profRegimen) {
+      profRegimen.value = code;
+      profRegimen.dispatchEvent(new Event('change'));
+    }
+    syncCustomRegimenFromValue(code, desc);
+    customRegimenContainer?.classList.remove('is-invalid');
+    validateRegimenField(true);
+  }
+
+  function clearRegimenSelection() {
+    if (profRegimen) {
+      profRegimen.value = '';
+      profRegimen.dispatchEvent(new Event('change'));
+    }
+    syncCustomRegimenFromValue('');
+  }
+
+  function syncCustomRegimenFromValue(code, knownDesc) {
+    if (!regimenSelectPlaceholder || !regimenSelectedValue) return;
+
+    if (!code) {
+      regimenSelectPlaceholder.classList.remove('hidden');
+      regimenSelectedValue.classList.add('hidden');
+      regimenSelectClear?.classList.add('hidden');
+      return;
+    }
+
+    let desc = knownDesc;
+    if (!desc) {
+      const items = catalogs.regimenes?.regimenes || DEFAULT_SAT_REGIMENES;
+      const found = items.find(i => (i.code || i.codigo) === code);
+      desc = found ? (found.description || found.descripcion) : `Régimen ${code}`;
+    }
+
+    regimenSelectPlaceholder.classList.add('hidden');
+    regimenSelectedValue.classList.remove('hidden');
+    if (regimenSelectedCode) regimenSelectedCode.textContent = code;
+    if (regimenSelectedDesc) regimenSelectedDesc.textContent = desc;
+    regimenSelectClear?.classList.remove('hidden');
+  }
+
+  function openRegimenDropdown() {
+    if (!regimenSelectDropdown) return;
+    customRegimenContainer?.classList.add('open');
+    regimenSelectDropdown.classList.remove('hidden');
+    regimenSelectTrigger?.setAttribute('aria-expanded', 'true');
+    renderRegimenOptions();
+    setTimeout(() => {
+      regimenSearchInput?.focus();
+    }, 40);
+  }
+
+  function closeRegimenDropdown() {
+    if (!regimenSelectDropdown) return;
+    customRegimenContainer?.classList.remove('open');
+    regimenSelectDropdown.classList.add('hidden');
+    regimenSelectTrigger?.setAttribute('aria-expanded', 'false');
+    activeHighlightedIndex = -1;
+  }
+
+  function toggleRegimenDropdown() {
+    if (regimenSelectDropdown?.classList.contains('hidden')) {
+      openRegimenDropdown();
+    } else {
+      closeRegimenDropdown();
+    }
+  }
+
+  function handleRegimenKeydown(e) {
+    const isDropdownOpen = !regimenSelectDropdown?.classList.contains('hidden');
+
+    if (e.key === 'Escape') {
+      if (isDropdownOpen) {
+        e.preventDefault();
+        closeRegimenDropdown();
+        regimenSelectTrigger?.focus();
+      }
+      return;
+    }
+
+    if (!isDropdownOpen) {
+      if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+        e.preventDefault();
+        openRegimenDropdown();
+      }
+      return;
+    }
+
+    const options = regimenOptionsList?.querySelectorAll('.custom-select-option') || [];
+    if (options.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeHighlightedIndex = (activeHighlightedIndex + 1) % options.length;
+      updateHighlightedOption(options);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeHighlightedIndex = (activeHighlightedIndex - 1 + options.length) % options.length;
+      updateHighlightedOption(options);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeHighlightedIndex >= 0 && activeHighlightedIndex < options.length) {
+        options[activeHighlightedIndex].click();
+      }
+    }
+  }
+
+  function updateHighlightedOption(options) {
+    options.forEach((opt, idx) => {
+      if (idx === activeHighlightedIndex) {
+        opt.classList.add('is-focused');
+        opt.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } else {
+        opt.classList.remove('is-focused');
+      }
+    });
+  }
+
+  function validateRegimenField(isTouched = false) {
+    if (!profRegimenFeedback) return true;
+    const val = profRegimen ? profRegimen.value : '';
+    if (!val) {
+      if (isTouched) {
+        customRegimenContainer?.classList.add('is-invalid');
+        profRegimenFeedback.className = 'validation-feedback is-invalid';
+        profRegimenFeedback.innerHTML = `
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Selecciona tu Régimen Fiscal del SAT.</span>
+        `;
+      }
+      return false;
+    }
+    customRegimenContainer?.classList.remove('is-invalid');
+    profRegimenFeedback.className = 'validation-feedback is-valid';
+    profRegimenFeedback.innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Régimen Fiscal seleccionado correctamente.</span>
+    `;
+    return true;
+  }
+
+  // --- REAL-TIME FORM VALIDATION ENGINES (RFC, EMAIL, CÓDIGO POSTAL) ---
+  function validateRFC(rfc) {
+    const clean = (rfc || '').trim().toUpperCase();
+    if (!clean) {
+      return { valid: false, message: 'El RFC es obligatorio para emitir tus facturas.' };
+    }
+    // Generic SAT RFCs
+    if (clean === 'XAXX010101000' || clean === 'XEXX010101000') {
+      return { valid: true, type: 'GENERICO', message: 'RFC Genérico del SAT reconocido.' };
+    }
+    // Persona Moral: 12 caracteres (3 letras + 6 números de fecha + 3 homoclave)
+    if (clean.length === 12) {
+      const moralRegex = /^[A-Z&Ñ]{3}(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[A-Z0-9]{3}$/;
+      if (moralRegex.test(clean)) {
+        return { valid: true, type: 'MORAL', message: '✓ Persona Moral válida ante el SAT (12 caracteres).' };
+      }
+      return { valid: false, message: 'Estructura inválida de Persona Moral (3 letras + fecha AAMMDD + 3 homoclave).' };
+    }
+    // Persona Física: 13 caracteres (4 letras + 6 números de fecha + 3 homoclave)
+    if (clean.length === 13) {
+      const fisicaRegex = /^[A-Z&Ñ]{4}(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[A-Z0-9]{3}$/;
+      if (fisicaRegex.test(clean)) {
+        return { valid: true, type: 'FISICA', message: '✓ Persona Física válida ante el SAT (13 caracteres).' };
+      }
+      return { valid: false, message: 'Estructura inválida de Persona Física (4 letras + fecha AAMMDD + 3 homoclave).' };
+    }
+    return {
+      valid: false,
+      message: `Longitud actual: ${clean.length} car. Debe tener 12 (moral) o 13 caracteres (física).`
+    };
+  }
+
+  function validateEmail(email) {
+    const clean = (email || '').trim();
+    if (!clean) {
+      return { valid: false, message: 'El correo electrónico es obligatorio para recibir tus facturas.' };
+    }
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(clean)) {
+      return { valid: false, message: 'Ingresa un correo electrónico válido (ej. usuario@dominio.com).' };
+    }
+    return { valid: true, message: '✓ Correo electrónico válido.' };
+  }
+
+  function validatePostalCode(cp) {
+    const clean = (cp || '').trim();
+    if (!clean) {
+      return { valid: false, message: 'El código postal fiscal es obligatorio.' };
+    }
+    if (!/^\d{5}$/.test(clean)) {
+      return { valid: false, message: `Código postal incompleto (${clean.length}/5). Debe tener 5 dígitos.` };
+    }
+    return { valid: true, message: '✓ Código postal fiscal válido (5 dígitos).' };
+  }
+
+  function setFieldValidationUI(inputEl, feedbackEl, result, isTouched) {
+    if (!feedbackEl || !inputEl) return;
+    if (!isTouched && (!inputEl.value || !inputEl.value.trim())) {
+      inputEl.classList.remove('is-valid', 'is-invalid');
+      feedbackEl.className = 'validation-feedback';
+      feedbackEl.innerHTML = '';
+      return;
+    }
+
+    if (result.valid) {
+      inputEl.classList.remove('is-invalid');
+      inputEl.classList.add('is-valid');
+      feedbackEl.className = 'validation-feedback is-valid';
+      feedbackEl.innerHTML = `
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>${escapeHtml(result.message)}</span>
+      `;
+    } else {
+      inputEl.classList.remove('is-valid');
+      inputEl.classList.add('is-invalid');
+      feedbackEl.className = 'validation-feedback is-invalid';
+      feedbackEl.innerHTML = `
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>${escapeHtml(result.message)}</span>
+      `;
     }
   }
 
@@ -402,6 +893,83 @@ document.addEventListener('DOMContentLoaded', () => {
         loadHistory();
       } else {
         switchScreen(screenWelcome);
+      }
+    });
+
+    // Initialize custom accessible searchable select for Régimen Fiscal
+    initCustomRegimenSelect();
+
+    // Real-time RFC input sanitization & validation
+    profRfc?.addEventListener('input', () => {
+      profRfc.value = profRfc.value.toUpperCase().replace(/[^A-Z0-9&Ñ]/g, '').slice(0, 13);
+      const res = validateRFC(profRfc.value);
+      setFieldValidationUI(profRfc, profRfcFeedback, res, true);
+
+      // Intelligent filter suggestion based on RFC type
+      if (res.valid) {
+        if (res.type === 'MORAL' && activeRegimenFilter !== 'MORAL') {
+          chipFilterMoral?.click();
+        } else if (res.type === 'FISICA' && activeRegimenFilter !== 'FISICA') {
+          chipFilterFisica?.click();
+        }
+      }
+    });
+
+    profRfc?.addEventListener('blur', () => {
+      const res = validateRFC(profRfc.value);
+      setFieldValidationUI(profRfc, profRfcFeedback, res, true);
+    });
+
+    // Real-time Email validation
+    let emailTouched = false;
+    profEmail?.addEventListener('input', () => {
+      if (emailTouched) {
+        const res = validateEmail(profEmail.value);
+        setFieldValidationUI(profEmail, profEmailFeedback, res, true);
+      }
+    });
+    profEmail?.addEventListener('blur', () => {
+      emailTouched = true;
+      const res = validateEmail(profEmail.value);
+      setFieldValidationUI(profEmail, profEmailFeedback, res, true);
+    });
+
+    // Real-time Código Postal validation
+    let cpTouched = false;
+    profCp?.addEventListener('input', () => {
+      profCp.value = profCp.value.replace(/\D/g, '').slice(0, 5);
+      if (cpTouched || profCp.value.length === 5) {
+        const res = validatePostalCode(profCp.value);
+        setFieldValidationUI(profCp, profCpFeedback, res, true);
+      }
+    });
+    profCp?.addEventListener('blur', () => {
+      cpTouched = true;
+      const res = validatePostalCode(profCp.value);
+      setFieldValidationUI(profCp, profCpFeedback, res, true);
+    });
+
+    // Razón Social validation on blur
+    profRazon?.addEventListener('blur', () => {
+      if (!profRazon.value.trim()) {
+        profRazon.classList.add('is-invalid');
+        if (profRazonFeedback) {
+          profRazonFeedback.className = 'validation-feedback is-invalid';
+          profRazonFeedback.innerHTML = `
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Ingresa tu Razón Social o Nombre Completo.</span>
+          `;
+        }
+      } else {
+        profRazon.classList.remove('is-invalid');
+        profRazon.classList.add('is-valid');
+        if (profRazonFeedback) {
+          profRazonFeedback.className = 'validation-feedback is-valid';
+          profRazonFeedback.innerHTML = `
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Razón social completa.</span>
+          `;
+        }
       }
     });
 
@@ -688,12 +1256,32 @@ document.addEventListener('DOMContentLoaded', () => {
         profRazon.value = 'REYNOL MARTINEZ DIAZ';
         profEmail.value = 'martinezdiazreynol@gmail.com';
         profCp.value = '77536';
-        if (profRegimen.querySelector('option[value="625"]')) {
+        if (profRegimen) {
           profRegimen.value = '625';
+          profRegimen.dispatchEvent(new Event('change'));
         }
-        if (profUso.querySelector('option[value="G03"]')) {
+        syncCustomRegimenFromValue('625');
+        if (profUso?.querySelector('option[value="G03"]')) {
           profUso.value = 'G03';
         }
+
+        // Trigger real-time visual validation states
+        setFieldValidationUI(profRfc, profRfcFeedback, validateRFC(profRfc.value), true);
+        setFieldValidationUI(profEmail, profEmailFeedback, validateEmail(profEmail.value), true);
+        setFieldValidationUI(profCp, profCpFeedback, validatePostalCode(profCp.value), true);
+        if (profRazon) {
+          profRazon.classList.remove('is-invalid');
+          profRazon.classList.add('is-valid');
+          if (profRazonFeedback) {
+            profRazonFeedback.className = 'validation-feedback is-valid';
+            profRazonFeedback.innerHTML = `
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Razón social completa.</span>
+            `;
+          }
+        }
+        customRegimenContainer?.classList.remove('is-invalid');
+        validateRegimenField(true);
         showToast('Datos de prueba de REYNOL cargados correctamente.', 'info');
       });
     }
@@ -711,20 +1299,42 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- PROFILE LOGIC ---
   function openProfileScreen(isEditing) {
     switchScreen(screenProfile);
+
+    // Reset validation feedback states
+    [profRfc, profRazon, profEmail, profCp].forEach(el => {
+      el?.classList.remove('is-valid', 'is-invalid');
+    });
+    [profRfcFeedback, profRazonFeedback, profEmailFeedback, profCpFeedback, profRegimenFeedback, profUsoFeedback].forEach(el => {
+      if (el) { el.className = 'validation-feedback'; el.innerHTML = ''; }
+    });
+    customRegimenContainer?.classList.remove('is-invalid');
+
     if (isEditing) {
       const profile = getProfile() || {};
       profRfc.value = profile.rfc || '';
       profRazon.value = profile.razonSocial || '';
       profEmail.value = profile.email || '';
       profCp.value = profile.codigoPostal || '';
-      if (profile.regimenFiscal) profRegimen.value = profile.regimenFiscal;
-      if (profile.usoCfdi) profUso.value = profile.usoCfdi;
+      if (profile.regimenFiscal && profRegimen) {
+        profRegimen.value = profile.regimenFiscal;
+        syncCustomRegimenFromValue(profile.regimenFiscal);
+      } else {
+        clearRegimenSelection();
+      }
+      if (profile.usoCfdi && profUso) profUso.value = profile.usoCfdi;
       btnCancelProfile.style.display = 'inline-flex';
+
+      // Pre-evaluate visual validation for existing fields
+      if (profRfc.value) setFieldValidationUI(profRfc, profRfcFeedback, validateRFC(profRfc.value), true);
+      if (profEmail.value) setFieldValidationUI(profEmail, profEmailFeedback, validateEmail(profEmail.value), true);
+      if (profCp.value) setFieldValidationUI(profCp, profCpFeedback, validatePostalCode(profCp.value), true);
+      if (profRegimen?.value) validateRegimenField(false);
     } else {
       btnCancelProfile.style.display = 'none';
       profileForm.reset();
+      clearRegimenSelection();
       // Default to common values
-      if (profUso.querySelector('option[value="G03"]')) {
+      if (profUso?.querySelector('option[value="G03"]')) {
         profUso.value = 'G03';
       }
     }
@@ -735,41 +1345,65 @@ document.addEventListener('DOMContentLoaded', () => {
     const razonSocial = profRazon.value.trim().toUpperCase();
     const email = profEmail.value.trim();
     const codigoPostal = profCp.value.trim();
-    const regimenFiscal = profRegimen.value;
-    const usoCfdi = profUso.value;
+    const regimenFiscal = profRegimen ? profRegimen.value : '';
+    const usoCfdi = profUso ? profUso.value : '';
 
-    if (!rfc || rfc.length < 12 || rfc.length > 13) {
-      showToast('Por favor ingresa un RFC válido (12 caracteres para personas morales o 13 para físicas).', 'error');
+    // 1. Strict RFC Validation
+    const rfcResult = validateRFC(rfc);
+    setFieldValidationUI(profRfc, profRfcFeedback, rfcResult, true);
+    if (!rfcResult.valid) {
+      showToast(rfcResult.message, 'error');
       profRfc.focus();
       return;
     }
 
+    // 2. Razón Social Validation
     if (!razonSocial) {
-      showToast('Ingresa tu Razón Social o Nombre Completo.', 'error');
-      profRazon.focus();
+      profRazon?.classList.add('is-invalid');
+      if (profRazonFeedback) {
+        profRazonFeedback.className = 'validation-feedback is-invalid';
+        profRazonFeedback.innerHTML = `
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Ingresa tu Razón Social o Nombre Completo.</span>
+        `;
+      }
+      showToast('Ingresa tu Razón Social o Nombre Completo tal como aparece en tu Constancia Fiscal.', 'error');
+      profRazon?.focus();
       return;
     }
 
-    if (!email || !email.includes('@')) {
-      showToast('Ingresa un correo electrónico válido.', 'error');
+    // 3. Strict Email Validation
+    const emailResult = validateEmail(email);
+    setFieldValidationUI(profEmail, profEmailFeedback, emailResult, true);
+    if (!emailResult.valid) {
+      showToast(emailResult.message, 'error');
       profEmail.focus();
       return;
     }
 
-    if (!codigoPostal || codigoPostal.length !== 5) {
-      showToast('Ingresa un código postal fiscal válido de 5 dígitos.', 'error');
+    // 4. Strict Código Postal Validation
+    const cpResult = validatePostalCode(codigoPostal);
+    setFieldValidationUI(profCp, profCpFeedback, cpResult, true);
+    if (!cpResult.valid) {
+      showToast(cpResult.message, 'error');
       profCp.focus();
       return;
     }
 
+    // 5. Régimen Fiscal Selection
     if (!regimenFiscal) {
-      showToast('Selecciona tu Régimen Fiscal.', 'error');
-      profRegimen.focus();
+      customRegimenContainer?.classList.add('is-invalid');
+      validateRegimenField(true);
+      showToast('Por favor selecciona tu Régimen Fiscal del SAT utilizando el buscador.', 'error');
+      openRegimenDropdown();
       return;
+    } else {
+      customRegimenContainer?.classList.remove('is-invalid');
     }
 
+    // 6. Uso de CFDI Selection
     if (!usoCfdi) {
-      showToast('Selecciona el Uso de CFDI.', 'error');
+      showToast('Por favor selecciona el Uso de CFDI preferente para tus comprobantes.', 'error');
       profUso.focus();
       return;
     }
