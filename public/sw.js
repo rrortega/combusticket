@@ -1,4 +1,4 @@
-const CACHE_NAME = 'combusticket-shell-v5';
+const CACHE_NAME = 'combusticket-shell-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -141,6 +141,56 @@ self.addEventListener('fetch', (event) => {
         .catch(() => cachedResponse);
 
       return cachedResponse || fetchPromise;
+    })
+  );
+});
+
+// ==============================================================================
+// Web Push Notifications
+// ==============================================================================
+
+// Push event: Handles incoming Web Push notifications even when the app is closed
+self.addEventListener('push', (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data = { body: event.data.text() };
+    }
+  }
+
+  const title = data.title || 'CombusTicket';
+  const options = {
+    body: data.body || 'Tu factura ha sido procesada.',
+    icon: data.icon || '/icons/icon-192x192.png',
+    badge: data.badge || '/favicon-32x32.png',
+    tag: data.tag || 'combusticket-invoice',
+    data: data.data || { url: '/' },
+    vibrate: [200, 100, 200],
+    renotify: true,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification click: Focus existing window or open the target invoice/workbench
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if ('focus' in client) {
+          if (targetUrl !== '/' && client.url.includes(targetUrl)) {
+            return client.focus();
+          }
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
     })
   );
 });

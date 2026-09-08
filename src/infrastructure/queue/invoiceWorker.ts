@@ -5,6 +5,7 @@ import { GasInvoiceService } from '../../services/gasInvoiceService.js';
 import { RedisHistoryService, InvoiceHistoryEntry } from '../storage/redisHistory.js';
 import { InvoiceResult } from '../../core/types.js';
 import { Logger } from '../../utils/logger.js';
+import { PushNotificationService } from '../notifications/pushNotificationService.js';
 
 let invoiceWorker: Worker<InvoiceJobData, InvoiceResult> | null = null;
 
@@ -133,6 +134,9 @@ export function startInvoiceWorker(): Worker<InvoiceJobData, InvoiceResult> {
         };
 
         await RedisHistoryService.saveEntry(historyEntry);
+        await PushNotificationService.notifyInvoiceOutcome(historyEntry).catch((pushErr) => {
+          Logger.warn('Worker', `Push notification dispatch warning: ${pushErr.message}`);
+        });
         await job.updateProgress(100);
 
         const durationSec = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -185,6 +189,7 @@ export function startInvoiceWorker(): Worker<InvoiceJobData, InvoiceResult> {
         };
 
         await RedisHistoryService.saveEntry(failedEntry).catch(() => {});
+        await PushNotificationService.notifyInvoiceOutcome(failedEntry).catch(() => {});
         throw err;
       }
     },

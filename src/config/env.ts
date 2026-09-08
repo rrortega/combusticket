@@ -26,4 +26,8 @@ export const ENV = {
       ? process.env.S3_FORCE_PATH_STYLE === 'true'
       : undefined,
   S3_PUBLIC_URL: process.env.S3_PUBLIC_URL || '',
+  // Web Push (VAPID) Settings
+  VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || 'BBD_umeTsnRjxR0SajkbfXeuwQvy1wOfXLK2LCat0M_UOT1OEu0YEk7ifkDQe_kF68Tk8ZbaMVD19dgzCgseTus',
+  VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || '4TUr-NvnCVY-OwPUWJUMnO_mthCczatulp6j9TuzqF8',
+  VAPID_SUBJECT: process.env.VAPID_SUBJECT || 'mailto:admin@combusticket.local',
 };

@@ -174,6 +174,41 @@ body {
   color: inherit;
 }
 
+.push-notification-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.85rem;
+  border-radius: var(--radius-full);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.push-notification-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.push-notification-btn.btn-active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #34d399;
+}
+
+.push-notification-btn.btn-active:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #10b981;
+  color: #ffffff;
+}
+
 .brand-title {
   font-size: 1.25rem;
   font-weight: 800;

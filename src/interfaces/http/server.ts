@@ -14,6 +14,7 @@ import {
   FormasPagoCatalog,
 } from '../../../config/catalogs/index.js';
 import { StorageFactory } from '../../infrastructure/storage/storageFactory.js';
+import { PushNotificationService } from '../../infrastructure/notifications/pushNotificationService.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -77,6 +78,63 @@ export async function createHttpServer(
       recordVideo: ENV.RECORD_VIDEO,
       dryRun: ENV.DRY_RUN,
     });
+  });
+
+  // Web Push Notifications
+  app.get('/api/push/public-key', (_req: Request, res: Response) => {
+    res.json({
+      success: true,
+      publicKey: PushNotificationService.getPublicKey(),
+    });
+  });
+
+  app.post('/api/push/subscribe', async (req: Request, res: Response) => {
+    try {
+      const { subscription, rfc } = req.body;
+      if (!subscription || !subscription.endpoint || !subscription.keys) {
+        return res.status(400).json({ success: false, error: 'Suscripción Web Push inválida o incompleta.' });
+      }
+
+      await PushNotificationService.saveSubscription(subscription, rfc);
+      return res.json({ success: true, message: 'Suscripción push guardada con éxito.' });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/push/unsubscribe', async (req: Request, res: Response) => {
+    try {
+      const { endpoint, rfc } = req.body;
+      if (!endpoint) {
+        return res.status(400).json({ success: false, error: 'Endpoint es requerido.' });
+      }
+
+      await PushNotificationService.removeSubscription(endpoint, rfc);
+      return res.json({ success: true, message: 'Suscripción cancelada.' });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/push/test', async (req: Request, res: Response) => {
+    try {
+      const { rfc } = req.body;
+      const count = rfc
+        ? await PushNotificationService.sendToRfc(rfc, {
+            title: '🔔 CombusTicket Test',
+            body: '¡Las notificaciones push están funcionando correctamente!',
+            data: { url: '/' },
+          })
+        : await PushNotificationService.broadcast({
+            title: '🔔 CombusTicket Test',
+            body: '¡Las notificaciones push están funcionando correctamente!',
+            data: { url: '/' },
+          });
+
+      return res.json({ success: true, deliveredCount: count });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
   });
 
   // Catalogs (Régimen Fiscal, Uso CFDI, Formas de Pago)

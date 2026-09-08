@@ -3058,6 +3058,130 @@ document.addEventListener('DOMContentLoaded', () => {
         btnPwaInstall.classList.add('hidden');
       }
     });
+
+    // 3. Push Notifications (VAPID) Integration
+    setupPushNotifications();
+  }
+
+  // --- Push Notifications (VAPID) ---
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  async function updatePushStatusUI() {
+    const btnPush = document.getElementById('btn-push-subscribe');
+    const textPush = document.getElementById('push-btn-text');
+    if (!btnPush) return;
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      btnPush.classList.add('hidden');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          btnPush.classList.add('btn-active');
+          if (textPush) textPush.textContent = 'Alertas Activas';
+          btnPush.setAttribute('title', 'Notificaciones push activadas en este navegador');
+          return;
+        }
+      } catch (e) {}
+    }
+
+    btnPush.classList.remove('btn-active');
+    if (textPush) textPush.textContent = 'Activar Alertas';
+    btnPush.setAttribute('title', 'Activar notificaciones de facturas completadas');
+  }
+
+  async function togglePushSubscription() {
+    const btnPush = document.getElementById('btn-push-subscribe');
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      showToast('Tu navegador no soporta notificaciones push en segundo plano.', 'warning');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      showToast('Las notificaciones están bloqueadas en tu navegador. Puedes habilitarlas en los permisos del sitio.', 'warning');
+      return;
+    }
+
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+
+      if (sub) {
+        // Unsubscribe
+        await sub.unsubscribe();
+        await fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        }).catch(() => {});
+        showToast('Notificaciones push desactivadas.', 'info');
+        updatePushStatusUI();
+        return;
+      }
+
+      // Request permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        showToast('Permiso de notificaciones no concedido.', 'warning');
+        updatePushStatusUI();
+        return;
+      }
+
+      // Fetch server VAPID public key
+      const res = await fetch('/api/push/public-key');
+      const data = await res.json();
+      if (!data.success || !data.publicKey) {
+        showToast('No se pudo obtener la clave VAPID del servidor.', 'error');
+        return;
+      }
+
+      const applicationServerKey = urlBase64ToUint8Array(data.publicKey);
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
+
+      // Retrieve current RFC if set
+      let rfc = undefined;
+      try {
+        const localProfile = JSON.parse(localStorage.getItem('combusticket_profile') || '{}');
+        if (localProfile && localProfile.rfc) rfc = localProfile.rfc;
+      } catch (e) {}
+
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub, rfc }),
+      });
+
+      showToast('🔔 ¡Notificaciones push activadas! Te avisaremos al timbrar tu factura.', 'success');
+      updatePushStatusUI();
+    } catch (err) {
+      console.error('[Push] Error al configurar notificaciones:', err);
+      showToast('Error al configurar notificaciones push: ' + (err.message || err), 'error');
+      updatePushStatusUI();
+    }
+  }
+
+  function setupPushNotifications() {
+    const btnPush = document.getElementById('btn-push-subscribe');
+    if (btnPush) {
+      btnPush.addEventListener('click', togglePushSubscription);
+      navigator.serviceWorker?.ready?.then(updatePushStatusUI).catch(() => {});
+    }
   }
 
   setupPWA();
