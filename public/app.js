@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeJobs = [];
   let redisHistoryItems = [];
   let historyPollingTimer = null;
+  let currentScreen = 'welcome';
 
   // Elements
   const brandLogo = document.getElementById('brand-logo');
@@ -261,8 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Load server config and refresh history if active
     loadServerConfig().then(() => {
       const profile = getProfile();
-      if (profile && profile.rfc && currentScreen === 'history') {
-        loadUnifiedHistory(profile.rfc, true);
+      if (profile && profile.rfc && (currentScreen === 'history' || screenHistory?.classList.contains('active'))) {
+        loadHistory();
       }
     });
 
@@ -1195,6 +1196,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     targetScreen.classList.remove('hidden');
     targetScreen.classList.add('active');
+    if (targetScreen === screenHistory) currentScreen = 'history';
+    else if (targetScreen === screenWelcome) currentScreen = 'welcome';
+    else if (targetScreen === screenProfile) currentScreen = 'profile';
+    else if (targetScreen === screenWorkbench) currentScreen = 'workbench';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
