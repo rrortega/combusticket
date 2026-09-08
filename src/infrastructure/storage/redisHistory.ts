@@ -8,6 +8,9 @@ export interface InvoiceHistoryEntry {
   trackingNumber: string;
   gasStation: string;
   stationNumber?: string;
+  cashier?: string;
+  fileHash?: string;
+  receiptJsonUrl?: string;
   billingUrl?: string;
   amount: number;
   date: string;
@@ -93,6 +96,11 @@ export class RedisHistoryService {
       return true;
     }
 
+    // 5. Match by fileHash if valid
+    if (a.fileHash && b.fileHash && a.fileHash === b.fileHash) {
+      return true;
+    }
+
     return false;
   }
 
@@ -124,6 +132,8 @@ export class RedisHistoryService {
           videoUrl: entry.videoUrl || existing.videoUrl,
           pdfUrl: entry.pdfUrl || existing.pdfUrl,
           receiptImageUrl: entry.receiptImageUrl || existing.receiptImageUrl,
+          fileHash: entry.fileHash || existing.fileHash,
+          receiptJsonUrl: entry.receiptJsonUrl || existing.receiptJsonUrl,
           message: entry.message || existing.message,
           error: entry.error || existing.error,
         };
@@ -170,6 +180,9 @@ export class RedisHistoryService {
             trackingNumber: entry.trackingNumber || '---',
             gasStation: entry.gasStation || 'GOGAS',
             stationNumber: entry.stationNumber,
+            cashier: entry.cashier,
+            fileHash: entry.fileHash,
+            receiptJsonUrl: entry.receiptJsonUrl,
             billingUrl: entry.billingUrl,
             amount: entry.amount || 0,
             date: entry.date || new Date().toISOString().split('T')[0],
@@ -276,5 +289,33 @@ export class RedisHistoryService {
         return false;
       }
     });
+  }
+
+  public static getHashesKey(rfc: string): string {
+    return `combusticket:hashes:${rfc.trim().toUpperCase()}`;
+  }
+
+  public static async isFileHashRegistered(rfc: string, fileHash: string): Promise<boolean> {
+    if (!fileHash) return false;
+    try {
+      const redis = getRedisClient();
+      const isMember = await redis.sismember(this.getHashesKey(rfc), fileHash);
+      if (isMember) return true;
+
+      const history = await this.getHistoryByRfc(rfc);
+      return history.some((h) => h.fileHash === fileHash);
+    } catch {
+      return false;
+    }
+  }
+
+  public static async registerFileHash(rfc: string, fileHash: string): Promise<void> {
+    if (!fileHash) return;
+    try {
+      const redis = getRedisClient();
+      await redis.sadd(this.getHashesKey(rfc), fileHash);
+    } catch (err: any) {
+      console.warn('[RedisHistory] Could not register file hash in Redis:', err.message);
+    }
   }
 }

@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CombusTicket — Asistente Inteligente de Facturación de Combustible</title>
-  <meta name="description" content="Automatización empresarial de facturación de gasolina en México (CFDI 4.0). Extracción OCR de tickets, colas asíncronas y navegación desatendida.">
-  <meta name="keywords" content="facturacion gasolina, cfdi 4.0, gogas, facturasgas, oxxo gas, sat mexico, combustible, facturacion automatica, ocr tickets, pwa">
+  <meta name="description"
+    content="Automatización empresarial de facturación de gasolina en México (CFDI 4.0). Extracción OCR de tickets, colas asíncronas y navegación desatendida.">
+  <meta name="keywords"
+    content="facturacion gasolina, cfdi 4.0, gogas, facturasgas, oxxo gas, sat mexico, combustible, facturacion automatica, ocr tickets, pwa">
   <meta name="author" content="CombusTicket">
 
   <!-- PWA & Mobile Web Capabilities -->
@@ -22,7 +26,8 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="CombusTicket">
   <meta property="og:title" content="CombusTicket — Facturación Inteligente de Combustible">
-  <meta property="og:description" content="Automatización empresarial de facturación de gasolina en México (CFDI 4.0) con OCR heurístico y navegación desatendida.">
+  <meta property="og:description"
+    content="Automatización empresarial de facturación de gasolina en México (CFDI 4.0) con OCR heurístico y navegación desatendida.">
   <meta property="og:image" content="/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -33,7 +38,8 @@
   <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="CombusTicket — Facturación Inteligente de Combustible">
-  <meta name="twitter:description" content="Automatización empresarial de facturación de gasolina en México con OCR heurístico y navegación desatendida.">
+  <meta name="twitter:description"
+    content="Automatización empresarial de facturación de gasolina en México con OCR heurístico y navegación desatendida.">
   <meta name="twitter:image" content="/og-image.png">
   <meta name="twitter:image:alt" content="CombusTicket - Facturación Inteligente de Combustible">
 
@@ -48,11 +54,13 @@
   <!-- Fonts & Styles -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=6">
   <script>
     // Immediate anti-FOUC state detection before initial DOM paint
-    (function() {
+    (function () {
       try {
         var raw = localStorage.getItem('combusticket_profile') || localStorage.getItem('facturagas_profile');
         if (raw) {
@@ -62,11 +70,12 @@
             return;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
       document.documentElement.classList.add('no-profile');
     })();
   </script>
 </head>
+
 <body>
   <div class="app-background"></div>
 
@@ -85,21 +94,15 @@
 
       <!-- Actions Group: PWA Install & Profile -->
       <div class="header-actions">
-        <!-- Push Notification Action -->
-        <button type="button" class="btn btn-sm btn-outline push-notification-btn" id="btn-push-subscribe" title="Activar notificaciones de facturas completadas">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <span id="push-btn-text">Activar Alertas</span>
-        </button>
 
         <!-- PWA Install Action -->
-        <button type="button" class="btn btn-sm btn-outline pwa-install-btn hidden" id="btn-pwa-install" title="Instalar CombusTicket en este dispositivo">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
+        <button type="button" class="btn btn-sm btn-outline pwa-install-btn hidden" id="btn-pwa-install"
+          title="Instalar CombusTicket en este dispositivo">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
           <span>Instalar App</span>
         </button>
@@ -109,14 +112,26 @@
           <div class="profile-pill hidden" id="profile-pill" role="button" tabindex="0" title="Ver mi perfil">
             <span class="profile-avatar">
               <span class="avatar-initials" id="avatar-initials">--</span>
-              <svg class="avatar-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="12"/><line x1="15" y1="22" x2="15" y2="12"/><line x1="8" y1="6" x2="10" y2="6"/><line x1="14" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/></svg>
+              <svg class="avatar-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+                <line x1="9" y1="22" x2="9" y2="12" />
+                <line x1="15" y1="22" x2="15" y2="12" />
+                <line x1="8" y1="6" x2="10" y2="6" />
+                <line x1="14" y1="6" x2="16" y2="6" />
+                <line x1="8" y1="10" x2="10" y2="10" />
+                <line x1="14" y1="10" x2="16" y2="10" />
+              </svg>
             </span>
             <div class="profile-info-text">
               <span class="profile-name" id="pill-razon-social">Cargando...</span>
               <span class="profile-rfc" id="pill-rfc">RFC: ---</span>
             </div>
             <button type="button" class="btn-icon-xs" id="btn-edit-profile" title="Editar datos fiscales">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
             </button>
           </div>
           <button type="button" class="btn btn-sm btn-outline hidden" id="btn-header-onboard">
@@ -132,44 +147,305 @@
 
     <!-- 1. SCREEN: WELCOME / LANDING -->
     <section class="screen-view active" id="screen-welcome">
-      <div class="welcome-hero">
-        <div class="hero-badge">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          <span>Asistente Inteligente de Facturas</span>
-        </div>
-        <h2 class="hero-title">Tus facturas de gasolina, <span class="gradient-text">listas en segundos</span></h2>
-        <p class="hero-description">
-          Olvídate de entrar a portales complicados y llenar los mismos formularios una y otra vez.
-          Sube la foto de tu ticket y nuestro sistema se encarga de rellenar los datos fiscales del SAT y generar tu factura automáticamente.
-        </p>
+      <div class="welcome-container">
 
-        <div class="hero-cta-group">
-          <button type="button" class="btn btn-primary btn-lg" id="btn-welcome-start">
-            <span>Comenzar Ahora</span>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Supported Stations Section -->
-      <div class="stations-section">
-        <div class="section-title-wrap">
-          <h3 class="section-title">Gasolineras y Portales Compatibles</h3>
-          <p class="section-subtitle">Continuamente añadimos nuevas redes de servicio para que nunca te quedes sin facturar.</p>
+        <!-- Hero Headline -->
+        <div class="welcome-header">
+          <div class="hero-badge">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            <span>Facturación Inteligente de Combustible</span>
+          </div>
+          <h2 class="hero-title">Tus facturas de gasolina, <span class="gradient-text">listas en segundos</span></h2>
+          <p class="hero-description">
+            Toma una foto a tu ticket: extraemos los datos y rellenamos la gasolinera por ti en automático.
+          </p>
         </div>
 
-        <div class="stations-grid" id="stations-grid">
-          <!-- Populated dynamically via /api/stations -->
-          <div class="station-card loading-skeleton">
-            <div class="station-logo">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/><path d="M15 11h2a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L20.5 6.5"/><rect x="6" y="6" width="6" height="5" rx="1"/></svg>
+        <!-- 2-Column Interactive Showcase -->
+        <div class="welcome-showcase-grid">
+
+          <!-- Left Column: 3D Floating & Interactive Scanned Receipt -->
+          <div class="showcase-left-col">
+            <div class="receipt-3d-scene" id="receipt-3d-scene">
+              <div class="receipt-3d-card" id="receipt-3d-card">
+                
+                <!-- Laser Scanning Beam -->
+                <div class="receipt-scan-beam" aria-hidden="true">
+                  <div class="scan-beam-glow"></div>
+                  <div class="scan-beam-line"></div>
+                </div>
+
+                <!-- Floating Live Scan Status Pill -->
+                <div class="receipt-ocr-status">
+                  <span class="ocr-status-pulse"></span>
+                  <span class="ocr-status-text">Escaneando ticket • Extrayendo datos</span>
+                </div>
+
+                <!-- Thermal Paper Receipt (Wrinkled 3D Texture & Hand-Torn Edges) -->
+                <div class="receipt-paper">
+                  <!-- Wrinkled Paper Creases & Fold Highlights -->
+                  <div class="receipt-wrinkles-layer" aria-hidden="true">
+                    <div class="paper-crease crease-diag-main"></div>
+                    <div class="paper-crease crease-horiz-mid"></div>
+                    <div class="paper-crease crease-diag-sub"></div>
+                    <div class="paper-crease crease-corner-crumple"></div>
+                    <div class="paper-corner-dogear"></div>
+                  </div>
+
+                  <div class="receipt-content">
+                    <div class="receipt-header-info">
+                      <div class="receipt-gogas-brand" aria-hidden="true">
+                        <div class="gogas-logo-symbol">
+                          <svg viewBox="0 0 28 28" width="28" height="28" fill="none">
+                            <rect width="28" height="28" rx="7" fill="url(#gogas-grad)" />
+                            <defs>
+                              <linearGradient id="gogas-grad" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#10b981" />
+                                <stop offset="1" stop-color="#06b6d4" />
+                              </linearGradient>
+                            </defs>
+                            <path d="M7 21V8a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v13" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M17 11h1.5a1.5 1.5 0 0 1 1.5 1.5v3.5a1.5 1.5 0 0 0 1.5 1.5h0a1.5 1.5 0 0 0 1.5-1.5V10.2a1.5 1.5 0 0 0-.44-1.06L21 7.5" stroke="#ffffff" stroke-width="1.8"/>
+                            <circle cx="12" cy="11" r="2" fill="#ffffff"/>
+                          </svg>
+                        </div>
+                        <span class="gogas-brand-name">Go<span class="brand-accent">Gas</span></span>
+                      </div>
+                      <h4 class="receipt-station-title">SERVICIO GOGAS S.A. DE C.V.</h4>
+                      <p class="receipt-station-legal">RED FACTURASGAS • ESTACIÓN No. E08420</p>
+                      <p class="receipt-station-sub">PERMISO CRE: PL/8420/EXP/ES/2015</p>
+                      <p class="receipt-station-sub">RFC: SGO140812AA1 • facturasgas.com</p>
+                    </div>
+
+                    <div class="receipt-rule-dashed"></div>
+
+                    <!-- Meta details with OCR target highlights -->
+                    <div class="receipt-data-rows">
+                      <div class="receipt-data-row ocr-field-highlight" data-detected="Estación">
+                        <span class="row-label">NO. ESTACIÓN:</span>
+                        <span class="row-value font-mono font-bold">08420 (GOGAS)</span>
+                        <span class="ocr-badge-detected">✓ Extraído</span>
+                      </div>
+                      <div class="receipt-data-row ocr-field-highlight" data-detected="Folio">
+                        <span class="row-label">FOLIO VENTA:</span>
+                        <span class="row-value font-mono font-bold">849204</span>
+                        <span class="ocr-badge-detected">✓ Extraído</span>
+                      </div>
+                      <div class="receipt-data-row ocr-field-highlight" data-detected="Rastreo">
+                        <span class="row-label">NO. RASTREO:</span>
+                        <span class="row-value font-mono font-bold">8492041289</span>
+                        <span class="ocr-badge-detected">✓ Extraído</span>
+                      </div>
+                      <div class="receipt-data-row">
+                        <span class="row-label">FECHA Y HORA:</span>
+                        <span class="row-value font-mono">08/09/2026 13:20</span>
+                      </div>
+                      <div class="receipt-data-row">
+                        <span class="row-label">DISPENSARIO:</span>
+                        <span class="row-value font-mono">BOMBA 04 (REGULAR)</span>
+                      </div>
+                    </div>
+
+                    <div class="receipt-rule-dashed"></div>
+
+                    <!-- Products Table -->
+                    <div class="receipt-items-table">
+                      <div class="receipt-items-head">
+                        <span>DESCRIPCIÓN</span>
+                        <span>CANT</span>
+                        <span>IMPORTE</span>
+                      </div>
+                      <div class="receipt-item-row ocr-field-highlight" data-detected="Producto">
+                        <div class="item-desc">
+                          <strong>GASOLINA REGULAR 87 OCT</strong>
+                          <small>PRECIO X LITRO: $22.10 • CLAVE: 32011</small>
+                        </div>
+                        <span class="item-qty font-mono">38.46 L</span>
+                        <span class="item-price font-mono font-bold">$850.00</span>
+                      </div>
+                    </div>
+
+                    <div class="receipt-rule-dashed"></div>
+
+                    <!-- Totals Breakdown -->
+                    <div class="receipt-totals-box">
+                      <div class="receipt-total-line subtotal">
+                        <span>SUBTOTAL</span>
+                        <span class="font-mono">$735.34</span>
+                      </div>
+                      <div class="receipt-total-line iva">
+                        <span>IVA (16%)</span>
+                        <span class="font-mono">$114.66</span>
+                      </div>
+                      <div class="receipt-total-line grand-total ocr-field-highlight" data-detected="Total">
+                        <span>TOTAL MXN</span>
+                        <span class="font-mono grand-total-amount">$850.00</span>
+                        <span class="ocr-badge-detected badge-total">✓ $850.00</span>
+                      </div>
+                    </div>
+
+                    <!-- Thermal Barcode Simulation -->
+                    <div class="receipt-barcode-section" aria-hidden="true">
+                      <div class="barcode-stripes">
+                        <div class="b-bar b-w2"></div><div class="b-bar b-w1"></div><div class="b-bar b-w3"></div>
+                        <div class="b-bar b-w1"></div><div class="b-bar b-w2"></div><div class="b-bar b-w1"></div>
+                        <div class="b-bar b-w3"></div><div class="b-bar b-w2"></div><div class="b-bar b-w1"></div>
+                        <div class="b-bar b-w4"></div><div class="b-bar b-w1"></div><div class="b-bar b-w2"></div>
+                        <div class="b-bar b-w2"></div><div class="b-bar b-w3"></div><div class="b-bar b-w1"></div>
+                        <div class="b-bar b-w3"></div><div class="b-bar b-w1"></div><div class="b-bar b-w2"></div>
+                      </div>
+                      <span class="barcode-text font-mono">08420-8492041289</span>
+                    </div>
+
+                    <p class="receipt-tail-note">GRACIAS POR SU COMPRA • RED FACTURASGAS</p>
+                  </div>
+                </div>
+
+                <!-- Floating 3D Chips around the receipt -->
+                <div class="floating-data-chip chip-station">
+                  <div class="chip-bubble">⛽</div>
+                  <div class="chip-info">
+                    <span class="chip-title">Estación GoGas E08420</span>
+                    <span class="chip-status">FacturasGas • Auto-factura</span>
+                  </div>
+                </div>
+
+                <div class="floating-data-chip chip-sat">
+                  <div class="chip-bubble">⚡</div>
+                  <div class="chip-info">
+                    <span class="chip-title">$850.00 MXN</span>
+                    <span class="chip-status">Comprobante SAT listo para timbrar</span>
+                  </div>
+                </div>
+
+              </div>
             </div>
-            <div class="station-details">
-              <h4>Cargando plataformas...</h4>
-              <p>Consultando catálogo de gasolineras disponibles</p>
+          </div>
+
+          <!-- Right Column: Cómo Funciona (Vertical 3-Step Flow) -->
+          <div class="showcase-right-col">
+            <div class="how-it-works-container">
+              <div class="how-it-works-header">
+                <span class="how-badge">FLUJO SIMPLE Y SIN FRICCIÓN</span>
+                <h3 class="how-main-title">¿Cómo funciona?</h3>
+                <p class="how-subtitle">Factura tus consumos de gasolina en 3 pasos rápidos sin registros obligatorios de inicio:</p>
+              </div>
+
+              <!-- Vertical Timeline -->
+              <div class="how-steps-timeline">
+                
+                <!-- Step 1: Foto física -->
+                <div class="how-step-card">
+                  <div class="step-badge-col">
+                    <div class="step-circle step-circle-1">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                    </div>
+                    <div class="step-connector"></div>
+                  </div>
+                  <div class="step-body">
+                    <div class="step-title-row">
+                      <h4 class="step-heading">1. Tómale una foto a tu ticket</h4>
+                      <span class="step-tag-pill tag-instant">Solo foto física</span>
+                    </div>
+                    <p class="step-description">
+                      Tómale una foto clara a tu ticket físico de gasolina. Lo escaneamos al instante y sacamos la estación, folio, litros y monto sin pedirte registro de entrada.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Step 2: Confirma datos -->
+                <div class="how-step-card">
+                  <div class="step-badge-col">
+                    <div class="step-circle step-circle-2">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <line x1="22" y1="2" x2="11" y2="13" />
+                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                      </svg>
+                    </div>
+                    <div class="step-connector"></div>
+                  </div>
+                  <div class="step-body">
+                    <div class="step-title-row">
+                      <h4 class="step-heading">2. Confirma tus datos fiscales</h4>
+                      <span class="step-tag-pill tag-once">1 sola vez</span>
+                    </div>
+                    <p class="step-description">
+                      Revisas los datos extraídos de tu ticket y confirmas tu RFC una sola vez. Queda guardado seguro en tu navegador para que no lo vuelvas a teclear.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Step 3: Facturación desatendida -->
+                <div class="how-step-card">
+                  <div class="step-badge-col">
+                    <div class="step-circle step-circle-3">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <path d="m9 15 2 2 4-4" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="step-body">
+                    <div class="step-title-row">
+                      <h4 class="step-heading">3. Facturamos por ti en automático</h4>
+                      <span class="step-tag-pill tag-sat">Sin esfuerzo</span>
+                    </div>
+                    <p class="step-description">
+                      Entramos y rellenamos la página de facturación de la gasolinera por ti, timbramos tu comprobante ante el SAT y te entregamos tu factura lista para deducir.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Main CTA Group -->
+              <div class="how-cta-box">
+                <button type="button" class="btn btn-primary btn-lg btn-start-glow" id="btn-welcome-start">
+                  <span>Escanear mi Primer Ticket</span>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
+                <span class="how-frictionless-note">⚡ Sin registro previo: sube la foto de tu ticket y pruébalo al instante</span>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom: Gasolineras y Portales Compatibles -->
+        <div class="stations-section">
+          <div class="section-title-wrap">
+            <h3 class="section-title">Gasolineras y Portales Compatibles</h3>
+            <p class="section-subtitle">Continuamente añadimos nuevas redes de servicio para que nunca te quedes sin facturar.</p>
+          </div>
+
+          <div class="stations-grid" id="stations-grid">
+            <!-- Populated dynamically via /api/stations -->
+            <div class="station-card loading-skeleton">
+              <div class="station-logo">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17" />
+                  <path d="M15 11h2a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L20.5 6.5" />
+                  <rect x="6" y="6" width="6" height="5" rx="1" />
+                </svg>
+              </div>
+              <div class="station-details">
+                <h4>Cargando plataformas...</h4>
+                <p>Consultando catálogo de gasolineras disponibles</p>
+              </div>
             </div>
           </div>
         </div>
+
       </div>
     </section>
 
@@ -177,20 +453,42 @@
     <section class="screen-view hidden" id="screen-profile">
       <div class="form-container-card">
         <div class="form-card-header">
-          <div class="step-indicator">Paso 1 de 2</div>
-          <h2 class="form-card-title">Configura tus Datos Fiscales</h2>
-          <p class="form-card-subtitle">
-            Para poder rellenar automáticamente los portales de facturación, necesitamos saber a nombre de quién se expedirán tus comprobantes fiscales.
+          <div class="step-indicator" id="profile-step-indicator">Paso 1 de 2</div>
+          <h2 class="form-card-title" id="profile-card-title">Configura tus Datos Fiscales</h2>
+          <p class="form-card-subtitle" id="profile-card-subtitle">
+            Para poder rellenar automáticamente los portales de facturación, necesitamos saber a nombre de quién se
+            expedirán tus comprobantes fiscales.
           </p>
+        </div>
+
+        <!-- Dynamic Notice when arriving from scanned ticket -->
+        <div class="profile-pending-notice hidden" id="profile-pending-notice">
+          <div class="pending-notice-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+          </div>
+          <div class="pending-notice-body">
+            <span class="pending-notice-badge">Ticket guardado en memoria</span>
+            <h4 class="pending-notice-title">¡Ticket escaneado con éxito!</h4>
+            <p class="pending-notice-desc">Hemos extraído y retenido los datos de tu ticket. Registra tus datos fiscales
+              por única vez para guardar el comprobante en tu carpeta personal y emitir tu factura de inmediato sin
+              tener que volver a subir el archivo.</p>
+          </div>
         </div>
 
         <form id="profile-form" class="profile-form" novalidate>
           <div class="form-grid">
             <!-- RFC -->
             <div class="form-group">
-              <label for="prof-rfc" class="form-label">RFC (Registro Federal de Contribuyentes) <span class="req">*</span></label>
+              <label for="prof-rfc" class="form-label">RFC (Registro Federal de Contribuyentes) <span
+                  class="req">*</span></label>
               <div class="input-with-icon">
-                <input type="text" id="prof-rfc" name="rfc" class="form-input text-uppercase" placeholder="Ej. MADR600405BK1" maxlength="13" required autocomplete="off" spellcheck="false">
+                <input type="text" id="prof-rfc" name="rfc" class="form-input text-uppercase"
+                  placeholder="Ej. MADR600405BK1" maxlength="13" required autocomplete="off" spellcheck="false">
                 <span class="field-status-icon hidden" id="prof-rfc-icon" aria-hidden="true"></span>
               </div>
               <div class="validation-feedback" id="prof-rfc-feedback" aria-live="polite"></div>
@@ -199,9 +497,11 @@
 
             <!-- Razón Social -->
             <div class="form-group">
-              <label for="prof-razon" class="form-label">Razón Social o Nombre Completo <span class="req">*</span></label>
+              <label for="prof-razon" class="form-label">Razón Social o Nombre Completo <span
+                  class="req">*</span></label>
               <div class="input-with-icon">
-                <input type="text" id="prof-razon" name="razonSocial" class="form-input text-uppercase" placeholder="Ej. REYNOL MARTINEZ DIAZ" required autocomplete="off">
+                <input type="text" id="prof-razon" name="razonSocial" class="form-input text-uppercase"
+                  placeholder="Ej. REYNOL MARTINEZ DIAZ" required autocomplete="off">
                 <span class="field-status-icon hidden" id="prof-razon-icon" aria-hidden="true"></span>
               </div>
               <div class="validation-feedback" id="prof-razon-feedback" aria-live="polite"></div>
@@ -210,9 +510,11 @@
 
             <!-- Email -->
             <div class="form-group">
-              <label for="prof-email" class="form-label">Correo Electrónico para Recibir Facturas <span class="req">*</span></label>
+              <label for="prof-email" class="form-label">Correo Electrónico para Recibir Facturas <span
+                  class="req">*</span></label>
               <div class="input-with-icon">
-                <input type="email" id="prof-email" name="email" class="form-input" placeholder="correo@ejemplo.com" required autocomplete="email">
+                <input type="email" id="prof-email" name="email" class="form-input" placeholder="correo@ejemplo.com"
+                  required autocomplete="email">
                 <span class="field-status-icon hidden" id="prof-email-icon" aria-hidden="true"></span>
               </div>
               <div class="validation-feedback" id="prof-email-feedback" aria-live="polite"></div>
@@ -223,7 +525,8 @@
             <div class="form-group">
               <label for="prof-cp" class="form-label">Código Postal Fiscal <span class="req">*</span></label>
               <div class="input-with-icon">
-                <input type="text" id="prof-cp" name="codigoPostal" class="form-input" placeholder="Ej. 77536" maxlength="5" pattern="[0-9]{5}" inputmode="numeric" required autocomplete="postal-code">
+                <input type="text" id="prof-cp" name="codigoPostal" class="form-input" placeholder="Ej. 77536"
+                  maxlength="5" pattern="[0-9]{5}" inputmode="numeric" required autocomplete="postal-code">
                 <span class="field-status-icon hidden" id="prof-cp-icon" aria-hidden="true"></span>
               </div>
               <div class="validation-feedback" id="prof-cp-feedback" aria-live="polite"></div>
@@ -233,128 +536,229 @@
             <!-- Régimen Fiscal Custom Searchable Choice -->
             <div class="form-group form-group-full">
               <label for="regimen-select-trigger" class="form-label">Régimen Fiscal <span class="req">*</span></label>
-              
+
               <div class="custom-select-container" id="custom-regimen-container">
-                <button type="button" class="custom-select-trigger" id="regimen-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                <button type="button" class="custom-select-trigger" id="regimen-select-trigger" aria-haspopup="listbox"
+                  aria-expanded="false">
                   <div class="custom-select-content">
-                    <span class="custom-select-placeholder" id="regimen-select-placeholder">-- Selecciona tu Régimen Fiscal del SAT --</span>
+                    <span class="custom-select-placeholder" id="regimen-select-placeholder">-- Selecciona tu Régimen
+                      Fiscal del SAT --</span>
                     <div class="custom-select-selected-value hidden" id="regimen-selected-value">
                       <span class="regimen-code-tag" id="regimen-selected-code"></span>
                       <span class="regimen-name" id="regimen-selected-desc"></span>
                     </div>
                   </div>
                   <div class="custom-select-actions">
-                    <span class="choice-check-icon hidden" id="regimen-select-check" title="Régimen seleccionado" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span class="choice-check-icon hidden" id="regimen-select-check" title="Régimen seleccionado"
+                      aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#10b981" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
                     </span>
-                    <span class="custom-select-clear hidden" id="regimen-select-clear" title="Quitar selección" role="button">&times;</span>
-                    <svg class="custom-select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    <span class="custom-select-clear hidden" id="regimen-select-clear" title="Quitar selección"
+                      role="button">&times;</span>
+                    <svg class="custom-select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none"
+                      stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
                   </div>
                 </button>
-                
+
                 <div class="custom-select-dropdown hidden" id="regimen-select-dropdown">
                   <div class="custom-select-search-wrapper">
-                    <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" class="custom-select-search" id="regimen-search-input" placeholder="Buscar por código (ej. 625) o nombre..." autocomplete="off" spellcheck="false">
+                    <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none"
+                      stroke="currentColor" stroke-width="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="text" class="custom-select-search" id="regimen-search-input"
+                      placeholder="Buscar por código (ej. 625) o nombre..." autocomplete="off" spellcheck="false">
                     <button type="button" class="custom-search-clear hidden" id="regimen-search-clear">&times;</button>
                   </div>
-                  
+
                   <div class="custom-select-filters" id="regimen-filters">
-                    <button type="button" class="filter-chip active" data-filter="ALL" id="chip-filter-all">Todos</button>
-                    <button type="button" class="filter-chip" data-filter="FISICA" id="chip-filter-fisica">Personas Físicas</button>
-                    <button type="button" class="filter-chip" data-filter="MORAL" id="chip-filter-moral">Personas Morales</button>
+                    <button type="button" class="filter-chip active" data-filter="ALL"
+                      id="chip-filter-all">Todos</button>
+                    <button type="button" class="filter-chip" data-filter="FISICA" id="chip-filter-fisica">Personas
+                      Físicas</button>
+                    <button type="button" class="filter-chip" data-filter="MORAL" id="chip-filter-moral">Personas
+                      Morales</button>
                   </div>
-                  
+
                   <ul class="custom-select-options" id="regimen-options-list" role="listbox" tabindex="-1">
                   </ul>
-                  
+
                   <div class="custom-select-empty hidden" id="regimen-empty-state">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+                      stroke-width="1.5">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      <line x1="8" y1="11" x2="14" y2="11" />
+                    </svg>
                     <span>No se encontraron regímenes que coincidan con la búsqueda.</span>
                   </div>
                 </div>
 
                 <!-- Hidden native select for form serialization and programmatic compatibility -->
-                <select id="prof-regimen" name="regimenFiscal" class="sr-only" style="position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;opacity:0!important;pointer-events:none!important;" tabindex="-1" aria-hidden="true">
+                <select id="prof-regimen" name="regimenFiscal" class="sr-only"
+                  style="position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;opacity:0!important;pointer-events:none!important;"
+                  tabindex="-1" aria-hidden="true">
                   <option value="">-- Selecciona tu Régimen Fiscal --</option>
                 </select>
               </div>
               <div class="validation-feedback" id="prof-regimen-feedback" aria-live="polite"></div>
-              <span class="form-hint">Selecciona el régimen que corresponda a tu actividad registrada ante el SAT.</span>
+              <span class="form-hint">Selecciona el régimen que corresponda a tu actividad registrada ante el
+                SAT.</span>
             </div>
 
             <!-- Uso de CFDI Custom Combobox -->
             <div class="form-group form-group-full">
               <label for="uso-select-trigger" class="form-label">Uso de CFDI Habitual <span class="req">*</span></label>
-              
+
               <div class="custom-select-container" id="custom-uso-container">
-                <button type="button" class="custom-select-trigger" id="uso-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                <button type="button" class="custom-select-trigger" id="uso-select-trigger" aria-haspopup="listbox"
+                  aria-expanded="false">
                   <div class="custom-select-content">
-                    <span class="custom-select-placeholder" id="uso-select-placeholder">-- Selecciona el Uso de CFDI (ej. G03) --</span>
+                    <span class="custom-select-placeholder" id="uso-select-placeholder">-- Selecciona el Uso de CFDI
+                      (ej. G03) --</span>
                     <div class="custom-select-selected-value hidden" id="uso-selected-value">
                       <span class="regimen-code-tag uso-code-tag" id="uso-selected-code"></span>
                       <span class="regimen-name" id="uso-selected-desc"></span>
                     </div>
                   </div>
                   <div class="custom-select-actions">
-                    <span class="choice-check-icon hidden" id="uso-select-check" title="Uso de CFDI seleccionado" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span class="choice-check-icon hidden" id="uso-select-check" title="Uso de CFDI seleccionado"
+                      aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#10b981" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
                     </span>
-                    <span class="custom-select-clear hidden" id="uso-select-clear" title="Quitar selección" role="button">&times;</span>
-                    <svg class="custom-select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    <span class="custom-select-clear hidden" id="uso-select-clear" title="Quitar selección"
+                      role="button">&times;</span>
+                    <svg class="custom-select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none"
+                      stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
                   </div>
                 </button>
-                
+
                 <div class="custom-select-dropdown hidden" id="uso-select-dropdown">
                   <div class="custom-select-search-wrapper">
-                    <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" class="custom-select-search" id="uso-search-input" placeholder="Buscar por código (ej. G03) o concepto..." autocomplete="off" spellcheck="false">
+                    <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none"
+                      stroke="currentColor" stroke-width="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="text" class="custom-select-search" id="uso-search-input"
+                      placeholder="Buscar por código (ej. G03) o concepto..." autocomplete="off" spellcheck="false">
                     <button type="button" class="custom-search-clear hidden" id="uso-search-clear">&times;</button>
                   </div>
-                  
+
                   <div class="custom-select-filters" id="uso-filters">
                     <button type="button" class="filter-chip active" data-filter="ALL" id="chip-uso-all">Todos</button>
-                    <button type="button" class="filter-chip" data-filter="GASTOS" id="chip-uso-gastos">Gastos (G)</button>
-                    <button type="button" class="filter-chip" data-filter="INVERSIONES" id="chip-uso-inversiones">Inversiones (I)</button>
-                    <button type="button" class="filter-chip" data-filter="DEDUCCIONES" id="chip-uso-deducciones">Deducciones (D)</button>
+                    <button type="button" class="filter-chip" data-filter="GASTOS" id="chip-uso-gastos">Gastos
+                      (G)</button>
+                    <button type="button" class="filter-chip" data-filter="INVERSIONES"
+                      id="chip-uso-inversiones">Inversiones (I)</button>
+                    <button type="button" class="filter-chip" data-filter="DEDUCCIONES"
+                      id="chip-uso-deducciones">Deducciones (D)</button>
                   </div>
-                  
+
                   <ul class="custom-select-options" id="uso-options-list" role="listbox" tabindex="-1">
                   </ul>
-                  
+
                   <div class="custom-select-empty hidden" id="uso-empty-state">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+                      stroke-width="1.5">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      <line x1="8" y1="11" x2="14" y2="11" />
+                    </svg>
                     <span>No se encontraron usos de CFDI que coincidan con la búsqueda.</span>
                   </div>
                 </div>
 
                 <!-- Hidden native select for form serialization and programmatic compatibility -->
-                <select id="prof-uso" name="usoCfdi" class="sr-only" style="position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;opacity:0!important;pointer-events:none!important;" tabindex="-1" aria-hidden="true">
+                <select id="prof-uso" name="usoCfdi" class="sr-only"
+                  style="position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;opacity:0!important;pointer-events:none!important;"
+                  tabindex="-1" aria-hidden="true">
                   <option value="">-- Selecciona Uso de CFDI --</option>
                 </select>
               </div>
               <div class="validation-feedback" id="prof-uso-feedback" aria-live="polite"></div>
-              <span class="form-hint">Uso preferente para deducción de gasolina (comúnmente G03 - Gastos en general).</span>
+              <span class="form-hint">Uso preferente para deducción de gasolina (comúnmente G03 - Gastos en
+                general).</span>
             </div>
           </div>
 
           <!-- Localhost Predefined Test Profile Button (Only shown in dev) -->
           <div class="dev-profile-container hidden" id="dev-profile-container">
             <button type="button" class="btn-dev-load" id="btn-load-test-profile">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
               <span>Cargar datos de prueba de REYNOL</span>
             </button>
           </div>
 
           <div class="form-actions">
-            <button type="button" class="btn btn-secondary" id="btn-cancel-profile" style="display:none;">Cancelar</button>
+            <button type="button" class="btn btn-secondary" id="btn-cancel-profile"
+              style="display:none;">Cancelar</button>
             <button type="submit" class="btn btn-primary btn-lg" id="btn-save-profile">
               <span class="btn-text-desktop">Guardar Perfil y Continuar</span>
               <span class="btn-text-mobile">Guardar</span>
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
             </button>
           </div>
         </form>
+
+        <!-- Notifications Zone: Push Alerts -->
+        <div class="profile-notifications-zone hidden" id="profile-notifications-zone">
+          <div class="notifications-zone-content">
+            <div class="notifications-zone-info">
+              <div class="notifications-zone-header">
+                <span class="notifications-zone-title">Alertas y Notificaciones Push</span>
+                <span class="push-status-badge badge-inactive" id="push-status-badge">Inactivas</span>
+              </div>
+              <p class="notifications-zone-desc" id="push-status-desc">
+                Recibe avisos directos en este dispositivo cuando tus facturas se completen o requieran atención.
+              </p>
+            </div>
+            <button type="button" class="btn push-notification-btn" id="btn-push-subscribe"
+              title="Configurar notificaciones push">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              <span id="push-btn-text">Activar Alertas</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Danger Zone: Delete Profile -->
+        <div class="profile-danger-zone hidden" id="profile-danger-zone">
+          <div class="danger-zone-content">
+            <div class="danger-zone-info">
+              <span class="danger-zone-title">Eliminar perfil de este dispositivo</span>
+              <p class="danger-zone-desc">Borra tus datos fiscales de la memoria local de este navegador. Tus recibos y facturas generadas permanecerán respaldados en el servidor.</p>
+            </div>
+            <button type="button" class="btn btn-danger-outline" id="btn-delete-profile">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+              <span>Eliminar mi Perfil</span>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -367,15 +771,21 @@
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Subir Tickets de Gasolina</h2>
-              <p class="panel-subtitle">Puedes subir uno o varios tickets al mismo tiempo para procesarlos por lotes.</p>
+              <p class="panel-subtitle">Puedes subir uno o varios tickets al mismo tiempo para procesarlos por lotes.
+              </p>
             </div>
             <div class="panel-header-actions" style="display: flex; gap: 0.5rem; align-items: center;">
               <button type="button" class="btn btn-sm btn-outline" id="btn-load-demo-receipt">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
                 Cargar Ticket de Muestra
               </button>
               <button type="button" class="btn btn-sm btn-ghost hidden" id="btn-back-to-history">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="19" y1="12" x2="5" y2="12" />
+                  <polyline points="12 19 5 12 12 5" />
+                </svg>
                 <span>Volver al Historial</span>
               </button>
             </div>
@@ -384,16 +794,17 @@
           <!-- Dropzone -->
           <div class="dropzone" id="dropzone">
             <input type="file" id="file-input" accept="image/*" multiple class="file-input">
-            
+
             <div class="dropzone-content" id="dropzone-prompt">
               <div class="dropzone-icon-wrap">
                 <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
-              <p class="dropzone-main-text">Arrastra aquí tus fotos de tickets o <span class="highlight">haz clic para seleccionarlas</span></p>
+              <p class="dropzone-main-text">Arrastra aquí tus fotos de tickets o <span class="highlight">haz clic para
+                  seleccionarlas</span></p>
               <p class="dropzone-hint">Formatos compatibles: JPG, PNG, WEBP (Permite selección múltiple)</p>
             </div>
 
@@ -412,11 +823,20 @@
           <div class="review-navbar">
             <div class="review-main-tabs" id="review-main-tabs">
               <button type="button" class="review-tab active" id="tab-btn-data" data-tab-target="pane-data">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
                 <span>Datos Extraídos</span>
               </button>
               <button type="button" class="review-tab" id="tab-btn-image" data-tab-target="pane-image">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
                 <span>Recibo Escaneado</span>
               </button>
             </div>
@@ -434,11 +854,18 @@
             <div class="fullwidth-receipt-container" id="fullwidth-receipt-container">
               <div class="scanned-image-actions">
                 <button type="button" class="btn btn-sm btn-ghost text-danger" id="btn-scanned-clear">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
                   <span>Limpiar</span>
                 </button>
                 <button type="button" class="btn btn-sm btn-outline" id="btn-scanned-upload-another">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
                   <span>Cargar otro</span>
                 </button>
               </div>
@@ -451,11 +878,16 @@
           <!-- Bottom Execution Bar -->
           <div class="execution-bar">
             <button type="button" class="btn btn-secondary btn-lg" id="btn-cancel-review">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
               <span>Cancelar</span>
             </button>
             <button type="button" class="btn btn-primary btn-lg" id="btn-enqueue-invoices">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
               <span>Avanzar y Facturar</span>
             </button>
           </div>
@@ -474,11 +906,17 @@
           </div>
           <div class="history-header-actions">
             <button type="button" class="btn btn-sm btn-outline" id="btn-new-from-history">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
               Nueva Factura
             </button>
             <button type="button" class="btn btn-sm btn-ghost hidden" id="btn-refresh-history" title="Actualizar">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
             </button>
           </div>
         </div>
@@ -493,8 +931,12 @@
 
         <!-- Floating Round Action Button (FAB) for New Receipt (Desktop & Mobile) -->
         <div class="fab-container hidden" id="mobile-history-bar">
-          <button type="button" class="fab-btn" id="btn-mobile-new-receipt" title="Cargar Nuevo Recibo / Facturar" aria-label="Cargar Nuevo Recibo">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <button type="button" class="fab-btn" id="btn-mobile-new-receipt" title="Cargar Nuevo Recibo / Facturar"
+            aria-label="Cargar Nuevo Recibo">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
             <span class="fab-label">Nueva Factura</span>
           </button>
         </div>
@@ -510,7 +952,8 @@
         <!-- Brand & Legal Shield Description -->
         <div class="footer-brand-col">
           <div class="footer-logo">
-            <svg class="footer-logo-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="footer-logo-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+              stroke-width="2">
               <path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8" />
               <path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5" />
               <path d="M4 22h16" />
@@ -519,10 +962,16 @@
             <span class="footer-brand-name">Combus<strong>Ticket</strong></span>
           </div>
           <p class="footer-mission">
-            Plataforma de automatización robótica (RPA) para la gestión, extracción y conciliación de facturas de combustible en México.
+            Plataforma de automatización robótica (RPA) para la gestión, extracción y conciliación de facturas de
+            combustible en México.
           </p>
           <p class="footer-disclaimer">
-            CombusTicket es un software de asistencia digital desarrollado y operado de manera independiente por <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> No mantiene afiliación, relación comercial, patrocinio ni representación con el Servicio de Administración Tributaria (SAT), la Comisión Reguladora de Energía (CRE) ni con los grupos gasolineros o permisionarios de estaciones de servicio. La expedición, timbrado y validez legal del CFDI 4.0 es responsabilidad exclusiva de las estaciones emisoras y de los datos fiscales confirmados por el usuario.
+            CombusTicket es un software de asistencia digital desarrollado y operado de manera independiente por
+            <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> No mantiene afiliación, relación comercial, patrocinio ni
+            representación con el Servicio de Administración Tributaria (SAT), la Comisión Reguladora de Energía (CRE)
+            ni con los grupos gasolineros o permisionarios de estaciones de servicio. La expedición, timbrado y validez
+            legal del CFDI 4.0 es responsabilidad exclusiva de las estaciones emisoras y de los datos fiscales
+            confirmados por el usuario.
           </p>
         </div>
 
@@ -532,19 +981,29 @@
           <ul class="footer-links-list">
             <li>
               <button type="button" class="footer-legal-btn" id="btn-legal-terms">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
                 <span>Términos y Condiciones</span>
               </button>
             </li>
             <li>
               <button type="button" class="footer-legal-btn" id="btn-legal-privacy">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
                 <span>Política de Privacidad (LFPDPPP)</span>
               </button>
             </li>
             <li>
               <button type="button" class="footer-legal-btn" id="btn-legal-disclaimer">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
                 <span>Aviso Legal y Deslinde SAT</span>
               </button>
             </li>
@@ -556,20 +1015,29 @@
           <h4 class="footer-col-title">Seguridad y Privacidad</h4>
           <div class="footer-badges">
             <span class="footer-badge">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
               Cifrado SSL / TLS 1.3
             </span>
             <span class="footer-badge">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 14 14" />
+              </svg>
               Estándar CFDI 4.0 SAT
             </span>
             <span class="footer-badge">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
               Protección Datos LFPDPPP
             </span>
           </div>
           <p class="footer-security-note">
-            Tus datos fiscales se emplean estrictamente para la automatización de tus solicitudes ante los portales de combustible. No comercializamos ni transferimos información con terceros.
+            Tus datos fiscales se emplean estrictamente para la automatización de tus solicitudes ante los portales de
+            combustible. No comercializamos ni transferimos información con terceros.
           </p>
         </div>
       </div>
@@ -579,14 +1047,29 @@
     <div class="footer-subbar">
       <div class="footer-subbar-container">
         <p class="footer-copyright">
-          © 2026 CombusTicket. Desarrollado y operado por <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> Todos los derechos reservados.
+          © 2026 CombusTicket. Desarrollado y operado por <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> Todos los derechos
+          reservados.
         </p>
         <p class="footer-powered">
-          Powered by <a href="https://chamba.pro" target="_blank" rel="noopener noreferrer" class="footer-link">CHAMBAPRO SAPI DE CV</a>
+          Powered by <a href="https://chamba.pro" target="_blank" rel="noopener noreferrer"
+            class="footer-link">chamba.pro</a>
         </p>
       </div>
     </div>
   </footer>
+
+  <!-- Floating Round Camera Action Button (Direct child of body for guaranteed viewport fixed positioning) -->
+  <div class="mobile-camera-fab-container" id="mobile-camera-fab-container">
+    <button type="button" class="mobile-camera-fab-btn" id="btn-mobile-camera-fab"
+      title="Tomar foto o escanear ticket de gasolina" aria-label="Escanear Ticket de Gasolina con Cámara">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+        <circle cx="12" cy="13" r="4" />
+      </svg>
+      <span class="fab-pulse-ring" aria-hidden="true"></span>
+    </button>
+  </div>
 
   <!-- Fullscreen Scanning Overlay with Animated Scanning Light Beam -->
   <div class="scanner-overlay hidden" id="scanner-overlay">
@@ -635,7 +1118,10 @@
       <div class="modal-header">
         <h3 class="modal-title" id="modal-title">Comprobante de Facturación</h3>
         <button type="button" class="btn-icon" id="btn-close-modal">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
       <div class="modal-body" id="modal-body">
@@ -645,7 +1131,8 @@
   </div>
 
   <!-- Legal Documents Modal (Términos, Privacidad, Deslinde) -->
-  <div class="modal-overlay hidden" id="legal-modal" role="dialog" aria-modal="true" aria-labelledby="legal-modal-title">
+  <div class="modal-overlay hidden" id="legal-modal" role="dialog" aria-modal="true"
+    aria-labelledby="legal-modal-title">
     <div class="modal-card legal-modal-card">
       <div class="modal-header legal-modal-header">
         <div class="legal-header-meta">
@@ -653,22 +1140,36 @@
           <h3 class="modal-title" id="legal-modal-title">Términos y Condiciones de Uso</h3>
         </div>
         <button type="button" class="btn-icon" id="btn-close-legal-modal" aria-label="Cerrar modal">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
 
       <!-- Tabs navigation inside modal -->
       <div class="legal-modal-tabs">
         <button type="button" class="legal-tab-btn active" data-tab="legal-pane-terms">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
           <span>Términos y Condiciones</span>
         </button>
         <button type="button" class="legal-tab-btn" data-tab="legal-pane-privacy">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
           <span>Política de Privacidad</span>
         </button>
         <button type="button" class="legal-tab-btn" data-tab="legal-pane-disclaimer">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
           <span>Deslinde Fiscal SAT</span>
         </button>
       </div>
@@ -680,23 +1181,40 @@
           <div class="legal-doc-content">
             <h4>1. Información General y Titularidad</h4>
             <p>
-              El presente contrato de Términos y Condiciones de Uso regula el acceso y utilización de la plataforma web, herramientas de software y servicios de automatización denominados <strong>CombusTicket</strong> (en lo sucesivo, "El Software" o "El Servicio"), cuyo desarrollo, operación, derechos de propiedad industrial y comercialización pertenecen de forma exclusiva y plena a <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> (en lo sucesivo, "CHAMBAPRO"), sociedad mercantil legalmente constituida conforme a las leyes de los Estados Unidos Mexicanos.
+              El presente contrato de Términos y Condiciones de Uso regula el acceso y utilización de la plataforma web,
+              herramientas de software y servicios de automatización denominados <strong>CombusTicket</strong> (en lo
+              sucesivo, "El Software" o "El Servicio"), cuyo desarrollo, operación, derechos de propiedad industrial y
+              comercialización pertenecen de forma exclusiva y plena a <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> (en
+              lo sucesivo, "CHAMBAPRO"), sociedad mercantil legalmente constituida conforme a las leyes de los Estados
+              Unidos Mexicanos.
             </p>
             <p>
-              Al registrar un perfil de facturación, cargar imágenes de tickets de consumo o hacer uso de los motores de automatización, el Usuario declara expresamente ser mayor de edad, contar con capacidad legal para obligarse y aceptar sin reserva alguna el contenido integral de estos Términos.
+              Al registrar un perfil de facturación, cargar imágenes de tickets de consumo o hacer uso de los motores de
+              automatización, el Usuario declara expresamente ser mayor de edad, contar con capacidad legal para
+              obligarse y aceptar sin reserva alguna el contenido integral de estos Términos.
             </p>
 
             <h4>2. Naturaleza Tecnológica del Servicio (Software RPA Autónomo)</h4>
             <p>
-              CombusTicket es una herramienta tecnológica de <em>Automatización Robótica de Procesos (RPA)</em> y <em>Reconocimiento Óptico de Caracteres (OCR)</em>. Su única finalidad técnica es asistir al Usuario final a digitalizar los datos visibles en sus recibos de compra de combustible e introducirlos de forma automatizada en los portales web públicos provistos por las empresas concesionarias y permisionarias de las estaciones de servicio para la solicitud de facturas.
+              CombusTicket es una herramienta tecnológica de <em>Automatización Robótica de Procesos (RPA)</em> y
+              <em>Reconocimiento Óptico de Caracteres (OCR)</em>. Su única finalidad técnica es asistir al Usuario final
+              a digitalizar los datos visibles en sus recibos de compra de combustible e introducirlos de forma
+              automatizada en los portales web públicos provistos por las empresas concesionarias y permisionarias de
+              las estaciones de servicio para la solicitud de facturas.
             </p>
 
             <h4>3. Deslinde Fiscal y de Emisión (No Intermediación ante el SAT ni Carácter de PAC)</h4>
             <p>
-              <strong>CHAMBAPRO NO ES UN PROVEEDOR AUTORIZADO DE CERTIFICACIÓN (PAC) NI ACTÚA COMO EMISOR DE COMPROBANTES FISCALES DIGITALES POR INTERNET (CFDI).</strong>
+              <strong>CHAMBAPRO NO ES UN PROVEEDOR AUTORIZADO DE CERTIFICACIÓN (PAC) NI ACTÚA COMO EMISOR DE
+                COMPROBANTES FISCALES DIGITALES POR INTERNET (CFDI).</strong>
             </p>
             <p>
-              La expedición formal, el timbrado digital, la certificación de sellos fiscales y la entrega de los archivos XML y PDF conforme a las normas del Servicio de Administración Tributaria (SAT) corresponden única y exclusivamente a la persona física o moral permisionaria de la estación de servicio expendedora de combustible y al PAC que dicha estación tenga contratado. CHAMBAPRO no garantiza ni valida la deducibilidad fiscal del comprobante, siendo esta responsabilidad del contribuyente y de su situación ante las autoridades tributarias.
+              La expedición formal, el timbrado digital, la certificación de sellos fiscales y la entrega de los
+              archivos XML y PDF conforme a las normas del Servicio de Administración Tributaria (SAT) corresponden
+              única y exclusivamente a la persona física o moral permisionaria de la estación de servicio expendedora de
+              combustible y al PAC que dicha estación tenga contratado. CHAMBAPRO no garantiza ni valida la
+              deducibilidad fiscal del comprobante, siendo esta responsabilidad del contribuyente y de su situación ante
+              las autoridades tributarias.
             </p>
 
             <h4>4. Responsabilidad y Obligaciones del Usuario sobre la Información Fiscal</h4>
@@ -704,36 +1222,56 @@
               El Usuario es el único y exclusivo responsable de:
             </p>
             <ul>
-              <li>La exactitud, veracidad y vigencia de sus datos de identificación fiscal (RFC, Nombre o Razón Social, Código Postal del Domicilio Fiscal, Régimen Fiscal y Uso de CFDI).</li>
+              <li>La exactitud, veracidad y vigencia de sus datos de identificación fiscal (RFC, Nombre o Razón Social,
+                Código Postal del Domicilio Fiscal, Régimen Fiscal y Uso de CFDI).</li>
               <li>La legal procedencia, autenticidad y propiedad de los tickets de gasolina cargados al sistema.</li>
-              <li>Verificar que el medio de pago asentado en el ticket coincida con los requisitos de deducibilidad estipulados en el Artículo 27, fracción III de la Ley del Impuesto sobre la Renta (LISR).</li>
-              <li>Revisar los datos extraídos por el motor OCR antes de ordenar la ejecución del proceso automatizado de timbrado.</li>
+              <li>Verificar que el medio de pago asentado en el ticket coincida con los requisitos de deducibilidad
+                estipulados en el Artículo 27, fracción III de la Ley del Impuesto sobre la Renta (LISR).</li>
+              <li>Revisar los datos extraídos por el motor OCR antes de ordenar la ejecución del proceso automatizado de
+                timbrado.</li>
             </ul>
 
             <h4>5. Exclusión de Responsabilidad por Fallas en Portales de Terceros</h4>
             <p>
-              CHAMBAPRO no tiene injerencia, control, convenio ni alianza obligatoria con los portales de facturación de las estaciones de servicio. En consecuencia, CHAMBAPRO queda plenamente liberada de cualquier responsabilidad civil, mercantil o de cualquier índole derivada de:
+              CHAMBAPRO no tiene injerencia, control, convenio ni alianza obligatoria con los portales de facturación de
+              las estaciones de servicio. En consecuencia, CHAMBAPRO queda plenamente liberada de cualquier
+              responsabilidad civil, mercantil o de cualquier índole derivada de:
             </p>
             <ul>
-              <li>Caídas de servidor, fallas de conectividad, lentitud o mantenimientos no programados en los sitios web de las gasolineras.</li>
-              <li>Rechazo de tickets por haber excedido el plazo de facturación fijado por cada gasolinera (por ejemplo, fin de mes calendario o ventanas de 24 a 72 horas).</li>
+              <li>Caídas de servidor, fallas de conectividad, lentitud o mantenimientos no programados en los sitios web
+                de las gasolineras.</li>
+              <li>Rechazo de tickets por haber excedido el plazo de facturación fijado por cada gasolinera (por ejemplo,
+                fin de mes calendario o ventanas de 24 a 72 horas).</li>
               <li>Tickets previamente facturados por terceros, folios duplicados o datos borrosos/ilegibles.</li>
-              <li>Mecanismos de protección anti-bot, captchas de alta complejidad o bloqueos perimetrales impuestos por los servidores de las estaciones de servicio.</li>
+              <li>Mecanismos de protección anti-bot, captchas de alta complejidad o bloqueos perimetrales impuestos por
+                los servidores de las estaciones de servicio.</li>
             </ul>
 
             <h4>6. Límite Máximo de Responsabilidad Legal de CHAMBAPRO</h4>
             <p>
-              En la máxima medida permitida por la legislación aplicable en los Estados Unidos Mexicanos, bajo ninguna circunstancia CHAMBAPRO S.A.P.I. DE C.V., sus accionistas, consejeros, directores, empleados o apoderados serán responsables por daños indirectos, incidentales, consecuenciales, punitivos o especiales, incluyendo sin limitación: lucro cesante, pérdida de deducciones fiscales, sanciones, multas, recargos o actualizaciones impuestas por el SAT o cualquier otra autoridad gubernamental derivadas del uso, imposibilidad de uso o demora en la emisión de comprobantes fiscales por parte de las gasolineras.
+              En la máxima medida permitida por la legislación aplicable en los Estados Unidos Mexicanos, bajo ninguna
+              circunstancia CHAMBAPRO S.A.P.I. DE C.V., sus accionistas, consejeros, directores, empleados o apoderados
+              serán responsables por daños indirectos, incidentales, consecuenciales, punitivos o especiales, incluyendo
+              sin limitación: lucro cesante, pérdida de deducciones fiscales, sanciones, multas, recargos o
+              actualizaciones impuestas por el SAT o cualquier otra autoridad gubernamental derivadas del uso,
+              imposibilidad de uso o demora en la emisión de comprobantes fiscales por parte de las gasolineras.
             </p>
 
             <h4>7. Propiedad Intelectual y Restricciones</h4>
             <p>
-              El código fuente, arquitectura de microservicios, algoritmos de visión artificial, interfaz gráfica de usuario (UI/UX), logotipos, isotipos y marcas asociadas a CombusTicket son propiedad exclusiva de CHAMBAPRO S.A.P.I. DE C.V. Queda estrictamente prohibida su descompilación, ingeniería inversa, reproducción no autorizada o explotación comercial sin el consentimiento previo y por escrito de CHAMBAPRO.
+              El código fuente, arquitectura de microservicios, algoritmos de visión artificial, interfaz gráfica de
+              usuario (UI/UX), logotipos, isotipos y marcas asociadas a CombusTicket son propiedad exclusiva de
+              CHAMBAPRO S.A.P.I. DE C.V. Queda estrictamente prohibida su descompilación, ingeniería inversa,
+              reproducción no autorizada o explotación comercial sin el consentimiento previo y por escrito de
+              CHAMBAPRO.
             </p>
 
             <h4>8. Legislación Aplicable y Jurisdicción</h4>
             <p>
-              Para todo lo relativo a la validez, interpretación, cumplimiento y ejecución de los presentes Términos, las partes se someten expresamente a las leyes federales de los Estados Unidos Mexicanos y a la jurisdicción exclusiva de los tribunales competentes en la Ciudad de México, renunciando expresamente a cualquier otro fuero que pudiera corresponderles por razón de sus domicilios presentes o futuros.
+              Para todo lo relativo a la validez, interpretación, cumplimiento y ejecución de los presentes Términos,
+              las partes se someten expresamente a las leyes federales de los Estados Unidos Mexicanos y a la
+              jurisdicción exclusiva de los tribunales competentes en la Ciudad de México, renunciando expresamente a
+              cualquier otro fuero que pudiera corresponderles por razón de sus domicilios presentes o futuros.
             </p>
           </div>
         </div>
@@ -743,25 +1281,35 @@
           <div class="legal-doc-content">
             <h4>Aviso de Privacidad Integral</h4>
             <p class="legal-meta-text">
-              En cumplimiento con la <strong>Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP)</strong>, su Reglamento y los Lineamientos del Aviso de Privacidad vigentes en los Estados Unidos Mexicanos, se pone a disposición del Titular el presente Aviso de Privacidad Integral.
+              En cumplimiento con la <strong>Ley Federal de Protección de Datos Personales en Posesión de los
+                Particulares (LFPDPPP)</strong>, su Reglamento y los Lineamientos del Aviso de Privacidad vigentes en
+              los Estados Unidos Mexicanos, se pone a disposición del Titular el presente Aviso de Privacidad Integral.
             </p>
 
             <h4>1. Identidad y Domicilio del Responsable</h4>
             <p>
-              <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> (en lo sucesivo "El Responsable"), con domicilio legal y fiscal en la República Mexicana, manifiesta que es el responsable legítimo del uso, tratamiento, resguardo y protección de los datos personales que usted nos proporcione.
+              <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> (en lo sucesivo "El Responsable"), con domicilio legal y
+              fiscal en la República Mexicana, manifiesta que es el responsable legítimo del uso, tratamiento, resguardo
+              y protección de los datos personales que usted nos proporcione.
             </p>
 
             <h4>2. Datos Personales Recabados</h4>
             <p>
-              Para las finalidades operativas de la plataforma, recabamos las siguientes categorías de datos personales y fiscales:
+              Para las finalidades operativas de la plataforma, recabamos las siguientes categorías de datos personales
+              y fiscales:
             </p>
             <ul>
-              <li><strong>Datos de Identificación y Fiscales:</strong> Registro Federal de Contribuyentes (RFC), Nombre completo o Razón Social, Régimen Fiscal SAT, Código Postal del Domicilio Fiscal y Uso de CFDI.</li>
-              <li><strong>Datos de Contacto:</strong> Correo electrónico para el envío o recepción de los comprobantes XML/PDF generados por los portales.</li>
-              <li><strong>Datos de Comprobantes:</strong> Fotografías e imágenes de recibos y tickets de compra de combustible (incluyendo fecha, hora, monto, estación y número de rastreo).</li>
+              <li><strong>Datos de Identificación y Fiscales:</strong> Registro Federal de Contribuyentes (RFC), Nombre
+                completo o Razón Social, Régimen Fiscal SAT, Código Postal del Domicilio Fiscal y Uso de CFDI.</li>
+              <li><strong>Datos de Contacto:</strong> Correo electrónico para el envío o recepción de los comprobantes
+                XML/PDF generados por los portales.</li>
+              <li><strong>Datos de Comprobantes:</strong> Fotografías e imágenes de recibos y tickets de compra de
+                combustible (incluyendo fecha, hora, monto, estación y número de rastreo).</li>
             </ul>
             <p>
-              El Responsable <strong>no recaba datos personales sensibles</strong> (origen racial, estado de salud, información genética, creencias religiosas, etc.). Los datos bancarios completos de tarjetas de crédito o débito no son almacenados por CHAMBAPRO.
+              El Responsable <strong>no recaba datos personales sensibles</strong> (origen racial, estado de salud,
+              información genética, creencias religiosas, etc.). Los datos bancarios completos de tarjetas de crédito o
+              débito no son almacenados por CHAMBAPRO.
             </p>
 
             <h4>3. Finalidades Primarias del Tratamiento</h4>
@@ -769,23 +1317,31 @@
               Los datos personales recabados son tratados indispensablemente para:
             </p>
             <ol>
-              <li>Procesar mediante motores OCR y algoritmos de visión los tickets proporcionados para extraer los identificadores de compra.</li>
-              <li>Ejecutar los agentes de navegación automatizada para suministrar la información fiscal ante los portales web autorizados por las estaciones de servicio correspondientes.</li>
-              <li>Descargar, almacenar y presentar al Usuario sus comprobantes digitales (PDF y XML), así como las capturas de pantalla que sirven como evidencia del proceso.</li>
-              <li>Mantener el registro histórico local y en la nube segregado por RFC para consulta exclusiva del titular.</li>
+              <li>Procesar mediante motores OCR y algoritmos de visión los tickets proporcionados para extraer los
+                identificadores de compra.</li>
+              <li>Ejecutar los agentes de navegación automatizada para suministrar la información fiscal ante los
+                portales web autorizados por las estaciones de servicio correspondientes.</li>
+              <li>Descargar, almacenar y presentar al Usuario sus comprobantes digitales (PDF y XML), así como las
+                capturas de pantalla que sirven como evidencia del proceso.</li>
+              <li>Mantener el registro histórico local y en la nube segregado por RFC para consulta exclusiva del
+                titular.</li>
             </ol>
 
             <h4>4. Transferencia de Datos Personales</h4>
             <p>
-              <strong>CHAMBAPRO no vende, alquila, comercializa ni transfiere sus datos personales a terceros con fines publicitarios, de prospección comercial ni mercadotécnicos.</strong>
+              <strong>CHAMBAPRO no vende, alquila, comercializa ni transfiere sus datos personales a terceros con fines
+                publicitarios, de prospección comercial ni mercadotécnicos.</strong>
             </p>
             <p>
-              Las únicas transferencias efectuadas son las estrictamente necesarias para el cumplimiento del servicio solicitado por el Usuario, consistentes en la transmisión de los datos fiscales hacia los formularios web de facturación de las estaciones gasolineras emisoras, en términos del Artículo 37 de la LFPDPPP.
+              Las únicas transferencias efectuadas son las estrictamente necesarias para el cumplimiento del servicio
+              solicitado por el Usuario, consistentes en la transmisión de los datos fiscales hacia los formularios web
+              de facturación de las estaciones gasolineras emisoras, en términos del Artículo 37 de la LFPDPPP.
             </p>
 
             <h4>5. Medidas de Seguridad y Cifrado</h4>
             <p>
-              CHAMBAPRO implementa estrictas medidas de seguridad administrativas, técnicas y físicas para evitar el daño, pérdida, alteración, destrucción o uso no autorizado de sus datos:
+              CHAMBAPRO implementa estrictas medidas de seguridad administrativas, técnicas y físicas para evitar el
+              daño, pérdida, alteración, destrucción o uso no autorizado de sus datos:
             </p>
             <ul>
               <li>Tráfico protegido mediante cifrado TLS 1.3 de extremo a extremo.</li>
@@ -795,10 +1351,16 @@
 
             <h4>6. Ejercicio de Derechos ARCO y Revocación del Consentimiento</h4>
             <p>
-              Usted tiene derecho a conocer qué datos personales tenemos de usted, para qué los utilizamos y las condiciones del uso que les damos (<strong>Acceso</strong>). Asimismo, es su derecho solicitar la corrección de su información (<strong>Rectificación</strong>), que la eliminemos de nuestros registros cuando considere que no está siendo utilizada adecuadamente (<strong>Cancelación</strong>), así como oponerse al uso de sus datos para fines específicos (<strong>Oposición</strong>).
+              Usted tiene derecho a conocer qué datos personales tenemos de usted, para qué los utilizamos y las
+              condiciones del uso que les damos (<strong>Acceso</strong>). Asimismo, es su derecho solicitar la
+              corrección de su información (<strong>Rectificación</strong>), que la eliminemos de nuestros registros
+              cuando considere que no está siendo utilizada adecuadamente (<strong>Cancelación</strong>), así como
+              oponerse al uso de sus datos para fines específicos (<strong>Oposición</strong>).
             </p>
             <p>
-              Para ejercer cualquiera de sus Derechos ARCO o revocar su consentimiento, el Titular podrá enviar una solicitud por escrito al correo electrónico: <strong>privacidad@chamba.pro</strong> o a través del área de soporte de CombusTicket, acreditando su identidad de acuerdo con la LFPDPPP.
+              Para ejercer cualquiera de sus Derechos ARCO o revocar su consentimiento, el Titular podrá enviar una
+              solicitud por escrito al correo electrónico: <strong>privacidad@chamba.pro</strong> o a través del área de
+              soporte de CombusTicket, acreditando su identidad de acuerdo con la LFPDPPP.
             </p>
           </div>
         </div>
@@ -808,31 +1370,47 @@
           <div class="legal-doc-content">
             <h4>Aviso Legal, Deslinde y Aclaración Regulatoria SAT</h4>
             <p>
-              Con la finalidad de brindar total certidumbre jurídica al Usuario y proteger a <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong>, se emiten las siguientes declaraciones imperativas:
+              Con la finalidad de brindar total certidumbre jurídica al Usuario y proteger a <strong>CHAMBAPRO S.A.P.I.
+                DE C.V.</strong>, se emiten las siguientes declaraciones imperativas:
             </p>
 
             <div class="legal-callout">
               <strong>DESLINDE DE REPRESENTACIÓN GUBERNAMENTAL</strong>
               <p>
-                CombusTicket y CHAMBAPRO S.A.P.I. DE C.V. son entidades privadas 100% independientes. NO forman parte del Servicio de Administración Tributaria (SAT), de la Secretaría de Hacienda y Crédito Público (SHCP), de la Comisión Reguladora de Energía (CRE) ni de ninguna dependencia del Gobierno Federal, Estatal o Municipal de México.
+                CombusTicket y CHAMBAPRO S.A.P.I. DE C.V. son entidades privadas 100% independientes. NO forman parte
+                del Servicio de Administración Tributaria (SAT), de la Secretaría de Hacienda y Crédito Público (SHCP),
+                de la Comisión Reguladora de Energía (CRE) ni de ninguna dependencia del Gobierno Federal, Estatal o
+                Municipal de México.
               </p>
             </div>
 
             <h4>1. Deducibilidad Fiscal de Combustibles (Artículo 27 LISR)</h4>
             <p>
-              Conforme a las leyes tributarias vigentes en México, para que la adquisición de combustibles sea estrictamente deducible para efectos del Impuesto sobre la Renta (ISR) y acreditable para el Impuesto al Valor Agregado (IVA):
+              Conforme a las leyes tributarias vigentes en México, para que la adquisición de combustibles sea
+              estrictamente deducible para efectos del Impuesto sobre la Renta (ISR) y acreditable para el Impuesto al
+              Valor Agregado (IVA):
             </p>
             <ul>
-              <li>El pago del combustible debe efectuarse mediante tarjeta de crédito, débito o servicios, cheque nominativo o monedero electrónico autorizado por el SAT (aún cuando el monto sea inferior a $2,000.00 M.N.).</li>
-              <li>El comprobante fiscal digital (CFDI) debe incorporar el complemento correspondiente y haber sido expedido válidamente por el permisionario de la estación.</li>
+              <li>El pago del combustible debe efectuarse mediante tarjeta de crédito, débito o servicios, cheque
+                nominativo o monedero electrónico autorizado por el SAT (aún cuando el monto sea inferior a $2,000.00
+                M.N.).</li>
+              <li>El comprobante fiscal digital (CFDI) debe incorporar el complemento correspondiente y haber sido
+                expedido válidamente por el permisionario de la estación.</li>
             </ul>
             <p>
-              CombusTicket actúa exclusivamente como un facilitador de llenado robótico de portales. CombusTicket no audita si el Usuario efectivamente liquidó el consumo mediante un medio autorizado, ni asume responsabilidad en auditorías o revisiones electrónicas que el SAT lleve a cabo contra el contribuyente.
+              CombusTicket actúa exclusivamente como un facilitador de llenado robótico de portales. CombusTicket no
+              audita si el Usuario efectivamente liquidó el consumo mediante un medio autorizado, ni asume
+              responsabilidad en auditorías o revisiones electrónicas que el SAT lleve a cabo contra el contribuyente.
             </p>
 
             <h4>2. Fallas Atribuibles a Terceros Permisionarios</h4>
             <p>
-              Cada estación expendedora de hidrocarburos es responsable ante la PROFECO y el SAT de contar con sistemas estables de facturación. Si una estación se niega a expedir la factura, tiene sus sistemas caídos de forma prolongada o rechaza folios válidos, el Usuario cuenta con el derecho expedito de interponer una <em>Solicitud de Conciliación de Factura</em> directamente en el portal del SAT (sat.gob.mx) contra el RFC emisor de la estación. CHAMBAPRO no puede ser obligada a responder por las omisiones de terceros permisionarios.
+              Cada estación expendedora de hidrocarburos es responsable ante la PROFECO y el SAT de contar con sistemas
+              estables de facturación. Si una estación se niega a expedir la factura, tiene sus sistemas caídos de forma
+              prolongada o rechaza folios válidos, el Usuario cuenta con el derecho expedito de interponer una
+              <em>Solicitud de Conciliación de Factura</em> directamente en el portal del SAT (sat.gob.mx) contra el RFC
+              emisor de la estación. CHAMBAPRO no puede ser obligada a responder por las omisiones de terceros
+              permisionarios.
             </p>
           </div>
         </div>
@@ -846,12 +1424,72 @@
     </div>
   </div>
 
+  <!-- Custom Confirmation Modal: Delete Profile -->
+  <div class="modal-overlay hidden" id="delete-profile-modal" role="alertdialog" aria-modal="true"
+    aria-labelledby="delete-profile-modal-title" aria-describedby="delete-profile-modal-desc">
+    <div class="modal-card delete-profile-modal-card">
+      <div class="modal-header delete-profile-modal-header">
+        <div class="danger-header-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <button type="button" class="btn-icon" id="btn-close-delete-profile-modal" aria-label="Cerrar modal">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body delete-profile-modal-body">
+        <h3 class="delete-profile-modal-title" id="delete-profile-modal-title">¿Eliminar perfil de este dispositivo?</h3>
+        <p class="delete-profile-modal-desc" id="delete-profile-modal-desc">
+          Se borrarán los datos fiscales guardados de este navegador (<span id="delete-profile-rfc-badge" class="delete-profile-rfc-tag font-mono">---</span>), tu razón social y tus preferencias de facturación.
+        </p>
+
+        <div class="delete-profile-safe-callout">
+          <div class="safe-callout-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <polyline points="9 12 11 14 15 10" />
+            </svg>
+          </div>
+          <div class="safe-callout-text">
+            <strong>Tus recibos y facturas permanecen seguros</strong>
+            <p>Las copias de tus tickets y comprobantes generados seguirán respaldados en el servidor.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer delete-profile-modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-delete-modal">Cancelar</button>
+        <button type="button" class="btn btn-danger-solid" id="btn-confirm-delete-modal">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
+          </svg>
+          <span>Sí, Eliminar Perfil</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Fullscreen Receipt Viewer (Full-Page, Zoom, Rotate, Pan) -->
-  <div class="receipt-viewer-overlay hidden" id="receipt-viewer-overlay" role="dialog" aria-modal="true" aria-label="Visor Completo de Recibo">
+  <div class="receipt-viewer-overlay hidden" id="receipt-viewer-overlay" role="dialog" aria-modal="true"
+    aria-label="Visor Completo de Recibo">
     <div class="receipt-viewer-topbar">
       <div class="viewer-meta">
         <div class="viewer-station-badge">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8"/><path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5"/><path d="M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/><path d="M13 2h4a2 2 0 0 1 2 2v7"/><path d="M4 22h16"/></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8" />
+            <path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5" />
+            <path d="M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4" />
+            <path d="M13 2h4a2 2 0 0 1 2 2v7" />
+            <path d="M4 22h16" />
+          </svg>
         </div>
         <div class="viewer-info">
           <strong class="viewer-title" id="receipt-viewer-title">Recibo de Gasolina</strong>
@@ -861,27 +1499,49 @@
 
       <div class="viewer-toolbar">
         <div class="viewer-btn-group">
-          <button type="button" class="viewer-btn" id="viewer-zoom-out" title="Reducir zoom (-)" aria-label="Reducir zoom">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          <button type="button" class="viewer-btn" id="viewer-zoom-out" title="Reducir zoom (-)"
+            aria-label="Reducir zoom">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              <line x1="8" y1="11" x2="14" y2="11" />
+            </svg>
           </button>
           <span class="viewer-zoom-level font-mono" id="viewer-zoom-level">100%</span>
-          <button type="button" class="viewer-btn" id="viewer-zoom-in" title="Ampliar zoom (+)" aria-label="Ampliar zoom">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          <button type="button" class="viewer-btn" id="viewer-zoom-in" title="Ampliar zoom (+)"
+            aria-label="Ampliar zoom">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              <line x1="11" y1="8" x2="11" y2="14" />
+              <line x1="8" y1="11" x2="14" y2="11" />
+            </svg>
           </button>
         </div>
 
-        <button type="button" class="viewer-btn" id="viewer-rotate" title="Rotar 90° hacia la derecha" aria-label="Rotar 90 grados">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <button type="button" class="viewer-btn" id="viewer-rotate" title="Rotar 90° hacia la derecha"
+          aria-label="Rotar 90 grados">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
           <span class="viewer-btn-text">Rotar 90°</span>
         </button>
 
-        <button type="button" class="viewer-btn" id="viewer-reset" title="Restablecer tamaño y posición original" aria-label="Restablecer">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        <button type="button" class="viewer-btn" id="viewer-reset" title="Restablecer tamaño y posición original"
+          aria-label="Restablecer">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
           <span class="viewer-btn-text">Reiniciar</span>
         </button>
 
-        <button type="button" class="viewer-btn viewer-btn-close" id="viewer-close" title="Cerrar visor (Esc)" aria-label="Cerrar visor">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <button type="button" class="viewer-btn viewer-btn-close" id="viewer-close" title="Cerrar visor (Esc)"
+          aria-label="Cerrar visor">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
     </div>
@@ -894,7 +1554,11 @@
 
     <div class="receipt-viewer-footer">
       <span class="viewer-hint">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
         Arrastra con el mouse para mover • Rueda o botones para zoom • Botón rotar (90°) • Tecla Esc para salir
       </span>
     </div>
@@ -902,4 +1566,5 @@
 
   <script src="app.js?v=6"></script>
 </body>
+
 </html>

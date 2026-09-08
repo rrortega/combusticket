@@ -151,6 +151,7 @@ export class GasInvoiceService {
       `Extracted Data:\n` +
       `  • Gasolinera:    ${receiptData.gasStation}\n` +
       `  • No. Estación:  ${receiptData.stationNumber || 'N/A'}\n` +
+      `  • Cajero:        ${receiptData.cashier || 'N/A'}\n` +
       `  • No. Rastreo:   ${receiptData.trackingNumber || 'NOT FOUND'}\n` +
       `  • Transacción:   ${receiptData.transaction || 'N/A'}\n` +
       `  • Fecha:         ${receiptData.date || 'N/A'}\n` +
@@ -190,12 +191,14 @@ export class GasInvoiceService {
 
     const recordVideo = options.recordVideo !== undefined ? options.recordVideo : ENV.RECORD_VIDEO;
     const dryRun = options.dryRun !== undefined ? options.dryRun : ENV.DRY_RUN;
+    const takeScreenshot = options.takeScreenshot !== undefined ? options.takeScreenshot : ENV.TAKE_SCREENSHOT;
     const effectiveOptions: AutomationOptions = {
       ...options,
       screenshotDir: options.screenshotDir || rfcScreenshotDir,
       videoDir: rfcVideoDir,
       recordVideo,
       dryRun,
+      takeScreenshot,
     };
 
     // 4. Execute Browser Automation

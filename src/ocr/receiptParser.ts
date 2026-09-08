@@ -7,7 +7,8 @@ export class ReceiptParser {
 
     const trackingNumber = this.extractTrackingNumber(lines, rawText);
     const gasStation = this.extractGasStation(lines);
-    const stationNumber = this.extractStationNumber(lines, rawText);
+    const stationNumber = this.extractStationNumber(lines, rawText, trackingNumber);
+    const cashier = this.extractCashier(lines, rawText);
     const transaction = this.extractTransaction(lines, rawText);
     const date = this.extractDate(lines, rawText);
     const paymentMethod = this.extractPaymentMethod(lines, rawText);
@@ -17,6 +18,7 @@ export class ReceiptParser {
     return {
       gasStation,
       stationNumber,
+      cashier,
       trackingNumber,
       transaction,
       date,
@@ -99,11 +101,87 @@ export class ReceiptParser {
     return lines[0] || 'GASOLINERA DESCONOCIDA';
   }
 
-  private extractStationNumber(lines: string[], rawText: string): string | undefined {
-    const match = rawText.match(/(?:Estaci[oó]n|E\.S\.|No\.\s*Estaci[oó]n)[:\s]*([0-9A-Za-z]+)/i);
-    if (match && match[1]) {
-      return match[1].trim();
+  private extractStationNumber(lines: string[], rawText: string, trackingNumber?: string): string | undefined {
+    // 1. Explicit keyword match in lines or rawText
+    // Handles "estación: 12009", "ESTACION DE SERVICIO E08420", "Estación: 14764", "E.S. 14764", "No. Estación: 12009", "EST: 12009"
+    const stationRegex = /(?:No\.?\s*(?:de\s*)?Estaci[oó]n(?:\s+de\s+servicio)?|Estaci[oó]n(?:\s+de\s+servicio)?|E\.?S\.?|\bEST\.?)[:\s#]+(?:No\.?\s*)?([A-Z0-9\-\/]{3,15})/i;
+
+    for (const line of lines) {
+      const match = line.match(stationRegex);
+      if (match && match[1]) {
+        const cleaned = match[1].replace(/^[^\w]+|[^\w]+$/g, '').trim();
+        if (cleaned && !/^(DE|DEL|LA|EL|SAN|LOS|MEX|SUR|NORTE|SERVICIO|SERVICIOS)$/i.test(cleaned)) {
+          return cleaned;
+        }
+      }
     }
+
+    const rawMatch = rawText.match(stationRegex);
+    if (rawMatch && rawMatch[1]) {
+      const cleaned = rawMatch[1].replace(/^[^\w]+|[^\w]+$/g, '').trim();
+      if (cleaned && !/^(DE|DEL|LA|EL|SAN|LOS|MEX|SUR|NORTE|SERVICIO|SERVICIOS)$/i.test(cleaned)) {
+        return cleaned;
+      }
+    }
+
+    // 2. CRE Permit check: PL/12009/EXP/ES/2015 -> extracts station number or CRE code
+    const creMatch = rawText.match(/PL\s*[\/-]?\s*(\d{4,6})\s*[\/-]?\s*EXP/i);
+    if (creMatch && creMatch[1]) {
+      return creMatch[1].trim();
+    }
+
+    // 3. Pemex station code pattern: E followed by 4-5 digits (e.g. E08420 or E12009)
+    for (const line of lines.slice(0, 10)) {
+      const eMatch = line.match(/\b(E\d{4,5})\b/i);
+      if (eMatch && eMatch[1]) {
+        return eMatch[1].toUpperCase();
+      }
+    }
+
+    // 4. Fallback from tracking number prefix (ControlGas / GoGas 16-20 digit folios start with station #)
+    if (trackingNumber && trackingNumber.length >= 14) {
+      const candidate5 = trackingNumber.slice(0, 5);
+      const candidate4 = trackingNumber.slice(0, 4);
+      for (const line of lines.slice(0, 10)) {
+        if (line.includes(candidate5)) return candidate5;
+        if (line.includes(candidate4)) return candidate4;
+      }
+      if (/^1\d{4}$/.test(candidate5)) {
+        return candidate5;
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractCashier(lines: string[], rawText: string): string | undefined {
+    // Handles "Atendió: ANGEL IVAN CLAU MAY", "Cajero: ...", "Despachador: ...", "Le atendió: ...", "Operador: ...", etc.
+    const cashierRegex = /(?:Atendi[oó]|Le\s+atendi[oó]|Atendido\s+por|Cajer[oa](?:\(a\))?|Despachador(?:a|\(a\))?|Despacho\s+por|Despach[oó]|Operador(?:a)?|Vendedor(?:a)?|Empleado)[:\s#]*([^\n\r]+)/i;
+
+    for (const line of lines) {
+      const match = line.match(cashierRegex);
+      if (match && match[1]) {
+        let cleaned = match[1].trim();
+        // Remove trailing stop keywords or secondary fields on same line (e.g. "Posición", "Bomba", "Turno", "Fecha", "Caja", "Ticket", "PC")
+        cleaned = cleaned.replace(/\s+(?:Posici[oó]n|Bomba|Isla|Turno|Fecha|Hora|Ticket|PC|Caja)[:\s].*$/i, '').trim();
+        // Remove leading/trailing symbols
+        cleaned = cleaned.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9\.\-]+$/g, '').trim();
+        if (cleaned.length >= 2 && !/^(NORMAL|VENTA|EFECTIVO|TARJETA|TOTAL)$/i.test(cleaned)) {
+          return cleaned;
+        }
+      }
+    }
+
+    const rawMatch = rawText.match(cashierRegex);
+    if (rawMatch && rawMatch[1]) {
+      let cleaned = rawMatch[1].trim();
+      cleaned = cleaned.replace(/\s+(?:Posici[oó]n|Bomba|Isla|Turno|Fecha|Hora|Ticket|PC|Caja)[:\s].*$/i, '').trim();
+      cleaned = cleaned.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9\.\-]+$/g, '').trim();
+      if (cleaned.length >= 2 && !/^(NORMAL|VENTA|EFECTIVO|TARJETA|TOTAL)$/i.test(cleaned)) {
+        return cleaned;
+      }
+    }
+
     return undefined;
   }
 

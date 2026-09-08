@@ -66,6 +66,7 @@ export async function createHttpServer(
       redis: ENV.REDIS_URL,
       recordVideo: ENV.RECORD_VIDEO,
       dryRun: ENV.DRY_RUN,
+      takeScreenshot: ENV.TAKE_SCREENSHOT,
       timestamp: new Date().toISOString(),
     });
   });
@@ -77,6 +78,7 @@ export async function createHttpServer(
       storageDriver: ENV.STORAGE_DRIVER,
       recordVideo: ENV.RECORD_VIDEO,
       dryRun: ENV.DRY_RUN,
+      takeScreenshot: ENV.TAKE_SCREENSHOT,
     });
   });
 
@@ -216,7 +218,7 @@ export async function createHttpServer(
 
       // Extract and sanitize RFC for scoping storage and local folders
       const rawRfc = (req.body?.rfc || req.query?.rfc || '').toString().trim().toUpperCase();
-      const rfcFolder = rawRfc.replace(/[^A-Z0-9&Ñ]/g, '') || 'GENERAL';
+      const rfcFolder = rawRfc.replace(/[^A-Z0-9&Ñ]/g, '') || 'TEMP';
 
       const localRfcReceiptsDir = path.resolve(ENV.SCREENSHOT_DIR, rfcFolder, 'receipts');
       if (!fs.existsSync(localRfcReceiptsDir)) {
@@ -293,10 +295,127 @@ export async function createHttpServer(
     }
   });
 
+  // Upload receipt file(s) under user's RFC folder (or migrate existing scanned temp files)
+  app.post('/api/receipts/upload', upload.array('receipts', 10), async (req: Request, res: Response) => {
+    try {
+      const rawRfc = (req.body?.rfc || req.query?.rfc || '').toString().trim().toUpperCase();
+      const rfcFolder = rawRfc.replace(/[^A-Z0-9&Ñ]/g, '');
+      if (!rfcFolder) {
+        return res.status(400).json({ success: false, error: 'RFC requerido para almacenar el recibo' });
+      }
+
+      const localRfcReceiptsDir = path.resolve(ENV.SCREENSHOT_DIR, rfcFolder, 'receipts');
+      if (!fs.existsSync(localRfcReceiptsDir)) {
+        fs.mkdirSync(localRfcReceiptsDir, { recursive: true });
+      }
+
+      const uploadedFiles: Array<{ index: number; filename: string; receiptImageUrl: string }> = [];
+      const files = (req.files as Express.Multer.File[]) || [];
+
+      // 1. Process directly uploaded files from memory
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const ext = path.extname(file.originalname) || '.png';
+        const savedFileName = `receipt_${Date.now()}_${i}${ext}`;
+        const localFilePath = path.join(localRfcReceiptsDir, savedFileName);
+
+        // Write local backup copy
+        fs.writeFileSync(localFilePath, file.buffer);
+
+        // Upload to storage (MinIO / S3 / Local)
+        const key = `${rfcFolder}/receipts/${savedFileName}`;
+        let receiptImageUrl = `/output/${rfcFolder}/receipts/${savedFileName}`;
+        try {
+          const uploadResult = await storageService.upload(key, file.buffer, {
+            contentType: file.mimetype || 'image/png',
+          });
+          if (uploadResult?.url) {
+            receiptImageUrl = uploadResult.url;
+          }
+        } catch (storageErr: any) {
+          console.warn(`[Server] Storage upload failed for key "${key}":`, storageErr.message);
+        }
+
+        uploadedFiles.push({
+          index: i,
+          filename: file.originalname,
+          receiptImageUrl,
+        });
+      }
+
+      // 2. Process migration from existing URLs (e.g. from /output/TEMP/receipts/... or /output/GENERAL/...)
+      const existingUrlsRaw = req.body?.existingUrls;
+      let existingUrls: string[] = [];
+      if (typeof existingUrlsRaw === 'string') {
+        try {
+          existingUrls = JSON.parse(existingUrlsRaw);
+        } catch {
+          existingUrls = [existingUrlsRaw];
+        }
+      } else if (Array.isArray(existingUrlsRaw)) {
+        existingUrls = existingUrlsRaw;
+      }
+
+      const migratedFiles: Array<{ originalUrl: string; receiptImageUrl: string }> = [];
+      for (let j = 0; j < existingUrls.length; j++) {
+        const oldUrl = existingUrls[j];
+        if (!oldUrl || typeof oldUrl !== 'string') continue;
+        try {
+          // If already in this RFC's folder, keep it
+          if (oldUrl.includes(`/${rfcFolder}/receipts/`)) {
+            migratedFiles.push({ originalUrl: oldUrl, receiptImageUrl: oldUrl });
+            continue;
+          }
+
+          // Check if local file exists
+          const relativePath = oldUrl.startsWith('/output/')
+            ? oldUrl.replace('/output/', '')
+            : oldUrl.split('/output/')[1] || path.basename(oldUrl);
+
+          const sourcePath = path.resolve(ENV.SCREENSHOT_DIR, relativePath);
+          if (fs.existsSync(sourcePath)) {
+            const ext = path.extname(sourcePath) || '.png';
+            const savedFileName = `receipt_${Date.now()}_migrated_${j}${ext}`;
+            const destPath = path.join(localRfcReceiptsDir, savedFileName);
+
+            fs.copyFileSync(sourcePath, destPath);
+
+            const buffer = fs.readFileSync(destPath);
+            const key = `${rfcFolder}/receipts/${savedFileName}`;
+            let receiptImageUrl = `/output/${rfcFolder}/receipts/${savedFileName}`;
+            try {
+              const uploadResult = await storageService.upload(key, buffer, {
+                contentType: 'image/png',
+              });
+              if (uploadResult?.url) {
+                receiptImageUrl = uploadResult.url;
+              }
+            } catch (storageErr: any) {
+              console.warn(`[Server] Storage upload failed for key "${key}":`, storageErr.message);
+            }
+
+            migratedFiles.push({ originalUrl: oldUrl, receiptImageUrl });
+          }
+        } catch (migrErr: any) {
+          console.warn('[Server] Could not migrate existing receipt:', migrErr.message);
+        }
+      }
+
+      return res.json({
+        success: true,
+        rfc: rfcFolder,
+        files: uploadedFiles,
+        migrated: migratedFiles,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // Enqueue invoice job(s) in BullMQ
   app.post('/api/queue/invoice', async (req: Request, res: Response) => {
     try {
-      const { items, receiptData, billingProfile, recordVideo, dryRun } = req.body;
+      const { items, receiptData, billingProfile, recordVideo, dryRun, takeScreenshot } = req.body;
 
       if (!billingProfile || !billingProfile.rfc) {
         return res.status(400).json({
@@ -357,6 +476,7 @@ export async function createHttpServer(
           billingProfile: item.billingProfile,
           recordVideo: recordVideo !== undefined ? recordVideo : ENV.RECORD_VIDEO,
           dryRun: dryRun !== undefined ? dryRun : ENV.DRY_RUN,
+          takeScreenshot: takeScreenshot !== undefined ? takeScreenshot : ENV.TAKE_SCREENSHOT,
         });
 
         // Store immediately in Redis under the user's RFC so any device can see it in real-time
@@ -368,6 +488,7 @@ export async function createHttpServer(
           trackingNumber: item.receiptData.trackingNumber,
           gasStation: item.receiptData.gasStation,
           stationNumber: item.receiptData.stationNumber,
+          cashier: item.receiptData.cashier,
           billingUrl: item.receiptData.billingUrl,
           amount: item.receiptData.amount,
           date: item.receiptData.date || new Date().toISOString().split('T')[0],
@@ -375,6 +496,7 @@ export async function createHttpServer(
           status: 'waiting',
           progress: 10,
           submitted: false,
+          receiptImageUrl: item.receiptData.receiptImageUrl || item.receiptData.previewUrl,
           message: 'Esperando turno en cola...',
         });
 

@@ -9,6 +9,7 @@ export interface InvoiceJobData {
   billingProfile: BillingProfile;
   recordVideo?: boolean;
   dryRun?: boolean;
+  takeScreenshot?: boolean;
 }
 
 let invoiceQueue: Queue<InvoiceJobData> | null = null;

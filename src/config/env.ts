@@ -11,6 +11,14 @@ export const ENV = {
   DEBUG: process.env.DEBUG === 'true' || process.env.LOG_LEVEL === 'debug',
   LOG_LEVEL: (process.env.LOG_LEVEL || (process.env.DEBUG === 'true' ? 'debug' : 'info')).toLowerCase(),
   RECORD_VIDEO: process.env.RECORD_VIDEO === 'true',
+  TAKE_SCREENSHOT:
+    process.env.TAKE_SCREENSHOT !== undefined
+      ? process.env.TAKE_SCREENSHOT === 'true'
+      : process.env.SCREENSHOT !== undefined
+        ? process.env.SCREENSHOT === 'true'
+        : process.env.GENERATE_SCREENSHOT !== undefined
+          ? process.env.GENERATE_SCREENSHOT === 'true'
+          : true,
   DRY_RUN: process.env.DRY_RUN === 'true', // defaults to false (real submit with "Solicitar Factura")
   SCREENSHOT_DIR: path.resolve(process.env.SCREENSHOT_DIR || 'output'),
   VIDEO_DIR: path.resolve(process.env.VIDEO_DIR || 'output/videos'),

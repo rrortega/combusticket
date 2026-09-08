@@ -5,6 +5,7 @@ async function main() {
   const args = process.argv.slice(2);
   let imagePath = 'fixtures/receipt_sample.png';
   let dryRun = ENV.DRY_RUN;
+  let takeScreenshot = ENV.TAKE_SCREENSHOT;
   let profilePath: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
@@ -13,6 +14,10 @@ async function main() {
       dryRun = false;
     } else if (arg === '--dry-run') {
       dryRun = true;
+    } else if (arg === '--screenshot') {
+      takeScreenshot = true;
+    } else if (arg === '--no-screenshot') {
+      takeScreenshot = false;
     } else if (arg === '--profile' && args[i + 1]) {
       profilePath = args[++i];
     } else if (!arg.startsWith('-')) {
@@ -27,6 +32,7 @@ async function main() {
   try {
     const result = await service.processReceipt(imagePath, undefined, {
       dryRun,
+      takeScreenshot,
     });
 
     console.log('\nFinal Result Summary:');

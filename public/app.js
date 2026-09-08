@@ -97,6 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Welcome Screen
   const btnWelcomeStart = document.getElementById('btn-welcome-start');
+  const btnMobileCameraFab = document.getElementById('btn-mobile-camera-fab');
+  const mobileCameraFabContainer = document.getElementById('mobile-camera-fab-container');
   const stationsGrid = document.getElementById('stations-grid');
 
   // Profile Form Elements
@@ -109,6 +111,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const profUso = document.getElementById('prof-uso');
   const btnCancelProfile = document.getElementById('btn-cancel-profile');
   const btnSaveProfile = document.getElementById('btn-save-profile');
+  const profilePendingNotice = document.getElementById('profile-pending-notice');
+  const profileStepIndicator = document.getElementById('profile-step-indicator');
+  const profileCardTitle = document.getElementById('profile-card-title');
+  const profileCardSubtitle = document.getElementById('profile-card-subtitle');
+  const profileDangerZone = document.getElementById('profile-danger-zone');
+  const profileNotificationsZone = document.getElementById('profile-notifications-zone');
+  const btnDeleteProfile = document.getElementById('btn-delete-profile');
+  const deleteProfileModal = document.getElementById('delete-profile-modal');
+  const deleteProfileRfcBadge = document.getElementById('delete-profile-rfc-badge');
+  const btnCloseDeleteProfileModal = document.getElementById('btn-close-delete-profile-modal');
+  const btnCancelDeleteModal = document.getElementById('btn-cancel-delete-modal');
+  const btnConfirmDeleteModal = document.getElementById('btn-confirm-delete-modal');
+  let isPendingInvoicing = false;
 
   // Profile Form Real-time Validation Feedback Nodes
   const profRfcFeedback = document.getElementById('prof-rfc-feedback');
@@ -1048,6 +1063,70 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
+  // --- 3D FLOATING RECEIPT INTERACTIONS (HOVER TILT & SCROLL PERSPECTIVE) ---
+  function initReceipt3DInteractions() {
+    const scene = document.getElementById('receipt-3d-scene');
+    const card = document.getElementById('receipt-3d-card');
+    if (!scene || !card) return;
+
+    let targetRotateX = 8;
+    let targetRotateY = -11;
+    let currentRotateX = 8;
+    let currentRotateY = -11;
+
+    // Hover 3D tilt tracking
+    scene.addEventListener('pointermove', (e) => {
+      const rect = scene.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      const normX = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 to 0.5
+      const normY = (e.clientY - rect.top) / rect.height - 0.5; // -0.5 to 0.5
+
+      targetRotateY = -11 + normX * 30;
+      targetRotateX = 8 - normY * 24;
+    });
+
+    scene.addEventListener('pointerleave', () => {
+      targetRotateX = 8;
+      targetRotateY = -11;
+    });
+
+    // Scroll perspective effect: tilts card as user scrolls through landing page
+    function handleReceiptScrollPerspective() {
+      if (screenWelcome && screenWelcome.classList.contains('hidden')) return;
+
+      const rect = scene.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+
+      if (rect.top < windowHeight && rect.bottom > 0) {
+        const progress = (windowHeight - rect.top) / (windowHeight + rect.height);
+        const clampedProgress = Math.min(Math.max(progress, 0), 1);
+
+        const scrollDeltaRx = (clampedProgress - 0.5) * 22;
+        const scrollDeltaRy = (clampedProgress - 0.5) * -16;
+
+        card.style.setProperty('--scroll-rx', `${scrollDeltaRx.toFixed(2)}deg`);
+        card.style.setProperty('--scroll-ry', `${scrollDeltaRy.toFixed(2)}deg`);
+      }
+    }
+
+    window.addEventListener('scroll', handleReceiptScrollPerspective, { passive: true });
+    window.addEventListener('resize', handleReceiptScrollPerspective, { passive: true });
+    handleReceiptScrollPerspective();
+
+    // Smooth lerp loop for interactive mouse movement
+    function animateTilt() {
+      currentRotateX += (targetRotateX - currentRotateX) * 0.12;
+      currentRotateY += (targetRotateY - currentRotateY) * 0.12;
+
+      card.style.setProperty('--hover-rx', `${currentRotateX.toFixed(2)}deg`);
+      card.style.setProperty('--hover-ry', `${currentRotateY.toFixed(2)}deg`);
+
+      requestAnimationFrame(animateTilt);
+    }
+    animateTilt();
+  }
+
   // --- REAL-TIME FORM VALIDATION ENGINES (RFC, EMAIL, CÓDIGO POSTAL) ---
   function validateRFC(rfc) {
     const clean = (rfc || '').trim().toUpperCase();
@@ -1153,17 +1232,578 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const DEFAULT_FALLBACK_STATIONS = [
+    {
+      id: 'gogas',
+      name: 'GoGas',
+      brandName: 'GoGas / FacturasGas',
+      domain: 'facturasgas.com',
+      portalUrl: 'https://www.facturasgas.com/facturacion/autofactura.php',
+      status: 'active',
+      statusText: 'Disponible',
+      description: 'Estaciones de servicio GoGas y Red FacturasGas a nivel nacional.',
+    },
+    {
+      id: 'pemex',
+      name: 'PEMEX',
+      brandName: 'Petróleos Mexicanos',
+      domain: 'portaldecombustibles.pemex.com',
+      portalUrl: 'https://portaldecombustibles.pemex.com/business-clients/sporadic-invoices',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Franquicia PEMEX y estaciones de servicio afiliadas a nivel nacional.',
+    },
+    {
+      id: 'bp',
+      name: 'British Petroleum',
+      brandName: 'BP México',
+      domain: 'gasolineriabp.com.mx',
+      portalUrl: 'https://gasolineriabp.com.mx/facturagasbpme',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Red de gasolineras BP con tecnología ACTIVE a nivel nacional.',
+    },
+    {
+      id: 'shell',
+      name: 'Royal Dutch Shell',
+      brandName: 'Shell México',
+      domain: 'facturacion.shell.com.mx',
+      portalUrl: 'https://facturacion.shell.com.mx/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Estaciones de servicio Shell con combustibles V-Power.',
+    },
+    {
+      id: 'everilion',
+      name: 'Everilion (Shell)',
+      brandName: 'Portal Everilion Shell',
+      domain: 'shellmx.everilion.com',
+      portalUrl: 'https://shellmx.everilion.com/ILIONX45/custom/ShellMexico/Portal_Facturacion/Views/Facturacion.aspx?c=icn',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Portal corporativo de facturación para estaciones Shell en Everilion.',
+    },
+    {
+      id: 'chevron',
+      name: 'Chevron',
+      brandName: 'Chevron con Techron',
+      domain: 'chevroncontechron.com',
+      portalUrl: 'https://www.chevroncontechron.com/es_mx/home/Facturacion.html',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Estaciones de servicio Chevron con aditivo Techron.',
+    },
+    {
+      id: 'totalenergies',
+      name: 'TotalEnergies',
+      brandName: 'TotalEnergies México',
+      domain: 'totalenergies.mx',
+      portalUrl: 'https://totalenergies.mx/nosotros/estaciones-de-servicio/facturacion',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Red de estaciones de servicio TotalEnergies en México.',
+    },
+    {
+      id: 'exxonmobil',
+      name: 'ExxonMobil',
+      brandName: 'Mobil Synergy',
+      domain: 'mobil.com.mx',
+      portalUrl: 'https://www.mobil.com.mx/es-mx/gasolina/facturacion',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Combustibles Mobil Synergy a nivel nacional.',
+    },
+    {
+      id: 'petromax',
+      name: 'PETROMAX',
+      brandName: 'Petromax / FacturaMobil',
+      domain: 'facturamobil.petromax.com.mx',
+      portalUrl: 'https://facturamobil.petromax.com.mx:8081/KPortalExterno/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Portal de facturación Petromax para estaciones Mobil.',
+    },
+    {
+      id: 'gasislo',
+      name: 'GasIslo',
+      brandName: 'GasIslo Estaciones',
+      domain: 'gasislo.com',
+      portalUrl: 'http://gasislo.com/facturacion-electronica/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Facturación electrónica para estaciones GasIslo.',
+    },
+    {
+      id: 'policon',
+      name: 'Policon',
+      brandName: 'Policon / Efectifactura',
+      domain: 'efectifactura.com.mx',
+      portalUrl: 'https://efectifactura.com.mx/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Sistema Efectifactura para estaciones afiliadas Policon.',
+    },
+    {
+      id: 'mobilgolfo',
+      name: 'MobilTM Golfo',
+      brandName: 'Mobil Golfo México',
+      domain: 'mobil.com.mx',
+      portalUrl: 'https://www.mobil.com.mx/es-mx/gasolina/facturacion',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Red de estaciones Mobil en la región Golfo.',
+    },
+    {
+      id: 'topgas',
+      name: 'TopGas',
+      brandName: 'TopGas México',
+      domain: 'topgasmexico.com',
+      portalUrl: 'https://topgasmexico.com/facturacion/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Estaciones de servicio TopGas en el norte del país.',
+    },
+    {
+      id: 'orsan',
+      name: 'ORSAN',
+      brandName: 'Grupo ORSAN',
+      domain: 'facturacionmobil.orsan.com.mx',
+      portalUrl: 'http://facturacionmobil.orsan.com.mx/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Red nacional de gasolineras y estaciones de servicio ORSAN.',
+    },
+    {
+      id: 'combured',
+      name: 'Combured',
+      brandName: 'Grupo Combured',
+      domain: 'combured.com.mx',
+      portalUrl: 'https://arc.net/l/quote/zenmitco',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Estaciones de servicio y facturación Red Combured.',
+    },
+    {
+      id: 'redgasolin',
+      name: 'Red Gasolin',
+      brandName: 'Red Gasolin México',
+      domain: 'redgasolin.com.mx',
+      portalUrl: 'http://www.redgasolin.com.mx/Facturacion.html',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Portal de auto-facturación para estaciones Red Gasolin.',
+    },
+    {
+      id: 'oxxogas',
+      name: 'OXXO Gas',
+      brandName: 'OXXO Gas México',
+      domain: 'facturacion.oxxogas.com',
+      portalUrl: 'https://facturacion.oxxogas.com/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Red nacional de estaciones de servicio OXXO Gas.',
+    },
+    {
+      id: 'g500',
+      name: 'G500',
+      brandName: 'G500 Network',
+      domain: 'g500network.com',
+      portalUrl: 'https://g500network.com/facturacion-en-linea/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Red G500 Network con tecnología aditivada G-Premium.',
+    },
+    {
+      id: 'gulfoil',
+      name: 'Gulf Oil',
+      brandName: 'Gulf México Sureste',
+      domain: 'facturacion.gulfsureste.com.mx',
+      portalUrl: 'https://facturacion.gulfsureste.com.mx/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Estaciones de combustible y servicio Gulf México.',
+    },
+    {
+      id: 'redco',
+      name: 'Redco',
+      brandName: 'Grupo Redco',
+      domain: 'gruporedco.com',
+      portalUrl: 'https://www.gruporedco.com/acceso-facturacion.html',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Acceso a facturación de estaciones de servicio Grupo Redco.',
+    },
+    {
+      id: 'hidrosina',
+      name: 'Hidrosina',
+      brandName: 'Grupo Hidrosina',
+      domain: 'hidrosina.com.mx',
+      portalUrl: 'https://www.hidrosina.com.mx/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Grupo Hidrosina, red líder en estaciones de servicio urbanas.',
+    },
+    {
+      id: 'petro7',
+      name: 'Petro-7',
+      brandName: 'Petro-7 / 7-Eleven México',
+      domain: 'petro-7.com.mx',
+      portalUrl: 'https://petro-7.com.mx/facturacion/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Facturación en línea para estaciones de servicio Petro-7.',
+    },
+    {
+      id: 'rendichicas',
+      name: 'Rendichicas',
+      brandName: 'Rendichicas / Rendilitros',
+      domain: 'facturacion.rendilitros.com',
+      portalUrl: 'https://facturacion.rendilitros.com/',
+      status: 'disabled',
+      statusText: 'Próximamente',
+      description: 'Estaciones de servicio Rendichicas con litros completos certificados.',
+    },
+  ];
+
   async function loadSupportedStations() {
     try {
       const res = await fetch('/api/stations');
-      const data = await res.json();
-      if (data.success && Array.isArray(data.stations)) {
-        supportedStations = data.stations;
-        renderStations(supportedStations);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.stations) && data.stations.length > 0) {
+          supportedStations = data.stations;
+          renderStations(supportedStations);
+          return;
+        }
       }
+      supportedStations = DEFAULT_FALLBACK_STATIONS;
+      renderStations(supportedStations);
     } catch (err) {
-      console.warn('Error loading stations:', err);
+      console.warn('Error loading stations, using default fallback:', err);
+      supportedStations = DEFAULT_FALLBACK_STATIONS;
+      renderStations(supportedStations);
     }
+  }
+
+  function getStationLogoSvg(stationId, stationName) {
+    const id = String(stationId || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const name = String(stationName || '').toLowerCase();
+
+    // 1. GoGas
+    if (id === 'gogas' || name.includes('gogas')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#032B25"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#10B981" stroke-width="1.5"/>
+        <path d="M24 8 C16.5 8 10.5 14 10.5 21.5 C10.5 28 15 33.5 21.5 34.7 L21.5 27.5 C17.8 26.5 15.5 24 15.5 21.5 C15.5 17 19.2 13.5 24 13.5 C26.2 13.5 28.2 14.3 29.7 15.7 L33.8 11.5 C31.2 9.2 27.8 8 24 8 Z" fill="#10B981"/>
+        <path d="M24 13.5 C28.5 13.5 32 17 32 21.5 C32 23.5 31.2 25.2 29.8 26.5 L29.8 21.5 L24 21.5 L24 26.5 L33.2 26.5 C34.8 24 35.2 21 34.6 18 L30.2 19.8 C29.2 16.5 26.8 14 24 13.5 Z" fill="#00D2FF"/>
+        <text x="24" y="40" text-anchor="middle" fill="#FFFFFF" font-size="7" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">GOGAS</text>
+      </svg>`;
+    }
+
+    // 2. PEMEX
+    if (id === 'pemex' || name.includes('pemex')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#006847"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#008a5e" stroke-width="1.5"/>
+        <path d="M19 11 C14 13 11 17.5 11 22.5 C11 28.5 15.5 32.5 22 32.5 C23.5 32.5 25 32.2 26.2 31.5 C23 30.5 20 28 19 24.5 C18.5 23 18.5 20.5 19.5 18.5 C18 19 16.5 20.5 16 22 C15.5 20.5 16 18 18 15.5 C16 16.5 14.5 18.5 14 20.5 C14.5 16.5 16.5 13.5 19 11 Z" fill="#FFFFFF"/>
+        <path d="M22 16 C20 17.5 19 20 19.5 22.5 C20.5 20.5 22 19.5 24 19 C22.5 20.5 22 22.5 22.5 24.5 C23.5 23 25.5 22 27 22 C25 23.5 24.5 25.5 25 27.5 C27 26 28.5 23.5 28.5 21 C28.5 17.5 25.5 15 22 16 Z" fill="#FFFFFF"/>
+        <path d="M30 12 C30 12 35.5 17 35.5 21.5 C35.5 24.8 32.8 27 29.5 27 C30 25 29.5 23 28 21.5 C30 20.5 31 18.5 30 16.5 C30.5 15.5 30.5 14 30 12 Z" fill="#CE1126"/>
+        <text x="24" y="41" text-anchor="middle" fill="#FFFFFF" font-size="7.5" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="1">PEMEX</text>
+      </svg>`;
+    }
+
+    // 3. British Petroleum (BP)
+    if (id === 'bp' || name.includes('petroleum') || name.includes('bp')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
+        <circle cx="24" cy="24" r="23" stroke="#E2E8F0" stroke-width="1.5"/>
+        <g transform="translate(24, 19)">
+          <g fill="#007A3D">
+            <circle cx="0" cy="0" r="14.5"/>
+            <path d="M0 -15 L3 -7 L10 -11 L7 -4 L15 0 L7 4 L10 11 L3 7 L0 15 L-3 7 L-10 11 L-7 4 L-15 0 L-7 -4 L-10 -11 L-3 -7 Z"/>
+          </g>
+          <g fill="#78BE20">
+            <circle cx="0" cy="0" r="10.5"/>
+            <path d="M0 -11 L2.5 -5 L8 -8 L5 -3 L11 0 L5 3 L8 8 L2.5 5 L0 11 L-2.5 5 L-8 8 L-5 3 L-11 0 L-5 -3 L-8 -8 L-2.5 -5 Z"/>
+          </g>
+          <g fill="#FDB913">
+            <circle cx="0" cy="0" r="6.8"/>
+            <path d="M0 -7 L1.8 -3.2 L5 -5 L3.2 -1.8 L7 0 L3.2 1.8 L5 5 L1.8 3.2 L0 7 L-1.8 3.2 L-5 5 L-3.2 1.8 L-7 0 L-3.2 -1.8 L-5 -5 L-1.8 -3.2 Z"/>
+          </g>
+          <circle cx="0" cy="0" r="3.2" fill="#FFFFFF"/>
+        </g>
+        <text x="24" y="42" text-anchor="middle" fill="#007A3D" font-size="9" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="-0.5">bp</text>
+      </svg>`;
+    }
+
+    // 4. Shell
+    if (id === 'shell' || name.includes('shell')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
+        <circle cx="24" cy="24" r="23" stroke="#FEE2E2" stroke-width="1.5"/>
+        <path d="M24 7 C15.5 7 10 13.5 10 21 C10 26 12.5 29.5 15 32.5 L19 32.5 L19.8 35 L28.2 35 L29 32.5 L33 32.5 C35.5 29.5 38 26 38 21 C38 13.5 32.5 7 24 7 Z" fill="#FFD100" stroke="#DD1D21" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M24 8 L24 32.5" stroke="#DD1D21" stroke-width="2"/>
+        <path d="M19.5 10 L17.5 31" stroke="#DD1D21" stroke-width="1.8"/>
+        <path d="M28.5 10 L30.5 31" stroke="#DD1D21" stroke-width="1.8"/>
+        <path d="M15.5 14.5 L13.5 28.5" stroke="#DD1D21" stroke-width="1.5"/>
+        <path d="M32.5 14.5 L34.5 28.5" stroke="#DD1D21" stroke-width="1.5"/>
+        <path d="M18.5 35 L29.5 35 L28.5 38.5 L19.5 38.5 Z" fill="#DD1D21"/>
+        <text x="24" y="44.5" text-anchor="middle" fill="#DD1D21" font-size="6" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">SHELL</text>
+      </svg>`;
+    }
+
+    // 5. Everilion (Shell)
+    if (id === 'everilion' || name.includes('everilion')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#0A192F"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#1E3A8A" stroke-width="1.5"/>
+        <polygon points="24,9 35,15.5 35,28.5 24,35 13,28.5 13,15.5" stroke="#38BDF8" stroke-width="2" fill="none" stroke-dasharray="2.5 2.5"/>
+        <circle cx="24" cy="9" r="2.2" fill="#38BDF8"/>
+        <circle cx="35" cy="15.5" r="2.2" fill="#38BDF8"/>
+        <circle cx="35" cy="28.5" r="2.2" fill="#38BDF8"/>
+        <circle cx="24" cy="35" r="2.2" fill="#38BDF8"/>
+        <circle cx="13" cy="28.5" r="2.2" fill="#38BDF8"/>
+        <circle cx="13" cy="15.5" r="2.2" fill="#38BDF8"/>
+        <path d="M24 15 C19.5 15 16.5 18.5 16.5 22.5 C16.5 25 18 27.5 19.5 29 L28.5 29 C30 27.5 31.5 25 31.5 22.5 C31.5 18.5 28.5 15 24 15 Z" fill="#FFD100" stroke="#DD1D21" stroke-width="1.8"/>
+        <path d="M24 16 L24 28" stroke="#DD1D21" stroke-width="1.5"/>
+        <text x="24" y="42.5" text-anchor="middle" fill="#93C5FD" font-size="5.2" font-weight="800" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">EVERILION</text>
+      </svg>`;
+    }
+
+    // 6. Chevron
+    if (id === 'chevron' || name.includes('chevron')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
+        <circle cx="24" cy="24" r="23" stroke="#E2E8F0" stroke-width="1.5"/>
+        <path d="M12 10 L24 19 L36 10 L36 16 L24 25 L12 16 Z" fill="#005596"/>
+        <path d="M12 20 L24 29 L36 20 L36 26 L24 35 L12 26 Z" fill="#ED1C24"/>
+        <text x="24" y="43" text-anchor="middle" fill="#005596" font-size="5.5" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.8">CHEVRON</text>
+      </svg>`;
+    }
+
+    // 7. TotalEnergies
+    if (id === 'totalenergies' || id === 'total' || name.includes('total')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
+        <circle cx="24" cy="24" r="23" stroke="#F1F5F9" stroke-width="1.5"/>
+        <defs>
+          <linearGradient id="te-grad-dyn" x1="12" y1="12" x2="36" y2="38" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#E52320"/>
+            <stop offset="0.35" stop-color="#F37321"/>
+            <stop offset="0.65" stop-color="#FFB612"/>
+            <stop offset="1" stop-color="#0055A5"/>
+          </linearGradient>
+        </defs>
+        <path d="M15 14 C19 10 29 10 33 14 C36.5 17.5 36.5 22.5 32.5 25.5 C28.5 28.5 20 28.5 17 31.5 C14 34.5 15 38.5 19 38.5 C23 38.5 26 35.5 27 33.5" stroke="url(#te-grad-dyn)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+        <path d="M20.5 20.5 C22.5 17.5 26.5 17.5 28.5 19.5 C30.5 21.5 29.5 24.5 26.5 25.5" stroke="#FF6E00" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <text x="24" y="44" text-anchor="middle" fill="#1E293B" font-size="5" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.3">TOTAL</text>
+      </svg>`;
+    }
+
+    // 8. ExxonMobil / Mobil
+    if (id === 'exxonmobil' || id === 'mobil' || name.includes('exxon') || name.includes('mobil')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
+        <circle cx="24" cy="24" r="23" stroke="#E2E8F0" stroke-width="1.5"/>
+        <path d="M17 11 C18 9.5 21 8.5 23 10.5 C24 9.5 26 9.5 27 10.5 C28 11 28.5 12.5 28 13.5 L33 10.5 C34.5 9.5 36 10 35.5 11.5 L32 14.5 L37 13.5 C38.5 13 39 14 38 15.5 L33 18.5 L38 19.5 C39 20 39 21 37.5 21.5 L31 21.5 C29 23.5 28 25.5 27 27.5 L28 31.5 L26 31.5 L24 26.5 L22 26.5 L21 31.5 L19 31.5 L20 24.5 C19 24.5 18 23.5 17 22.5 L14 25.5 L13 24.5 L15 20.5 C14.5 20 14 18.5 15 16.5 L18 16.5 L17 13.5 Z" fill="#ED1C24"/>
+        <g transform="translate(6, 32)">
+          <text x="0" y="7" fill="#0033A0" font-size="8" font-weight="900" font-family="system-ui, -apple-system, sans-serif">M</text>
+          <text x="9" y="7" fill="#ED1C24" font-size="8" font-weight="900" font-family="system-ui, -apple-system, sans-serif">o</text>
+          <text x="14.5" y="7" fill="#0033A0" font-size="8" font-weight="900" font-family="system-ui, -apple-system, sans-serif">bil</text>
+        </g>
+      </svg>`;
+    }
+
+    // 9. PETROMAX
+    if (id === 'petromax' || name.includes('petromax')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#0B1D3A"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#DC2626" stroke-width="1.5"/>
+        <polygon points="24,9 35,21 24,33 13,21" fill="#DC2626"/>
+        <polygon points="24,12 32,21 24,30 16,21" fill="#FFFFFF"/>
+        <path d="M22 15 L26 15 C27.5 15 28.5 16 28.5 17.5 C28.5 19 27.5 20 26 20 L24 20 L24 26 L22 26 Z M24 17 L24 18.5 L25.5 18.5 C26 18.5 26.5 18.2 26.5 17.7 C26.5 17.3 26 17 25.5 17 Z" fill="#0B1D3A"/>
+        <text x="24" y="41" text-anchor="middle" fill="#FFFFFF" font-size="5.2" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">PETROMAX</text>
+      </svg>`;
+    }
+
+    // 10. GasIslo
+    if (id === 'gasislo' || name.includes('islo')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
+        <circle cx="24" cy="24" r="23" stroke="#004B87" stroke-width="1.5"/>
+        <path d="M22 9 C22 9 13 17 13 23 C13 28 17 31 21 31 C17 29 16 25 18 21 C19.5 18 22 15 22 9 Z" fill="#004B87"/>
+        <path d="M26 9 C26 9 35 17 35 23 C35 28 31 31 27 31 C31 29 32 25 30 21 C28.5 18 26 15 26 9 Z" fill="#F7941D"/>
+        <circle cx="24" cy="24" r="3.2" fill="#004B87"/>
+        <text x="24" y="41.5" text-anchor="middle" fill="#004B87" font-size="6" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">GASISLO</text>
+      </svg>`;
+    }
+
+    // 11. Policon
+    if (id === 'policon' || name.includes('policon') || name.includes('efectifactura')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#06283D"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#0EA5E9" stroke-width="1.5"/>
+        <polygon points="24,9 35,15.5 35,27.5 24,34 13,27.5 13,15.5" stroke="#0EA5E9" stroke-width="2" fill="#1363DF" fill-opacity="0.25"/>
+        <path d="M19 22 L23 26 L29 17" stroke="#38BDF8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="24" y="42" text-anchor="middle" fill="#FFFFFF" font-size="5.5" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.8">POLICON</text>
+      </svg>`;
+    }
+
+    // 12. MobilTM Golfo
+    if (id === 'mobilgolfo' || (name.includes('mobil') && name.includes('golfo'))) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#0C2340"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#3B82F6" stroke-width="1.5"/>
+        <path d="M16 12 C17 10.5 20 9.5 22 11.5 C23 10.5 25 10.5 26 11.5 C27 12 27.5 13.5 27 14.5 L32 11.5 C33.5 10.5 35 11 34.5 12.5 L31 15.5 L36 14.5 C37.5 14 38 15 37 16.5 L32 19.5 L37 20.5 C38 21 38 22 36.5 22.5 L30 22.5 C28 24.5 27 26.5 26 28.5 L27 32.5 L25 32.5 L23 27.5 L21 27.5 L20 32.5 L18 32.5 L19 25.5 C18 25.5 17 24.5 16 23.5 L13 26.5 L12 25.5 L14 21.5 C13.5 21 13 19.5 14 17.5 L17 17.5 L16 14.5 Z" fill="#ED1C24"/>
+        <text x="24" y="41.5" text-anchor="middle" fill="#FFFFFF" font-size="5" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">MOBIL GOLFO</text>
+      </svg>`;
+    }
+
+    // 13. TopGas
+    if (id === 'topgas' || name.includes('topgas')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#0F172A"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#F97316" stroke-width="1.5"/>
+        <path d="M24 7 C24 7 28.5 13 28.5 17 C28.5 20.5 26.5 22.5 24 22.5 C21.5 22.5 19.5 20.5 19.5 17 C19.5 13 24 7 24 7 Z" fill="#F97316"/>
+        <path d="M24 12 C24 12 26 15 26 17 C26 18.5 25 19.5 24 19.5 C23 19.5 22 18.5 22 17 C22 15 24 12 24 12 Z" fill="#FDE047"/>
+        <path d="M14 25.5 L34 25.5 L32 28.5 L16 28.5 Z" fill="#EF4444"/>
+        <text x="24" y="39.5" text-anchor="middle" fill="#FFFFFF" font-size="6.5" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">TOPGAS</text>
+      </svg>`;
+    }
+
+    // 14. ORSAN
+    if (id === 'orsan' || name.includes('orsan')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
+        <circle cx="24" cy="24" r="23" stroke="#B91C1C" stroke-width="1.5"/>
+        <circle cx="24" cy="19" r="10.5" stroke="#B91C1C" stroke-width="3.5" fill="none"/>
+        <path d="M24 9 C28 9 31 11 33 14 L28 18 C27 17 25.5 16 24 16 Z" fill="#F59E0B"/>
+        <circle cx="24" cy="19" r="4.2" fill="#B91C1C"/>
+        <text x="24" y="41" text-anchor="middle" fill="#B91C1C" font-size="7" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="1">ORSAN</text>
+      </svg>`;
+    }
+
+    // 15. Combured
+    if (id === 'combured' || name.includes('combured')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#111827"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#EF4444" stroke-width="1.5"/>
+        <path d="M21 10 C21 10 14 16 14 21 C14 25 17 28 21 28 C24 28 26 26 26 23 C26 19 21 10 21 10 Z" fill="#EF4444"/>
+        <path d="M27 13 C27 13 34 19 34 24 C34 28 31 31 27 31 C24 31 22 29 22 26 C22 22 27 13 27 13 Z" fill="#3B82F6"/>
+        <text x="24" y="41" text-anchor="middle" fill="#FFFFFF" font-size="5" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">COMBURED</text>
+      </svg>`;
+    }
+
+    // 16. Red Gasolin
+    if (id === 'redgasolin' || name.includes('red gasolin')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#DC2626"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#FFFFFF" stroke-width="1.5"/>
+        <path d="M17 11 L25 11 C28.5 11 31 13.5 31 17 C31 19.5 29.5 21.5 27 22.5 L32 31 L27.5 31 L23 23 L21 23 L21 31 L17 31 Z M21 15 L21 19.5 L24.5 19.5 C26 19.5 27 18.5 27 17.2 C27 16 26 15 24.5 15 Z" fill="#FFFFFF"/>
+        <circle cx="31" cy="13" r="2" fill="#FDE047"/>
+        <text x="24" y="41.5" text-anchor="middle" fill="#FFFFFF" font-size="4.8" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">RED GASOLIN</text>
+      </svg>`;
+    }
+
+    // 17. OXXO Gas
+    if (id === 'oxxogas' || id === 'oxxo' || name.includes('oxxo')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#D0021B"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#FFCC00" stroke-width="1.5"/>
+        <path d="M8 29 C14 33 34 33 40 29 L38 33.5 C30 36.5 18 36.5 10 33.5 Z" fill="#FFCC00"/>
+        <g fill="#FFFFFF">
+          <rect x="9" y="14" width="7" height="11" rx="3.5"/>
+          <rect x="11" y="16" width="3" height="7" rx="1.5" fill="#D0021B"/>
+          <path d="M18 14 L20.5 14 L22 17 L23.5 14 L26 14 L23.5 19.5 L26 25 L23.5 25 L22 22 L20.5 25 L18 25 L20.5 19.5 Z"/>
+          <path d="M26 14 L28.5 14 L30 17 L31.5 14 L34 14 L31.5 19.5 L34 25 L31.5 25 L30 22 L28.5 25 L26 25 L28.5 19.5 Z"/>
+          <rect x="34" y="14" width="7" height="11" rx="3.5"/>
+          <rect x="36" y="16" width="3" height="7" rx="1.5" fill="#D0021B"/>
+        </g>
+        <text x="24" y="42" text-anchor="middle" fill="#FFCC00" font-size="6.5" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="1">GAS</text>
+      </svg>`;
+    }
+
+    // 18. G500
+    if (id === 'g500' || name.includes('g500')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#0A192F"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#00D2D3" stroke-width="1.5"/>
+        <path d="M24 10 C17 10 12 15 12 22 C12 29 17 34 24 34 C30.5 34 34.5 30 35.5 24 L24 24 L24 19 L39.5 19 C40 30 32 38 24 38 C15 38 8 31 8 22 C8 13 15 6 24 6 C29.5 6 34 8.5 37 12.5 L33 16 C31 12.5 28 10 24 10 Z" fill="#00D2D3"/>
+        <text x="25" y="27" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">500</text>
+        <text x="24" y="42.5" text-anchor="middle" fill="#00D2D3" font-size="4.5" font-weight="800" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.8">NETWORK</text>
+      </svg>`;
+    }
+
+    // 19. Gulf Oil
+    if (id === 'gulfoil' || id === 'gulf' || name.includes('gulf')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#FF6600"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#FFFFFF" stroke-width="1.5"/>
+        <rect x="0" y="16" width="48" height="16" fill="#00205B"/>
+        <line x1="0" y1="16" x2="48" y2="16" stroke="#FFFFFF" stroke-width="1.2"/>
+        <line x1="0" y1="32" x2="48" y2="32" stroke="#FFFFFF" stroke-width="1.2"/>
+        <text x="24" y="28.5" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="900" font-family="Georgia, serif" font-style="italic">Gulf</text>
+      </svg>`;
+    }
+
+    // 20. Redco
+    if (id === 'redco' || name.includes('redco')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
+        <circle cx="24" cy="24" r="23" stroke="#DC2626" stroke-width="1.5"/>
+        <path d="M24 9 L34 13 L34 23 C34 29 29 33 24 35 C19 33 14 29 14 23 L14 13 Z" fill="#DC2626"/>
+        <polygon points="24,13 25.5,17 29.5,17 26.5,19.5 27.5,23.5 24,21 20.5,23.5 21.5,19.5 18.5,17 22.5,17" fill="#FFFFFF"/>
+        <text x="24" y="31" text-anchor="middle" fill="#FFFFFF" font-size="6" font-weight="900" font-family="system-ui, -apple-system, sans-serif">R</text>
+        <text x="24" y="43" text-anchor="middle" fill="#1E3A8A" font-size="5.5" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">REDCO</text>
+      </svg>`;
+    }
+
+    // 21. Hidrosina
+    if (id === 'hidrosina' || name.includes('hidrosina')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#047857"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#10B981" stroke-width="1.5"/>
+        <path d="M24 9 C24 9 15 18 15 24 C15 29 19 33 24 33 C29 33 33 29 33 24 C33 18 24 9 24 9 Z" fill="#FFFFFF"/>
+        <path d="M24 15 C24 15 18 21 18 25 C18 28.5 20.5 31 24 31 C27.5 31 30 28.5 30 25 C30 21 24 15 24 15 Z" fill="#84CC16"/>
+        <path d="M22 21.5 L22 28.5 M26 21.5 L26 28.5 M22 25 L26 25" stroke="#047857" stroke-width="2" stroke-linecap="round"/>
+        <text x="24" y="42" text-anchor="middle" fill="#FFFFFF" font-size="5" font-weight="800" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">HIDROSINA</text>
+      </svg>`;
+    }
+
+    // 22. Petro-7
+    if (id === 'petro7' || id === 'petro' || name.includes('petro-7') || name.includes('petro 7')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
+        <circle cx="24" cy="24" r="23" stroke="#E2E8F0" stroke-width="1.5"/>
+        <path d="M15 11 L33 11 L33 15 L23 31 L18 31 L26 17 L15 17 Z" fill="#EE6425"/>
+        <path d="M15 11 L33 11 L33 15 L15 15 Z" fill="#008163"/>
+        <rect x="14" y="31" width="20" height="6.5" rx="2" fill="#ED1B2D"/>
+        <text x="24" y="36" text-anchor="middle" fill="#FFFFFF" font-size="4.8" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">PETRO-7</text>
+      </svg>`;
+    }
+
+    // 23. Rendichicas
+    if (id === 'rendichicas' || name.includes('rendichicas') || name.includes('rendilitros')) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#BE185D"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#F472B6" stroke-width="1.5"/>
+        <path d="M18 12 C22 12 28 13 30 15 C31 16 31 17 29 17 C26 17 23 17 21 18 C20 19 20 21 21 22 C22 23 23 23 23 24 C23 25 21 26 19 25 C17 24 16 22 16 20 C16 18 15 17 13 17 C12 16 12 15 13 14 C15 13 16 12 18 12 Z" fill="#FFFFFF"/>
+        <path d="M21 24 C23 27 26 28 28 28 C29 28 27 32 24 32 C20 32 17 29 17 25 Z" fill="#FFFFFF"/>
+        <circle cx="31" cy="21" r="1.5" fill="#FDE047"/>
+        <circle cx="33" cy="17" r="1" fill="#FDE047"/>
+        <text x="24" y="42" text-anchor="middle" fill="#FFFFFF" font-size="4.8" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.3">RENDICHICAS</text>
+      </svg>`;
+    }
+
+    // Default Gas Station Logo
+    return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="24" r="24" fill="#0F172A"/>
+      <circle cx="24" cy="24" r="22.5" stroke="#10B981" stroke-width="1.5"/>
+      <path d="M15 34 V14 C15 12.9 15.9 12 17 12 H27 C28.1 12 29 12.9 29 14 V34" stroke="#10B981" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M29 21 H31 C32.1 21 33 21.9 33 23 V27 C33 28.1 33.9 29 35 29 C36.1 29 37 28.1 37 27 V19 C37 17.9 36.5 17 35.7 16.3 L34.5 15" stroke="#34D399" stroke-width="2" stroke-linecap="round"/>
+      <rect x="18" y="16" width="8" height="6" rx="1" fill="#10B981" fill-opacity="0.3" stroke="#10B981" stroke-width="1.5"/>
+      <line x1="12" y1="34" x2="32" y2="34" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>`;
   }
 
   function renderStations(stations) {
@@ -1171,16 +1811,40 @@ document.addEventListener('DOMContentLoaded', () => {
     stationsGrid.innerHTML = '';
     for (const st of stations) {
       const card = document.createElement('div');
-      card.className = 'station-card';
+      const isActive = st.status === 'active';
+      card.className = `station-card ${!isActive ? 'station-card-disabled' : ''}`;
+      const domainDisplay = st.domain || (st.portalUrl ? new URL(st.portalUrl).hostname : '');
+      const portalTarget = st.portalUrl || (st.domain ? `https://${st.domain}` : '#');
+      const badgeText = st.statusText || (isActive ? 'Disponible' : 'Próximamente');
       card.innerHTML = `
-        <div class="station-logo">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/><path d="M15 11h2a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L20.5 6.5"/><rect x="6" y="6" width="6" height="5" rx="1"/></svg>
+        <div class="station-logo" aria-hidden="true">
+          ${getStationLogoSvg(st.id, st.name)}
         </div>
         <div class="station-details">
-          <h4>
-            ${escapeHtml(st.name)}
-            <span class="station-badge ${st.status === 'active' ? 'active' : ''}">${escapeHtml(st.statusText || 'Disponible')}</span>
-          </h4>
+          <div class="station-header-row">
+            <h4>${escapeHtml(st.name)}</h4>
+            <span class="station-badge ${isActive ? 'active' : 'disabled'}">
+              ${isActive ? `
+                <span class="station-live-dot" aria-hidden="true">
+                  <span class="station-live-ping"></span>
+                  <span class="station-live-core"></span>
+                </span>
+              ` : ''}
+              <span>${escapeHtml(badgeText)}</span>
+            </span>
+          </div>
+          ${domainDisplay ? `
+            <div class="station-website-row">
+              <span class="station-website-text">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="2" y1="12" x2="22" y2="12"/>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                <span>${escapeHtml(domainDisplay)}</span>
+              </span>
+            </div>
+          ` : ''}
           <p>${escapeHtml(st.description || '')}</p>
         </div>
       `;
@@ -1200,6 +1864,14 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (targetScreen === screenWelcome) currentScreen = 'welcome';
     else if (targetScreen === screenProfile) currentScreen = 'profile';
     else if (targetScreen === screenWorkbench) currentScreen = 'workbench';
+
+    if (mobileCameraFabContainer) {
+      if (targetScreen === screenWelcome) {
+        mobileCameraFabContainer.classList.remove('hidden');
+      } else {
+        mobileCameraFabContainer.classList.add('hidden');
+      }
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -1228,16 +1900,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Welcome start button
-    btnWelcomeStart?.addEventListener('click', () => {
-      const profile = getProfile();
-      if (profile && profile.rfc) {
-        switchScreen(screenHistory);
-        loadHistory();
+    // Welcome start: directly triggers camera / file browser without intermediate empty workbench friction
+    function handleWelcomeStart() {
+      if (fileInput) {
+        fileInput.click();
       } else {
-        openProfileScreen(false);
+        openUploadWorkbench();
       }
-    });
+    }
+
+    btnWelcomeStart?.addEventListener('click', handleWelcomeStart);
+    btnMobileCameraFab?.addEventListener('click', handleWelcomeStart);
 
     btnHeaderOnboard?.addEventListener('click', () => openProfileScreen(false));
     profilePill?.addEventListener('click', () => openProfileScreen(true));
@@ -1251,8 +1924,20 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
       openProfileScreen(true);
     });
+    btnDeleteProfile?.addEventListener('click', openDeleteProfileModal);
+    btnCloseDeleteProfileModal?.addEventListener('click', () => closeDeleteProfileModal());
+    btnCancelDeleteModal?.addEventListener('click', () => closeDeleteProfileModal());
+    btnConfirmDeleteModal?.addEventListener('click', confirmDeleteProfile);
+    deleteProfileModal?.addEventListener('click', (e) => {
+      if (e.target === deleteProfileModal) closeDeleteProfileModal();
+    });
 
     btnCancelProfile?.addEventListener('click', () => {
+      if (currentScannedReceipts && currentScannedReceipts.length > 0) {
+        isPendingInvoicing = false;
+        switchScreen(screenWorkbench);
+        return;
+      }
       const profile = getProfile();
       if (profile && profile.rfc) {
         switchScreen(screenHistory);
@@ -1265,6 +1950,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize custom accessible searchable select for Régimen Fiscal & Uso de CFDI
     initCustomRegimenSelect();
     initCustomUsoSelect();
+    initReceipt3DInteractions();
 
     // Real-time RFC input sanitization & validation
     profRfc?.addEventListener('input', () => {
@@ -1394,7 +2080,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // History actions & New Ticket workbench
-    const openUploadWorkbench = () => {
+    function openUploadWorkbench() {
       if (uploadCard) {
         const workbenchLayout = document.querySelector('.workbench-layout');
         if (workbenchLayout && uploadCard.parentElement !== workbenchLayout) {
@@ -1403,18 +2089,36 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadCard.classList.remove('hidden');
       }
       if (btnBackToHistory) {
+        const profile = getProfile();
         btnBackToHistory.classList.remove('hidden');
+        const textSpan = btnBackToHistory.querySelector('span');
+        if (textSpan) {
+          textSpan.textContent = (profile && profile.rfc) ? 'Volver al Historial' : 'Volver al Inicio';
+        }
       }
       reviewSection?.classList.add('hidden');
       switchScreen(screenWorkbench);
+    }
+
+    const handleNewReceiptTrigger = () => {
+      if (fileInput) {
+        fileInput.click();
+      } else {
+        openUploadWorkbench();
+      }
     };
 
-    btnNewFromHistory?.addEventListener('click', openUploadWorkbench);
-    btnMobileNewReceipt?.addEventListener('click', openUploadWorkbench);
+    btnNewFromHistory?.addEventListener('click', handleNewReceiptTrigger);
+    btnMobileNewReceipt?.addEventListener('click', handleNewReceiptTrigger);
 
     btnBackToHistory?.addEventListener('click', () => {
-      switchScreen(screenHistory);
-      loadHistory();
+      const profile = getProfile();
+      if (profile && profile.rfc) {
+        switchScreen(screenHistory);
+        loadHistory();
+      } else {
+        switchScreen(screenWelcome);
+      }
     });
 
     if (btnRefreshHistory) {
@@ -1548,7 +2252,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keyboard & Back Button handlers
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        if (legalModal && !legalModal.classList.contains('hidden')) {
+        if (deleteProfileModal && !deleteProfileModal.classList.contains('hidden')) {
+          closeDeleteProfileModal();
+        } else if (legalModal && !legalModal.classList.contains('hidden')) {
           closeLegalModal();
         } else if (receiptViewerOverlay && !receiptViewerOverlay.classList.contains('hidden')) {
           closeReceiptViewer();
@@ -1559,7 +2265,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('popstate', () => {
-      if (legalModal && !legalModal.classList.contains('hidden')) {
+      if (deleteProfileModal && !deleteProfileModal.classList.contains('hidden')) {
+        closeDeleteProfileModal(false);
+      } else if (legalModal && !legalModal.classList.contains('hidden')) {
         closeLegalModal(false);
       } else if (receiptViewerOverlay && !receiptViewerOverlay.classList.contains('hidden')) {
         closeReceiptViewer(false);
@@ -1667,7 +2375,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- PROFILE LOGIC ---
-  function openProfileScreen(isEditing) {
+  function openProfileScreen(isEditing, options = {}) {
+    isPendingInvoicing = Boolean(options.pendingInvoicing);
     switchScreen(screenProfile);
 
     // Reset validation feedback states, inner icons, and error borders
@@ -1688,8 +2397,55 @@ document.addEventListener('DOMContentLoaded', () => {
     regimenSelectTrigger?.classList.remove('is-invalid');
     usoSelectTrigger?.classList.remove('is-invalid');
 
-    if (isEditing) {
+    if (isPendingInvoicing) {
+      profileDangerZone?.classList.add('hidden');
+      profileNotificationsZone?.classList.add('hidden');
+      // User came directly from reviewing a scanned ticket!
+      profilePendingNotice?.classList.remove('hidden');
+      if (profileStepIndicator) profileStepIndicator.textContent = 'Paso Final: Datos Fiscales';
+      if (profileCardTitle) profileCardTitle.textContent = '¿A quién facturamos este ticket?';
+      if (profileCardSubtitle) profileCardSubtitle.textContent = 'Configura tus datos fiscales ante el SAT para emitir tu factura de inmediato.';
+      if (btnSaveProfile) {
+        const desktopText = btnSaveProfile.querySelector('.btn-text-desktop');
+        const mobileText = btnSaveProfile.querySelector('.btn-text-mobile');
+        if (desktopText) desktopText.textContent = 'Guardar y Facturar Ticket';
+        if (mobileText) mobileText.textContent = 'Facturar';
+      }
+      btnCancelProfile.style.display = 'inline-flex';
+      btnCancelProfile.textContent = 'Volver al Ticket';
+
       const profile = getProfile() || {};
+      if (profile.rfc) {
+        profRfc.value = profile.rfc;
+        profRazon.value = profile.razonSocial || '';
+        profEmail.value = profile.email || '';
+        profCp.value = profile.codigoPostal || '';
+        if (profile.regimenFiscal) syncCustomRegimenFromValue(profile.regimenFiscal);
+        if (profile.usoCfdi) syncCustomUsoFromValue(profile.usoCfdi);
+      }
+    } else if (isEditing) {
+      profilePendingNotice?.classList.add('hidden');
+      const profile = getProfile() || {};
+      if (profile && profile.rfc) {
+        profileDangerZone?.classList.remove('hidden');
+        profileNotificationsZone?.classList.remove('hidden');
+        updatePushStatusUI();
+      } else {
+        profileDangerZone?.classList.add('hidden');
+        profileNotificationsZone?.classList.add('hidden');
+      }
+      if (profileStepIndicator) profileStepIndicator.textContent = 'Mi Perfil';
+      if (profileCardTitle) profileCardTitle.textContent = 'Editar Datos Fiscales';
+      if (profileCardSubtitle) profileCardSubtitle.textContent = 'Actualiza los datos con los que se emitirán tus facturas ante el SAT.';
+      if (btnSaveProfile) {
+        const desktopText = btnSaveProfile.querySelector('.btn-text-desktop');
+        const mobileText = btnSaveProfile.querySelector('.btn-text-mobile');
+        if (desktopText) desktopText.textContent = 'Guardar Cambios';
+        if (mobileText) mobileText.textContent = 'Guardar';
+      }
+      btnCancelProfile.style.display = 'inline-flex';
+      btnCancelProfile.textContent = 'Cancelar';
+
       profRfc.value = profile.rfc || '';
       profRazon.value = profile.razonSocial || '';
       profEmail.value = profile.email || '';
@@ -1706,7 +2462,6 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         syncCustomUsoFromValue('G03');
       }
-      btnCancelProfile.style.display = 'inline-flex';
 
       // Pre-evaluate visual validation for existing fields
       if (profRfc.value) setFieldValidationUI(profRfc, profRfcFeedback, validateRFC(profRfc.value), true);
@@ -1716,7 +2471,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (profRegimen?.value) validateRegimenField(false);
       if (profUso?.value) validateUsoField(false);
     } else {
+      profileDangerZone?.classList.add('hidden');
+      profileNotificationsZone?.classList.add('hidden');
+      profilePendingNotice?.classList.add('hidden');
+      if (profileStepIndicator) profileStepIndicator.textContent = 'Paso 1 de 2';
+      if (profileCardTitle) profileCardTitle.textContent = 'Configura tus Datos Fiscales';
+      if (profileCardSubtitle) profileCardSubtitle.textContent = 'Para poder rellenar automáticamente los portales de facturación, necesitamos saber a nombre de quién se expedirán tus comprobantes fiscales.';
+      if (btnSaveProfile) {
+        const desktopText = btnSaveProfile.querySelector('.btn-text-desktop');
+        const mobileText = btnSaveProfile.querySelector('.btn-text-mobile');
+        if (desktopText) desktopText.textContent = 'Guardar Perfil y Continuar';
+        if (mobileText) mobileText.textContent = 'Guardar';
+      }
       btnCancelProfile.style.display = 'none';
+      btnCancelProfile.textContent = 'Cancelar';
       profileForm.reset();
       clearRegimenSelection();
       // Default to common values
@@ -1806,8 +2574,171 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     saveProfile(profileData);
+
+    // If there were receipts pending in memory, upload tickets under this RFC and proceed directly to invoice!
+    if (currentScannedReceipts && currentScannedReceipts.length > 0) {
+      uploadAndProcessPendingInvoices(profileData);
+      return;
+    }
+
+    isPendingInvoicing = false;
     switchScreen(screenHistory);
     loadHistory();
+  }
+
+  function openDeleteProfileModal() {
+    if (!deleteProfileModal) return;
+    const profile = getProfile();
+    if (deleteProfileRfcBadge) {
+      deleteProfileRfcBadge.textContent = profile?.rfc ? `RFC: ${profile.rfc}` : 'Sin RFC';
+    }
+    deleteProfileModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    btnCancelDeleteModal?.focus();
+    try {
+      window.history.pushState({ deleteProfileModalOpen: true }, '');
+    } catch {}
+  }
+
+  function closeDeleteProfileModal(shouldGoBack = true) {
+    if (!deleteProfileModal) return;
+    deleteProfileModal.classList.add('hidden');
+    document.body.style.overflow = '';
+    if (shouldGoBack && window.history.state && window.history.state.deleteProfileModalOpen) {
+      try {
+        window.history.back();
+      } catch {}
+    }
+  }
+
+  function confirmDeleteProfile() {
+    closeDeleteProfileModal(false);
+
+    // 1. Purge client-side persistence
+    try {
+      localStorage.removeItem('combusticket_profile');
+      localStorage.removeItem('facturagas_profile');
+    } catch {}
+
+    try {
+      document.cookie = 'combusticket_profile=;path=/;max-age=0;SameSite=Lax';
+      document.cookie = 'facturagas_profile=;path=/;max-age=0;SameSite=Lax';
+    } catch {}
+
+    // 2. Stop history polling and reset in-memory history state
+    if (historyPollingTimer) {
+      clearInterval(historyPollingTimer);
+      historyPollingTimer = null;
+    }
+    redisHistoryItems = [];
+    window.userHistoryTickets = new Set();
+
+    // 3. Clear profile form and custom dropdowns
+    if (profileForm) {
+      profileForm.reset();
+    }
+    clearRegimenSelection();
+    if (profUso) profUso.value = 'G03';
+    syncCustomUsoFromValue('G03');
+
+    // 4. Reset validation styles
+    [profRfc, profRazon, profEmail, profCp].forEach((el) => {
+      el?.classList.remove('is-valid', 'is-invalid');
+    });
+    document.querySelectorAll('.field-status-icon').forEach((icon) => {
+      icon.className = 'field-status-icon hidden';
+      icon.innerHTML = '';
+    });
+    document.getElementById('regimen-select-check')?.classList.add('hidden');
+    document.getElementById('uso-select-check')?.classList.add('hidden');
+    [profRfcFeedback, profRazonFeedback, profEmailFeedback, profCpFeedback, profRegimenFeedback, profUsoFeedback].forEach((el) => {
+      if (el) {
+        el.className = 'validation-feedback';
+        el.innerHTML = '';
+      }
+    });
+    customRegimenContainer?.classList.remove('is-invalid');
+    customUsoContainer?.classList.remove('is-invalid');
+
+    // 5. Update UI state
+    document.documentElement.classList.remove('has-profile');
+    document.documentElement.classList.add('no-profile');
+    profileDangerZone?.classList.add('hidden');
+    profileNotificationsZone?.classList.add('hidden');
+    updateProfileUI();
+
+    // 6. Navigate back to Welcome screen and notify user
+    switchScreen(screenWelcome);
+    showToast('Perfil fiscal eliminado de este dispositivo.', 'info');
+  }
+
+  async function uploadAndProcessPendingInvoices(profileData) {
+    if (!btnSaveProfile) return;
+
+    btnSaveProfile.disabled = true;
+    const origBtnHtml = btnSaveProfile.innerHTML;
+    btnSaveProfile.innerHTML = `<div class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block;"></div><span>Almacenando ticket en tu RFC...</span>`;
+
+    try {
+      showToast('Guardando ticket bajo tu RFC...', 'info');
+
+      const formData = new FormData();
+      formData.append('rfc', profileData.rfc);
+
+      let filesAttached = 0;
+      for (let i = 0; i < currentScannedReceipts.length; i++) {
+        const r = currentScannedReceipts[i];
+        if (r._file) {
+          formData.append('receipts', r._file);
+          filesAttached++;
+        }
+      }
+
+      const existingUrls = currentScannedReceipts
+        .map((r) => r.receiptImageUrl || r.previewUrl)
+        .filter(Boolean);
+      formData.append('existingUrls', JSON.stringify(existingUrls));
+
+      const res = await fetch('/api/receipts/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        if (Array.isArray(data.files) && data.files.length > 0) {
+          data.files.forEach((f, idx) => {
+            if (currentScannedReceipts[idx] && f.receiptImageUrl) {
+              currentScannedReceipts[idx].receiptImageUrl = f.receiptImageUrl;
+              currentScannedReceipts[idx].previewUrl = f.receiptImageUrl;
+            }
+          });
+        }
+        if (Array.isArray(data.migrated) && data.migrated.length > 0) {
+          data.migrated.forEach((m) => {
+            currentScannedReceipts.forEach((r) => {
+              if (r.receiptImageUrl === m.originalUrl || r.previewUrl === m.originalUrl) {
+                r.receiptImageUrl = m.receiptImageUrl;
+                r.previewUrl = m.receiptImageUrl;
+              }
+            });
+          });
+        }
+      }
+
+      isPendingInvoicing = false;
+      btnSaveProfile.disabled = false;
+      btnSaveProfile.innerHTML = origBtnHtml;
+
+      // Automatically advance to invoicing without re-uploading!
+      await handleEnqueueInvoices();
+    } catch (err) {
+      console.error('Error uploading receipt under RFC:', err);
+      btnSaveProfile.disabled = false;
+      btnSaveProfile.innerHTML = origBtnHtml;
+      isPendingInvoicing = false;
+      await handleEnqueueInvoices();
+    }
   }
 
   // --- RECEIPT SCANNING (OCR ON-THE-FLY) ---
@@ -1923,11 +2854,13 @@ document.addEventListener('DOMContentLoaded', () => {
               ...item.receipt,
               previewUrl: serverReceiptImg || pUrl,
               receiptImageUrl: serverReceiptImg || pUrl,
+              _file: fileObj,
             });
           } else {
             currentScannedReceipts.push({
               gasStation: 'GOGAS',
               stationNumber: '',
+              cashier: '',
               trackingNumber: '',
               amount: 0,
               date: new Date().toISOString().split('T')[0],
@@ -1935,6 +2868,7 @@ document.addEventListener('DOMContentLoaded', () => {
               billingUrl: 'https://www.facturasgas.com',
               previewUrl: serverReceiptImg || pUrl,
               receiptImageUrl: serverReceiptImg || pUrl,
+              _file: fileObj,
             });
           }
         }
@@ -2002,11 +2936,13 @@ document.addEventListener('DOMContentLoaded', () => {
               ...item.receipt,
               previewUrl: demoReceiptImg,
               receiptImageUrl: demoReceiptImg,
+              _file: file,
             });
           } else {
             currentScannedReceipts.push({
               gasStation: 'GOGAS',
               stationNumber: '12009',
+              cashier: 'ANGEL IVAN CLAU MAY',
               trackingNumber: '12009037449671666',
               amount: 1090.40,
               date: '21/08/2026 14:57',
@@ -2014,6 +2950,7 @@ document.addEventListener('DOMContentLoaded', () => {
               billingUrl: 'https://www.facturasgas.com',
               previewUrl: demoReceiptImg,
               receiptImageUrl: demoReceiptImg,
+              _file: file,
             });
           }
         }
@@ -2047,6 +2984,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentScannedReceipts.push({
       gasStation: 'GOGAS',
       stationNumber: '',
+      cashier: '',
       trackingNumber: '',
       amount: 0,
       date: new Date().toISOString().split('T')[0],
@@ -2183,6 +3121,70 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const PAYMENT_METHODS = [
+    'Efectivo',
+    'Tarjeta de Crédito',
+    'Tarjeta de Débito',
+    'Tarjeta de Servicios',
+    'Cheque',
+    'Transferencia Electrónica de Fondos',
+  ];
+
+  function normalizePaymentMethod(raw) {
+    if (!raw) return 'Tarjeta de Crédito';
+    const s = String(raw).toUpperCase().trim();
+    if (s.includes('EFECTIVO') || s.includes('CASH')) return 'Efectivo';
+    if (s.includes('DEBITO') || s.includes('DÉBITO')) return 'Tarjeta de Débito';
+    if (s.includes('SERVICIO') || s.includes('VALE') || s.includes('MONEDERO') || s.includes('FLOTILLA')) return 'Tarjeta de Servicios';
+    if (s.includes('CHEQUE')) return 'Cheque';
+    if (s.includes('TRANSFERENCIA') || s.includes('SPEI') || s.includes('FONDOS') || s.includes('ELECTRONICA')) return 'Transferencia Electrónica de Fondos';
+    if (s.includes('CREDITO') || s.includes('CRÉDITO') || s.includes('VISA') || s.includes('MC') || s.includes('MASTER') || s.includes('AMEX') || s.includes('AMERICAN')) return 'Tarjeta de Crédito';
+    const found = PAYMENT_METHODS.find((m) => m.toLowerCase() === s.toLowerCase());
+    return found || 'Tarjeta de Crédito';
+  }
+
+  function renderPortalChoices(receipt) {
+    const rawUrl = (receipt.billingUrl || receipt.portalUrl || '').trim();
+    const rawDomain = getBillingDomain(receipt).toLowerCase();
+    const stations = (Array.isArray(supportedStations) && supportedStations.length > 0)
+      ? supportedStations
+      : DEFAULT_FALLBACK_STATIONS;
+
+    let matchedIndex = -1;
+    for (let i = 0; i < stations.length; i++) {
+      const st = stations[i];
+      const stDomain = (st.domain || '').toLowerCase();
+      const stPortal = (st.portalUrl || '').toLowerCase();
+      if (
+        (rawUrl && (rawUrl.toLowerCase() === stPortal || rawUrl.toLowerCase().includes(stDomain))) ||
+        (rawDomain && (rawDomain === stDomain || rawDomain.includes(stDomain) || stDomain.includes(rawDomain))) ||
+        (receipt.stationId && receipt.stationId.toLowerCase() === st.id.toLowerCase())
+      ) {
+        matchedIndex = i;
+        break;
+      }
+    }
+
+    if (matchedIndex === -1 && (!rawUrl || rawUrl.includes('facturasgas') || rawDomain.includes('facturasgas'))) {
+      matchedIndex = stations.findIndex((s) => s.id === 'gogas');
+    }
+
+    let html = '';
+    if (matchedIndex === -1 && rawUrl) {
+      html += `<option value="${escapeHtml(rawUrl)}" selected>Detectado: ${escapeHtml(rawDomain || rawUrl)}</option>`;
+    }
+
+    stations.forEach((st, idx) => {
+      const val = st.portalUrl || `https://${st.domain}`;
+      const isSel = idx === matchedIndex;
+      const isAvailable = st.status === 'active';
+      const labelSuffix = isAvailable ? '' : ' (Próximamente)';
+      html += `<option value="${escapeHtml(val)}" ${isSel ? 'selected' : ''}>${escapeHtml(st.name)} (${escapeHtml(st.domain || val)})${labelSuffix}</option>`;
+    });
+
+    return html;
+  }
+
   function renderReviewCards() {
     if (currentScannedReceipts.length === 0) {
       reviewSection?.classList.add('hidden');
@@ -2236,7 +3238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="receipt-card-header">
           <div class="receipt-card-title-group">
             <span class="receipt-index-badge">Ticket #${index + 1}</span>
-            <strong>${escapeHtml(getBillingDomain(receipt))}</strong>
+            <strong class="receipt-card-domain">${escapeHtml(getBillingDomain(receipt))}</strong>
           </div>
           <button type="button" class="btn-icon-xs text-danger" title="Eliminar ticket" data-delete-index="${index}">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -2252,33 +3254,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <div class="receipt-card-fields">
           <div class="form-group">
-            <label class="form-label">Portal Web de Facturación / Dominio</label>
-            <input type="text" class="form-input font-mono" data-field="billingUrl" data-index="${index}" value="${escapeHtml(receipt.billingUrl || getBillingDomain(receipt))}">
-          </div>
-
-          <div class="form-group">
             <label class="form-label">No. de Rastreo / Ticket <span class="req">*</span></label>
             <input type="text" class="form-input font-mono font-bold ${isDuplicate ? 'input-duplicate' : ''}" data-field="trackingNumber" data-index="${index}" value="${escapeHtml(receipt.trackingNumber || '')}" placeholder="Código de ticket">
           </div>
 
           <div class="form-group">
             <label class="form-label">Monto Total ($ MXN) <span class="req">*</span></label>
-            <input type="number" step="0.01" class="form-input" data-field="amount" data-index="${index}" value="${receipt.amount || 0}">
+            <input type="number" step="0.01" class="form-input font-bold" data-field="amount" data-index="${index}" value="${receipt.amount || 0}">
           </div>
 
           <div class="form-group">
             <label class="form-label">Fecha y Hora</label>
-            <input type="text" class="form-input" data-field="date" data-index="${index}" value="${escapeHtml(receipt.date || '')}" placeholder="DD/MM/AAAA HH:MM">
+            <input type="text" class="form-input font-mono" data-field="date" data-index="${index}" value="${escapeHtml(receipt.date || '')}" placeholder="DD/MM/AAAA HH:MM">
           </div>
 
           <div class="form-group">
             <label class="form-label">No. de Estación</label>
-            <input type="text" class="form-input" data-field="stationNumber" data-index="${index}" value="${escapeHtml(receipt.stationNumber || '')}" placeholder="Ej. 12009">
+            <input type="text" class="form-input font-mono" data-field="stationNumber" data-index="${index}" value="${escapeHtml(receipt.stationNumber || '')}" placeholder="Ej. 14764">
           </div>
 
           <div class="form-group">
-            <label class="form-label">Forma de Pago</label>
-            <input type="text" class="form-input" data-field="paymentMethod" data-index="${index}" value="${escapeHtml(receipt.paymentMethod || 'TARJETA DE CRÉDITO')}">
+            <label class="form-label">Cajero / Despachador</label>
+            <input type="text" class="form-input" data-field="cashier" data-index="${index}" value="${escapeHtml(receipt.cashier || '')}" placeholder="Nombre o No. de Cajero">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Forma de Pago <span class="req">*</span></label>
+            <select class="form-select font-bold" data-field="paymentMethod" data-index="${index}">
+              ${PAYMENT_METHODS.map((pm) => {
+                const isSel = normalizePaymentMethod(receipt.paymentMethod) === pm;
+                return `<option value="${escapeHtml(pm)}" ${isSel ? 'selected' : ''}>${escapeHtml(pm)}</option>`;
+              }).join('')}
+            </select>
+          </div>
+
+          <div class="form-group form-group-full">
+            <label class="form-label">Portal de Facturación Detectado <span class="req">*</span></label>
+            <select class="form-select font-mono" data-field="billingUrl" data-index="${index}">
+              ${renderPortalChoices(receipt)}
+            </select>
           </div>
         </div>
 
@@ -2293,20 +3307,30 @@ document.addEventListener('DOMContentLoaded', () => {
       receiptsList.appendChild(card);
     });
 
-    // Bind inputs to state
-    receiptsList.querySelectorAll('input').forEach((input) => {
-      input.addEventListener('input', (e) => {
-        const idx = parseInt(input.getAttribute('data-index'), 10);
-        const field = input.getAttribute('data-field');
+    // Bind inputs & selects to state
+    receiptsList.querySelectorAll('input, select').forEach((element) => {
+      const handleFieldChange = (e) => {
+        const idx = parseInt(element.getAttribute('data-index'), 10);
+        const field = element.getAttribute('data-field');
         if (currentScannedReceipts[idx]) {
           currentScannedReceipts[idx][field] = e.target.value;
           if (field === 'amount') {
             recalculateTotal();
           } else if (field === 'trackingNumber') {
             updateDuplicateValidation();
+          } else if (field === 'billingUrl') {
+            const cardEl = element.closest('.receipt-card');
+            if (cardEl) {
+              const headerDomain = cardEl.querySelector('.receipt-card-title-group strong');
+              if (headerDomain) {
+                headerDomain.textContent = getBillingDomain(currentScannedReceipts[idx]);
+              }
+            }
           }
         }
-      });
+      };
+      element.addEventListener('input', handleFieldChange);
+      element.addEventListener('change', handleFieldChange);
     });
 
     // Bind delete buttons
@@ -2341,8 +3365,8 @@ document.addEventListener('DOMContentLoaded', () => {
   async function handleEnqueueInvoices() {
     const profile = getProfile();
     if (!profile || !profile.rfc) {
-      showToast('Debes configurar tu perfil fiscal antes de generar facturas.', 'error');
-      openProfileScreen(false);
+      showToast('¡Datos del ticket listos! Configura tus datos fiscales para emitir tu factura.', 'info');
+      openProfileScreen(false, { pendingInvoicing: true });
       return;
     }
 
@@ -2366,6 +3390,13 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDuplicateValidation();
         return;
       }
+    }
+
+    // Auto-prompt push notification permissions on receipt submit if not yet decided
+    if ('Notification' in window && Notification.permission === 'default') {
+      autoPromptPushPermission(profile.rfc).catch(() => {});
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      subscribeUserToPush(profile.rfc, { silentSuccess: true }).catch(() => {});
     }
 
     btnEnqueueInvoices.disabled = true;
@@ -3083,12 +4114,32 @@ document.addEventListener('DOMContentLoaded', () => {
   async function updatePushStatusUI() {
     const btnPush = document.getElementById('btn-push-subscribe');
     const textPush = document.getElementById('push-btn-text');
-    if (!btnPush) return;
+    const statusBadge = document.getElementById('push-status-badge');
+    const statusDesc = document.getElementById('push-status-desc');
 
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-      btnPush.classList.add('hidden');
+      if (profileNotificationsZone) profileNotificationsZone.classList.add('hidden');
       return;
     }
+
+    if (!btnPush) return;
+
+    if (Notification.permission === 'denied') {
+      btnPush.classList.remove('btn-active');
+      btnPush.disabled = true;
+      if (textPush) textPush.textContent = 'Permiso Bloqueado';
+      btnPush.setAttribute('title', 'Notificaciones bloqueadas en los ajustes de tu navegador');
+      if (statusBadge) {
+        statusBadge.className = 'push-status-badge badge-blocked';
+        statusBadge.textContent = 'Bloqueadas';
+      }
+      if (statusDesc) {
+        statusDesc.textContent = 'Las notificaciones están bloqueadas en la configuración de tu navegador. Para recibirlas, permite las alertas en los permisos del sitio.';
+      }
+      return;
+    }
+
+    btnPush.disabled = false;
 
     if (Notification.permission === 'granted') {
       try {
@@ -3096,8 +4147,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
           btnPush.classList.add('btn-active');
-          if (textPush) textPush.textContent = 'Alertas Activas';
-          btnPush.setAttribute('title', 'Notificaciones push activadas en este navegador');
+          if (textPush) textPush.textContent = 'Desactivar Alertas';
+          btnPush.setAttribute('title', 'Notificaciones activadas. Clic para desactivar');
+          if (statusBadge) {
+            statusBadge.className = 'push-status-badge badge-active';
+            statusBadge.textContent = 'Activas';
+          }
+          if (statusDesc) {
+            statusDesc.textContent = 'Alertas push activadas en este dispositivo. Te notificaremos en cuanto tus facturas se timbren o requieran atención.';
+          }
           return;
         }
       } catch (e) {}
@@ -3106,10 +4164,119 @@ document.addEventListener('DOMContentLoaded', () => {
     btnPush.classList.remove('btn-active');
     if (textPush) textPush.textContent = 'Activar Alertas';
     btnPush.setAttribute('title', 'Activar notificaciones de facturas completadas');
+    if (statusBadge) {
+      statusBadge.className = 'push-status-badge badge-inactive';
+      statusBadge.textContent = 'Inactivas';
+    }
+    if (statusDesc) {
+      statusDesc.textContent = 'Recibe avisos directos en este dispositivo cuando tus facturas se completen o requieran atención.';
+    }
+  }
+
+  async function subscribeUserToPush(targetRfc, options = {}) {
+    const { silentSuccess = false } = options;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      return false;
+    }
+
+    let rfc = targetRfc;
+    if (!rfc) {
+      try {
+        const localProfile = JSON.parse(localStorage.getItem('combusticket_profile') || '{}');
+        if (localProfile && localProfile.rfc) rfc = localProfile.rfc;
+      } catch (e) {}
+    }
+
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+
+      if (!sub) {
+        const res = await fetch('/api/push/public-key');
+        const data = await res.json();
+        if (!data.success || !data.publicKey) {
+          if (!silentSuccess) showToast('No se pudo obtener la clave VAPID del servidor.', 'error');
+          return false;
+        }
+
+        const applicationServerKey = urlBase64ToUint8Array(data.publicKey);
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        });
+      }
+
+      if (sub) {
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: sub, rfc }),
+        });
+
+        if (!silentSuccess) {
+          showToast('🔔 ¡Notificaciones push activadas! Te avisaremos al timbrar tu factura.', 'success');
+        }
+        updatePushStatusUI();
+        return true;
+      }
+    } catch (err) {
+      console.error('[Push] Error al suscribir a notificaciones:', err);
+      if (!silentSuccess) {
+        showToast('Error al configurar notificaciones push: ' + (err.message || err), 'error');
+      }
+      updatePushStatusUI();
+    }
+    return false;
+  }
+
+  async function unsubscribeUserFromPush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await sub.unsubscribe();
+        let rfc = undefined;
+        try {
+          const localProfile = JSON.parse(localStorage.getItem('combusticket_profile') || '{}');
+          if (localProfile && localProfile.rfc) rfc = localProfile.rfc;
+        } catch (e) {}
+
+        await fetch('/api/push/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint, rfc }),
+        }).catch(() => {});
+
+        showToast('Notificaciones push desactivadas.', 'info');
+        updatePushStatusUI();
+      }
+    } catch (err) {
+      console.error('[Push] Error al desactivar notificaciones:', err);
+      showToast('Error al desactivar notificaciones: ' + (err.message || err), 'error');
+      updatePushStatusUI();
+    }
+  }
+
+  async function autoPromptPushPermission(rfc) {
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      return;
+    }
+    if (Notification.permission === 'default') {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          await subscribeUserToPush(rfc, { silentSuccess: false });
+        }
+      } catch (err) {
+        console.warn('[Push] Error en solicitud automática de permisos:', err);
+      }
+    } else if (Notification.permission === 'granted') {
+      subscribeUserToPush(rfc, { silentSuccess: true }).catch(() => {});
+    }
   }
 
   async function togglePushSubscription() {
-    const btnPush = document.getElementById('btn-push-subscribe');
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
       showToast('Tu navegador no soporta notificaciones push en segundo plano.', 'warning');
       return;
@@ -3122,18 +4289,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const reg = await navigator.serviceWorker.ready;
-      let sub = await reg.pushManager.getSubscription();
+      const sub = await reg.pushManager.getSubscription();
 
       if (sub) {
-        // Unsubscribe
-        await sub.unsubscribe();
-        await fetch('/api/push/unsubscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint: sub.endpoint }),
-        }).catch(() => {});
-        showToast('Notificaciones push desactivadas.', 'info');
-        updatePushStatusUI();
+        await unsubscribeUserFromPush();
         return;
       }
 
@@ -3145,35 +4304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Fetch server VAPID public key
-      const res = await fetch('/api/push/public-key');
-      const data = await res.json();
-      if (!data.success || !data.publicKey) {
-        showToast('No se pudo obtener la clave VAPID del servidor.', 'error');
-        return;
-      }
-
-      const applicationServerKey = urlBase64ToUint8Array(data.publicKey);
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey,
-      });
-
-      // Retrieve current RFC if set
-      let rfc = undefined;
-      try {
-        const localProfile = JSON.parse(localStorage.getItem('combusticket_profile') || '{}');
-        if (localProfile && localProfile.rfc) rfc = localProfile.rfc;
-      } catch (e) {}
-
-      await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub, rfc }),
-      });
-
-      showToast('🔔 ¡Notificaciones push activadas! Te avisaremos al timbrar tu factura.', 'success');
-      updatePushStatusUI();
+      await subscribeUserToPush(getProfile()?.rfc, { silentSuccess: false });
     } catch (err) {
       console.error('[Push] Error al configurar notificaciones:', err);
       showToast('Error al configurar notificaciones push: ' + (err.message || err), 'error');

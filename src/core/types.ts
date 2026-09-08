@@ -13,6 +13,7 @@ export interface OcrOutput {
 export interface ParsedReceiptData {
   gasStation: string;
   stationNumber?: string;
+  cashier?: string;
   trackingNumber: string;
   transaction?: string;
   date: string;
@@ -23,7 +24,53 @@ export interface ParsedReceiptData {
   billingUrl: string;
   rawText: string;
   receiptImageUrl?: string;
+  receiptJsonUrl?: string;
+  receiptBaseName?: string;
+  fileHash?: string;
   previewUrl?: string;
+}
+
+export interface ReceiptTransactionRecord {
+  id: string; // e.g. receipt_1788899016033_0
+  fileHash: string; // SHA-256
+  originalFilename: string;
+  imageFileName: string;
+  imageUrl: string;
+  jsonFileName: string;
+  jsonUrl: string;
+  rfc: string;
+  razonSocial?: string;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt?: string;
+  completedAt?: string;
+  status: 'scanned' | 'enqueued' | 'completed' | 'failed';
+  jobId?: string;
+  ticket: {
+    trackingNumber: string;
+    stationNumber?: string;
+    cashier?: string;
+    gasStation: string;
+    transaction?: string;
+    date: string;
+    paymentMethod: string;
+    amount: number;
+    subtotal?: number;
+    iva?: number;
+    billingUrl: string;
+  };
+  billingProfile?: Partial<BillingProfile>;
+  invoiceResult?: {
+    submitted: boolean;
+    pdfUrl?: string;
+    screenshotUrl?: string;
+    videoUrl?: string;
+    message?: string;
+  };
+  rawOcr?: {
+    fullText: string;
+    lines?: RecognizedLine[];
+  };
 }
 
 export interface BillingProfile {
@@ -42,6 +89,7 @@ export interface AutomationOptions {
   dryRun?: boolean;
   cdpPort?: number;
   screenshotDir?: string;
+  takeScreenshot?: boolean;
   recordVideo?: boolean;
   videoDir?: string;
   timeoutMs?: number;

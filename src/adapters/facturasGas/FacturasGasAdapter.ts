@@ -38,8 +38,9 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     options: AutomationOptions = {}
   ): Promise<InvoiceResult> {
     const dryRun = options.dryRun ?? false;
+    const takeScreenshot = options.takeScreenshot ?? true;
     const screenshotDir = path.resolve(options.screenshotDir || 'output');
-    if (!fs.existsSync(screenshotDir)) {
+    if (takeScreenshot && !fs.existsSync(screenshotDir)) {
       fs.mkdirSync(screenshotDir, { recursive: true });
     }
 
@@ -199,13 +200,20 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     );
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filledScreenshot = path.join(screenshotDir, `facturasgas_${timestamp}.png`);
-    await page.screenshot({ path: filledScreenshot, fullPage: true });
+    let filledScreenshot: string | undefined;
+    if (takeScreenshot) {
+      filledScreenshot = path.join(screenshotDir, `facturasgas_${timestamp}.png`);
+      try {
+        await page.screenshot({ path: filledScreenshot, fullPage: true });
+      } catch (err: any) {
+        Logger.warn('FacturasGas', `Could not capture filled screenshot: ${err.message}`);
+      }
+    }
 
     let submitted = false;
     let isSuccess = true;
     let finalMessage = `Formulario verificado para ticket ${receipt.trackingNumber}.`;
-    let evidenceScreenshot = filledScreenshot;
+    let evidenceScreenshot: string | undefined = filledScreenshot;
     let downloadedPdfPath: string | undefined;
 
     if (!dryRun) {
@@ -235,17 +243,19 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       await page.waitForLoadState('load', { timeout: 30000 }).catch(() => null);
       await page.waitForTimeout(3000);
 
-      const submittedScreenshot = path.join(screenshotDir, `facturasgas_submitted_${timestamp}.png`);
-      try {
-        await page.screenshot({ path: submittedScreenshot });
-        evidenceScreenshot = submittedScreenshot;
-      } catch (e: any) {
-        Logger.warn('FacturasGas', `Viewport screenshot notice, retrying after pause: ${e.message}`);
-        await page.waitForTimeout(2000);
+      if (takeScreenshot) {
+        const submittedScreenshot = path.join(screenshotDir, `facturasgas_submitted_${timestamp}.png`);
         try {
           await page.screenshot({ path: submittedScreenshot });
           evidenceScreenshot = submittedScreenshot;
-        } catch {}
+        } catch (e: any) {
+          Logger.warn('FacturasGas', `Viewport screenshot notice, retrying after pause: ${e.message}`);
+          await page.waitForTimeout(2000);
+          try {
+            await page.screenshot({ path: submittedScreenshot });
+            evidenceScreenshot = submittedScreenshot;
+          } catch {}
+        }
       }
 
       // Retry evaluate up to 4 times with delays to prevent navigation context loss
@@ -342,11 +352,14 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
         finalMessage =
           pageOutcome.alerts.length > 0
             ? pageOutcome.alerts.join(' | ')
-            : `Factura solicitada con éxito para el ticket ${receipt.trackingNumber}. Evidencia capturada en ${path.basename(submittedScreenshot)}.`;
+            : `Factura solicitada con éxito para el ticket ${receipt.trackingNumber}.${evidenceScreenshot ? ` Evidencia capturada en ${path.basename(evidenceScreenshot)}.` : ''}`;
 
         // If portal provided a direct PDF download link, fetch and store it locally
         if (pageOutcome.pdfLink) {
           try {
+            if (!fs.existsSync(screenshotDir)) {
+              fs.mkdirSync(screenshotDir, { recursive: true });
+            }
             const pdfFileName = `factura_${receipt.trackingNumber || timestamp}.pdf`;
             const targetPdfPath = path.join(screenshotDir, pdfFileName);
             const pdfBuffer = await page.evaluate(async (url) => {
@@ -397,6 +410,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     ) {
       return '2';
     }
+    if (normalized.includes('SERVICIO') || normalized.includes('VALE')) return '4';
     if (normalized.includes('TRANSFERENCIA')) return '10';
     if (normalized.includes('CHEQUE')) return '11';
     return profilePaymentMethod || '2';

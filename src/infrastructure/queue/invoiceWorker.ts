@@ -57,6 +57,7 @@ export function startInvoiceWorker(): Worker<InvoiceJobData, InvoiceResult> {
         trackingNumber: job.data.receiptData.trackingNumber,
         gasStation: job.data.receiptData.gasStation,
         stationNumber: job.data.receiptData.stationNumber,
+        cashier: job.data.receiptData.cashier,
         billingUrl: job.data.receiptData.billingUrl,
         amount: job.data.receiptData.amount,
         date: job.data.receiptData.date || new Date().toISOString().split('T')[0],
@@ -88,6 +89,7 @@ export function startInvoiceWorker(): Worker<InvoiceJobData, InvoiceResult> {
           {
             recordVideo: job.data.recordVideo,
             dryRun: job.data.dryRun,
+            takeScreenshot: job.data.takeScreenshot,
           }
         );
 
@@ -112,6 +114,7 @@ export function startInvoiceWorker(): Worker<InvoiceJobData, InvoiceResult> {
           trackingNumber: job.data.receiptData.trackingNumber,
           gasStation: job.data.receiptData.gasStation,
           stationNumber: job.data.receiptData.stationNumber,
+          cashier: job.data.receiptData.cashier,
           billingUrl: job.data.receiptData.billingUrl,
           amount: job.data.receiptData.amount,
           date: job.data.receiptData.date || new Date().toISOString().split('T')[0],
@@ -176,6 +179,7 @@ export function startInvoiceWorker(): Worker<InvoiceJobData, InvoiceResult> {
           trackingNumber: job.data.receiptData.trackingNumber,
           gasStation: job.data.receiptData.gasStation,
           stationNumber: job.data.receiptData.stationNumber,
+          cashier: job.data.receiptData.cashier,
           billingUrl: job.data.receiptData.billingUrl,
           amount: job.data.receiptData.amount,
           date: job.data.receiptData.date || new Date().toISOString().split('T')[0],
