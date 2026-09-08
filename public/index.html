@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FacturaGas — Asistente Inteligente de Facturación de Combustible</title>
+  <title>CombusTicket — Asistente Inteligente de Facturación de Combustible</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
     // Immediate anti-FOUC state detection before initial DOM paint
     (function() {
       try {
-        var raw = localStorage.getItem('facturagas_profile');
+        var raw = localStorage.getItem('combusticket_profile') || localStorage.getItem('facturagas_profile');
         if (raw) {
           var p = JSON.parse(raw);
           if (p && p.rfc) {
@@ -43,7 +43,7 @@
           </svg>
         </div>
         <div>
-          <h1 class="brand-title">Factura<span class="gradient-text">Gas</span></h1>
+          <h1 class="brand-title">Combus<span class="gradient-text">Ticket</span></h1>
           <p class="brand-subtitle">Facturación Automática de Combustible</p>
         </div>
       </div>

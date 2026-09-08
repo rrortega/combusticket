@@ -1,4 +1,4 @@
-# FacturaGasolina — Servicio Cloud de Facturación con Obscura y Arquitectura Hexagonal / SOLID
+# CombusTicket — Servicio Cloud de Facturación con Obscura y Arquitectura Hexagonal / SOLID
 
 Servicio modular para la extracción de datos fiscales de tickets de gasolina mediante **OCR local/cloud** y navegación desatendida mediante **Obscura** (headless browser anti-fingerprint con stealth para agentes de IA) y **Playwright (CDP)**.
 

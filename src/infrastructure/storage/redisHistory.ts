@@ -25,11 +25,15 @@ export interface InvoiceHistoryEntry {
 
 export class RedisHistoryService {
   private static getKey(rfc: string): string {
+    return `combusticket:history:${rfc.trim().toUpperCase()}`;
+  }
+
+  private static getLegacyKey(rfc: string): string {
     return `facturagas:history:${rfc.trim().toUpperCase()}`;
   }
 
   private static getLockKey(rfc: string): string {
-    return `facturagas:lock:${rfc.trim().toUpperCase()}`;
+    return `combusticket:lock:${rfc.trim().toUpperCase()}`;
   }
 
   private static async withLock<T>(rfc: string, fn: () => Promise<T>): Promise<T> {
@@ -208,7 +212,13 @@ export class RedisHistoryService {
     try {
       const redis = getRedisClient();
       const key = this.getKey(rfc);
-      const rows = await redis.lrange(key, 0, -1);
+      let rows = await redis.lrange(key, 0, -1);
+      if (rows.length === 0) {
+        const legacyRows = await redis.lrange(this.getLegacyKey(rfc), 0, -1);
+        if (legacyRows.length > 0) {
+          rows = legacyRows;
+        }
+      }
       const list: InvoiceHistoryEntry[] = [];
       for (const r of rows) {
         try {

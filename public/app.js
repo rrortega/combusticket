@@ -159,13 +159,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- PROFILE MANAGEMENT ---
   function getProfile() {
     try {
-      const raw = localStorage.getItem('facturagas_profile');
+      const raw = localStorage.getItem('combusticket_profile') || localStorage.getItem('facturagas_profile');
       if (raw) return JSON.parse(raw);
     } catch {}
 
     // Cookie fallback
     try {
-      const match = document.cookie.match(/facturagas_profile=([^;]+)/);
+      const match = document.cookie.match(/(?:combusticket_profile|facturagas_profile)=([^;]+)/);
       if (match) return JSON.parse(decodeURIComponent(match[1]));
     } catch {}
 
@@ -174,10 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function saveProfile(profile) {
     try {
+      localStorage.setItem('combusticket_profile', JSON.stringify(profile));
       localStorage.setItem('facturagas_profile', JSON.stringify(profile));
     } catch {}
     try {
-      document.cookie = `facturagas_profile=${encodeURIComponent(JSON.stringify(profile))};path=/;max-age=31536000;SameSite=Lax`;
+      document.cookie = `combusticket_profile=${encodeURIComponent(JSON.stringify(profile))};path=/;max-age=31536000;SameSite=Lax`;
     } catch {}
     updateProfileUI();
   }

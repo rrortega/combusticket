@@ -1,8 +1,8 @@
 {
-  "name": "facturagasolina",
+  "name": "combusticket",
   "version": "1.0.0",
   "type": "module",
-  "description": "Gas receipt OCR and Obscura browser automation service",
+  "description": "CombusTicket - Servicio inteligente de facturación de gasolina con OCR y automatización web",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
