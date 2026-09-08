@@ -13,6 +13,7 @@ import {
   UsosCfdiCatalog,
   FormasPagoCatalog,
 } from '../../../config/catalogs/index.js';
+import { StorageFactory } from '../../infrastructure/storage/storageFactory.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -34,7 +35,10 @@ export async function createHttpServer(
   app.use('/output/videos', express.static(ENV.VIDEO_DIR));
   app.use('/fixtures', express.static(path.resolve(process.cwd(), 'fixtures')));
 
-  const service = await GasInvoiceService.createDefault();
+  const storageService = StorageFactory.getStorageService();
+  const service = await GasInvoiceService.createDefault({
+    storageService,
+  });
 
   // Start background BullMQ worker if enabled (disabled in dedicated web / api mode)
   const shouldStartWorker =
@@ -54,6 +58,8 @@ export async function createHttpServer(
     res.json({
       status: 'ok',
       mode: ENV.APP_MODE,
+      storageDriver: ENV.STORAGE_DRIVER,
+      storageBucket: ENV.STORAGE_DRIVER !== 'local' ? ENV.S3_BUCKET : undefined,
       workerActive: Boolean(worker),
       uptime: process.uptime(),
       redis: ENV.REDIS_URL,
@@ -67,6 +73,7 @@ export async function createHttpServer(
   app.get('/api/config', (_req: Request, res: Response) => {
     res.json({
       success: true,
+      storageDriver: ENV.STORAGE_DRIVER,
       recordVideo: ENV.RECORD_VIDEO,
       dryRun: ENV.DRY_RUN,
     });
@@ -167,9 +174,12 @@ export async function createHttpServer(
         try {
           const ext = path.extname(file.originalname) || '.png';
           const savedFileName = `receipt_${Date.now()}_${i}${ext}`;
-          const savePath = path.join(receiptsDir, savedFileName);
-          fs.writeFileSync(savePath, file.buffer);
-          const receiptImageUrl = `/output/receipts/${savedFileName}`;
+          const key = `receipts/${savedFileName}`;
+
+          const uploadResult = await storageService.upload(key, file.buffer, {
+            contentType: file.mimetype || 'image/png',
+          });
+          const receiptImageUrl = uploadResult.url;
 
           const parsed = await service.parseReceiptOnly(file.buffer);
           parsed.receiptImageUrl = receiptImageUrl;
@@ -456,19 +466,29 @@ export async function createHttpServer(
   });
 
   // Download Invoice PDF
-  app.get('/api/invoices/:id/pdf', (req: Request, res: Response) => {
+  app.get('/api/invoices/:id/pdf', async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const ticket = String(req.query.ticket || id);
+
+      // Check local storage / output directory first
       const outputDir = path.resolve(ENV.SCREENSHOT_DIR);
-      if (!fs.existsSync(outputDir)) {
-        return res.status(404).json({ success: false, error: 'Directorio de archivos no encontrado.' });
+      if (fs.existsSync(outputDir)) {
+        const files = fs.readdirSync(outputDir).filter((f) => f.includes(ticket) && f.endsWith('.pdf'));
+        if (files.length > 0) {
+          const filePath = path.join(outputDir, files[0]);
+          return res.download(filePath, `factura_${ticket}.pdf`);
+        }
       }
 
-      const files = fs.readdirSync(outputDir).filter((f) => f.includes(ticket) && f.endsWith('.pdf'));
-      if (files.length > 0) {
-        const filePath = path.join(outputDir, files[0]);
-        return res.download(filePath, `factura_${ticket}.pdf`);
+      // Check in configured storage service (e.g. S3 / MinIO)
+      const storageKey = `invoices/factura_${ticket}.pdf`;
+      const existsInStorage = await storageService.exists(storageKey);
+      if (existsInStorage) {
+        const pdfBuffer = await storageService.download(storageKey);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="factura_${ticket}.pdf"`);
+        return res.send(pdfBuffer);
       }
 
       return res.status(404).json({ success: false, error: 'Comprobante PDF no disponible aún para este ticket.' });

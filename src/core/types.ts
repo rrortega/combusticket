@@ -55,8 +55,11 @@ export interface InvoiceResult {
   formFilled: boolean;
   submitted: boolean;
   screenshotPath?: string;
+  screenshotUrl?: string;
   videoPath?: string;
+  videoUrl?: string;
   pdfPath?: string;
+  pdfUrl?: string;
   message: string;
   extraData?: Record<string, any>;
 }

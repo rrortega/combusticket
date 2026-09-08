@@ -90,9 +90,15 @@ export function startInvoiceWorker(): Worker<InvoiceJobData, InvoiceResult> {
           status,
           progress: 100,
           submitted: Boolean(result.submitted),
-          screenshotUrl: screenshotFileName ? `/output/${screenshotFileName}` : undefined,
-          videoUrl: videoFileName ? `/output/videos/${videoFileName}` : undefined,
-          pdfUrl: pdfFileName ? `/output/${pdfFileName}` : undefined,
+          screenshotUrl:
+            result.screenshotUrl ||
+            (screenshotFileName ? `/output/${screenshotFileName}` : undefined),
+          videoUrl:
+            result.videoUrl ||
+            (videoFileName ? `/output/videos/${videoFileName}` : undefined),
+          pdfUrl:
+            result.pdfUrl ||
+            (pdfFileName ? `/output/${pdfFileName}` : undefined),
           receiptImageUrl: job.data.receiptData.receiptImageUrl || job.data.receiptData.previewUrl,
           message: result.message,
           error: !isSuccess ? result.message : undefined,

@@ -10,6 +10,8 @@ import { ObscuraManager } from '../browser/obscuraManager.js';
 import { FacturasGasAdapter } from '../adapters/facturasGas/FacturasGasAdapter.js';
 import { GenericGasAdapter } from '../adapters/generic/GenericGasAdapter.js';
 import { ENV } from '../config/env.js';
+import { IStorageService } from '../core/interfaces/IStorageService.js';
+import { StorageFactory } from '../infrastructure/storage/storageFactory.js';
 import {
   ParsedReceiptData,
   BillingProfile,
@@ -21,16 +23,21 @@ import {
 export interface GasInvoiceServiceOptions {
   profilePath?: string;
   defaultProfile?: BillingProfile;
+  storageService?: IStorageService;
 }
 
 export class GasInvoiceService {
+  private readonly storageService: IStorageService;
+
   constructor(
     private readonly ocrEngine: IOcrEngine,
     private readonly browserManager: IBrowserManager,
     private readonly portalRegistry: BillingPortalRegistry,
     private readonly receiptParser: ReceiptParser = new ReceiptParser(),
     private readonly options: GasInvoiceServiceOptions = {}
-  ) {}
+  ) {
+    this.storageService = options.storageService || StorageFactory.getStorageService();
+  }
 
   public static async createDefault(options: GasInvoiceServiceOptions = {}): Promise<GasInvoiceService> {
     const ocrEngine = await OcrEngineFactory.createEngine();
@@ -225,6 +232,46 @@ export class GasInvoiceService {
             } catch (vErr) {
               console.warn('[GasInvoiceService] Note: Video path resolution:', vErr);
             }
+          }
+        }
+
+        // Upload generated evidence artifacts to configured storage service (local, s3, or minio)
+        if (result.screenshotPath && fs.existsSync(result.screenshotPath)) {
+          try {
+            const fileName = path.basename(result.screenshotPath);
+            const uploadRes = await this.storageService.uploadFromPath(
+              `screenshots/${fileName}`,
+              result.screenshotPath
+            );
+            result.screenshotUrl = uploadRes.url;
+          } catch (err: any) {
+            console.warn('[GasInvoiceService] Storage upload error for screenshot:', err.message);
+          }
+        }
+
+        if (result.videoPath && fs.existsSync(result.videoPath)) {
+          try {
+            const fileName = path.basename(result.videoPath);
+            const uploadRes = await this.storageService.uploadFromPath(
+              `videos/${fileName}`,
+              result.videoPath
+            );
+            result.videoUrl = uploadRes.url;
+          } catch (err: any) {
+            console.warn('[GasInvoiceService] Storage upload error for video:', err.message);
+          }
+        }
+
+        if (result.pdfPath && fs.existsSync(result.pdfPath)) {
+          try {
+            const fileName = path.basename(result.pdfPath);
+            const uploadRes = await this.storageService.uploadFromPath(
+              `invoices/${fileName}`,
+              result.pdfPath
+            );
+            result.pdfUrl = uploadRes.url;
+          } catch (err: any) {
+            console.warn('[GasInvoiceService] Storage upload error for PDF:', err.message);
           }
         }
 

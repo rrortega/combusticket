@@ -20,6 +20,7 @@ services:
       - PORT=4000
       - HOST=0.0.0.0
       - REDIS_URL=redis://redis:6379
+      - STORAGE_DRIVER=${STORAGE_DRIVER:-local}
       - RECORD_VIDEO=false
       - DRY_RUN=false
     ports:
@@ -39,6 +40,7 @@ services:
     environment:
       - APP_MODE=worker
       - REDIS_URL=redis://redis:6379
+      - STORAGE_DRIVER=${STORAGE_DRIVER:-local}
       - RECORD_VIDEO=false
       - DRY_RUN=false
     depends_on:
