@@ -1,5 +1,5 @@
 # ==============================================================================
-# Dockerfile: FacturaGas (Web / REST API & BullMQ Queue Worker)
+# Dockerfile: CombusTicket (Web / REST API & BullMQ Queue Worker)
 # Supports dual-role deployment via APP_MODE (web | worker | all)
 # ==============================================================================
 FROM node:20-bookworm-slim
@@ -27,14 +27,20 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-# Copy dependency manifests
-COPY package*.json ./
+# Copy dependency manifests and TypeScript configuration
+COPY package*.json tsconfig.json ./
 
-# Install production dependencies plus tsx for TypeScript runtime execution
-RUN npm ci --omit=dev && npm install tsx typescript
+# Install all dependencies required for building the TypeScript project
+RUN npm ci
 
 # Copy application source code and assets
 COPY . .
+
+# Compile TypeScript to JavaScript (/app/dist)
+RUN npm run build
+
+# Prune development dependencies to keep the image lightweight
+RUN npm prune --omit=dev
 
 # Ensure storage directories exist with appropriate read/write permissions
 RUN mkdir -p output/videos output/receipts && chmod -R 777 output
@@ -42,5 +48,5 @@ RUN mkdir -p output/videos output/receipts && chmod -R 777 output
 # Expose standard HTTP port
 EXPOSE 4000
 
-# Default command inspects APP_MODE / SERVICE_ROLE in src/main.ts
+# Default command starts compiled production app (node dist/src/main.js)
 CMD ["npm", "start"]

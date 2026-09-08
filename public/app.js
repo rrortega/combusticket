@@ -1935,6 +1935,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3000);
   }
 
+  // --- Progressive Web App (PWA) Lifecycle & Install Prompt ---
+  function setupPWA() {
+    // 1. Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker
+          .register('/sw.js')
+          .then((registration) => {
+            console.log('[CombusTicket PWA] Service Worker activo con alcance:', registration.scope);
+          })
+          .catch((err) => {
+            console.warn('[CombusTicket PWA] Error al registrar Service Worker:', err);
+          });
+      });
+    }
+
+    // 2. Install Prompt Handler
+    let deferredInstallPrompt = null;
+    const btnPwaInstall = document.getElementById('btn-pwa-install');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (btnPwaInstall) {
+        btnPwaInstall.classList.remove('hidden');
+      }
+    });
+
+    if (btnPwaInstall) {
+      btnPwaInstall.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        if (choice.outcome === 'accepted') {
+          showToast('CombusTicket se está instalando en tu dispositivo...', 'success');
+        }
+        deferredInstallPrompt = null;
+        btnPwaInstall.classList.add('hidden');
+      });
+    }
+
+    window.addEventListener('appinstalled', () => {
+      console.log('[CombusTicket PWA] Aplicación instalada con éxito.');
+      showToast('¡CombusTicket instalada como App nativa!', 'success');
+      if (btnPwaInstall) {
+        btnPwaInstall.classList.add('hidden');
+      }
+    });
+  }
+
+  setupPWA();
+
   // Run app
   init();
 });

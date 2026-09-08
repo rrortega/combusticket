@@ -6,13 +6,17 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
+    "start": "node dist/src/main.js",
+    "start:dev": "tsx src/main.ts",
+    "start:web": "APP_MODE=web node dist/src/main.js",
+    "start:worker": "APP_MODE=worker node dist/src/main.js",
+    "dev": "tsx watch src/main.ts",
+    "api": "tsx watch src/main.ts",
     "invoice": "tsx src/index.ts",
     "invoice:submit": "tsx src/index.ts --submit",
-    "mcp": "tsx src/interfaces/mcp/server.ts",
-    "api": "tsx watch src/main.ts",
-    "start": "tsx src/main.ts",
-    "start:web": "APP_MODE=web tsx src/main.ts",
-    "start:worker": "APP_MODE=worker tsx src/main.ts"
+    "mcp": "node dist/src/interfaces/mcp/server.js",
+    "mcp:dev": "tsx src/interfaces/mcp/server.ts",
+    "generate:icons": "node scripts/generate-pwa-assets.js"
   },
   "keywords": [],
   "author": "",
@@ -22,7 +26,6 @@
     "@types/multer": "^2.2.0",
     "@types/node": "^26.4.1",
     "@types/sharp": "^0.31.1",
-    "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   },
   "dependencies": {
@@ -35,6 +38,7 @@
     "multer": "^2.3.0",
     "playwright-core": "^1.63.0",
     "sharp": "^0.35.4",
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "tsx": "^4.23.13"
   }
 }

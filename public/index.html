@@ -2,13 +2,54 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <title>CombusTicket — Asistente Inteligente de Facturación de Combustible</title>
+  <meta name="description" content="Automatización empresarial de facturación de gasolina en México (CFDI 4.0). Extracción OCR de tickets, colas asíncronas y navegación desatendida.">
+  <meta name="keywords" content="facturacion gasolina, cfdi 4.0, gogas, facturasgas, oxxo gas, sat mexico, combustible, facturacion automatica, ocr tickets, pwa">
+  <meta name="author" content="CombusTicket">
+
+  <!-- PWA & Mobile Web Capabilities -->
+  <meta name="theme-color" content="#0a0f1d">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CombusTicket">
+  <meta name="application-name" content="CombusTicket">
+  <meta name="msapplication-TileColor" content="#0a0f1d">
+
+  <!-- OpenGraph Metadata -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="CombusTicket">
+  <meta property="og:title" content="CombusTicket — Facturación Inteligente de Combustible">
+  <meta property="og:description" content="Automatización empresarial de facturación de gasolina en México (CFDI 4.0) con OCR heurístico y navegación desatendida.">
+  <meta property="og:image" content="/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:alt" content="CombusTicket - Automatización de Facturación de Gasolina">
+  <meta property="og:locale" content="es_MX">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="CombusTicket — Facturación Inteligente de Combustible">
+  <meta name="twitter:description" content="Automatización empresarial de facturación de gasolina en México con OCR heurístico y navegación desatendida.">
+  <meta name="twitter:image" content="/og-image.png">
+  <meta name="twitter:image:alt" content="CombusTicket - Facturación Inteligente de Combustible">
+
+  <!-- PWA Manifest & App Icons -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+  <link rel="mask-icon" href="/favicon.svg" color="#10b981">
+
+  <!-- Fonts & Styles -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2306b6d4' stroke-width='2'%3E%3Cpath d='M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8'/%3E%3Cpath d='M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5'/%3E%3Cpath d='M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4'/%3E%3Cpath d='M13 2h4a2 2 0 0 1 2 2v7'/%3E%3Cpath d='M4 22h16'/%3E%3C/svg%3E">
   <script>
     // Immediate anti-FOUC state detection before initial DOM paint
     (function() {
@@ -34,13 +75,7 @@
     <div class="header-container">
       <div class="brand" id="brand-logo" role="button">
         <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8"/>
-            <path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5"/>
-            <path d="M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/>
-            <path d="M13 2h4a2 2 0 0 1 2 2v7"/>
-            <path d="M4 22h16"/>
-          </svg>
+          <img src="/favicon.svg" alt="CombusTicket Logo" class="brand-logo-img" width="38" height="38">
         </div>
         <div>
           <h1 class="brand-title">Combus<span class="gradient-text">Ticket</span></h1>
@@ -48,24 +83,37 @@
         </div>
       </div>
 
-      <!-- Active Profile Pill / Action (Deferred render until state resolved) -->
-      <div class="header-profile is-loading" id="header-profile">
-        <div class="profile-pill hidden" id="profile-pill" role="button" tabindex="0" title="Ver mi perfil">
-          <span class="profile-avatar">
-            <span class="avatar-initials" id="avatar-initials">--</span>
-            <svg class="avatar-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="12"/><line x1="15" y1="22" x2="15" y2="12"/><line x1="8" y1="6" x2="10" y2="6"/><line x1="14" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/></svg>
-          </span>
-          <div class="profile-info-text">
-            <span class="profile-name" id="pill-razon-social">Cargando...</span>
-            <span class="profile-rfc" id="pill-rfc">RFC: ---</span>
+      <!-- Actions Group: PWA Install & Profile -->
+      <div class="header-actions">
+        <!-- PWA Install Action -->
+        <button type="button" class="btn btn-sm btn-outline pwa-install-btn hidden" id="btn-pwa-install" title="Instalar CombusTicket en este dispositivo">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Instalar App</span>
+        </button>
+
+        <!-- Active Profile Pill / Action (Deferred render until state resolved) -->
+        <div class="header-profile is-loading" id="header-profile">
+          <div class="profile-pill hidden" id="profile-pill" role="button" tabindex="0" title="Ver mi perfil">
+            <span class="profile-avatar">
+              <span class="avatar-initials" id="avatar-initials">--</span>
+              <svg class="avatar-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="12"/><line x1="15" y1="22" x2="15" y2="12"/><line x1="8" y1="6" x2="10" y2="6"/><line x1="14" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/></svg>
+            </span>
+            <div class="profile-info-text">
+              <span class="profile-name" id="pill-razon-social">Cargando...</span>
+              <span class="profile-rfc" id="pill-rfc">RFC: ---</span>
+            </div>
+            <button type="button" class="btn-icon-xs" id="btn-edit-profile" title="Editar datos fiscales">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </button>
           </div>
-          <button type="button" class="btn-icon-xs" id="btn-edit-profile" title="Editar datos fiscales">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <button type="button" class="btn btn-sm btn-outline hidden" id="btn-header-onboard">
+            Crear Perfil Fiscal
           </button>
         </div>
-        <button type="button" class="btn btn-sm btn-outline hidden" id="btn-header-onboard">
-          Crear Perfil Fiscal
-        </button>
       </div>
     </div>
   </header>
