@@ -3832,10 +3832,7 @@ select.sr-only,
   }
 
   .footer-powered {
-    overflow-wrap: break-word;
-    word-break: break-word;
-    max-width: 100%;
-    box-sizing: border-box;
+    display: none !important;
   }
 
   /* Responsive Legal Modal */
