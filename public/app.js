@@ -1471,8 +1471,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateQueueBadge();
 
-    // Work directly with Redis-backed history
-    const unifiedList = [...redisHistoryItems];
+    // Work directly with Redis-backed history and deduplicate defensively
+    const seenMap = new Map();
+    for (const item of redisHistoryItems) {
+      const trk = (item.trackingNumber && item.trackingNumber !== '---')
+        ? `trk_${String(item.trackingNumber).trim().toUpperCase()}`
+        : null;
+      const job = item.jobId ? `job_${String(item.jobId)}` : null;
+      const id = item.id ? `id_${String(item.id).replace(/^hist_/, '')}` : null;
+
+      let matchedKey = null;
+      for (const [key, existing] of seenMap.entries()) {
+        const trkMatch = trk && existing.trackingNumber && existing.trackingNumber !== '---' &&
+          String(existing.trackingNumber).trim().toUpperCase() === String(item.trackingNumber).trim().toUpperCase();
+        const jobMatch = (job && existing.jobId && String(existing.jobId) === String(item.jobId)) ||
+          (item.jobId && existing.id && (existing.id === String(item.jobId) || existing.id === `hist_${item.jobId}`));
+        const idMatch = (id && existing.id && (existing.id === item.id || existing.id === `hist_${item.jobId}` || item.id === `hist_${existing.jobId}`));
+
+        if (trkMatch || jobMatch || idMatch) {
+          matchedKey = key;
+          break;
+        }
+      }
+
+      const primaryKey = matchedKey || trk || job || id || `item_${Math.random()}`;
+
+      if (matchedKey) {
+        const existing = seenMap.get(matchedKey);
+        const statusPriority = { completed: 4, failed: 3, active: 2, waiting: 1, dry_run: 4 };
+        const preferredStatus = (statusPriority[item.status] || 0) >= (statusPriority[existing.status] || 0)
+          ? item.status
+          : existing.status;
+
+        seenMap.set(matchedKey, {
+          ...existing,
+          ...item,
+          status: preferredStatus,
+          progress: Math.max(existing.progress || 0, item.progress || 0),
+        });
+      } else {
+        seenMap.set(primaryKey, item);
+      }
+    }
+
+    const unifiedList = Array.from(seenMap.values());
 
     // Sort: pending jobs (waiting/active) first, then by timestamp descending
     unifiedList.sort((a, b) => {

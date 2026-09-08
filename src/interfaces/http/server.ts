@@ -406,11 +406,13 @@ export async function createHttpServer(
         }
       }
 
+      const cleanHistory = RedisHistoryService.deduplicateList(history);
+
       res.json({
         success: true,
         rfc,
-        count: history.length,
-        history,
+        count: cleanHistory.length,
+        history: cleanHistory,
       });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });

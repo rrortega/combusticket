@@ -45,8 +45,10 @@ export function startInvoiceWorker(): Worker<InvoiceJobData, InvoiceResult> {
         const service = await GasInvoiceService.createDefault();
         await job.updateProgress(40);
         await RedisHistoryService.upsertEntry({
+          id: `hist_${job.id}`,
           jobId: job.id,
           rfc: job.data.billingProfile.rfc,
+          trackingNumber: job.data.receiptData.trackingNumber,
           status: 'active',
           progress: 45,
           message: 'Navegando y llenando formulario fiscal...',
