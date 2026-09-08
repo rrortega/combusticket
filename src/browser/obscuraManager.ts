@@ -2,6 +2,7 @@ import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { IBrowserManager } from '../core/interfaces/IBrowserManager.js';
+import { Logger } from '../utils/logger.js';
 
 export interface ObscuraOptions {
   port?: number;
@@ -21,7 +22,7 @@ export class ObscuraManager implements IBrowserManager {
   constructor(options: ObscuraOptions = {}) {
     this.port = options.port || 9222;
     this.stealth = options.stealth ?? true;
-    this.verbose = options.verbose ?? false;
+    this.verbose = options.verbose ?? Logger.isDebugEnabled();
     this.binaryPath =
       options.binaryPath || path.resolve(process.cwd(), 'obscura');
   }
@@ -34,7 +35,7 @@ export class ObscuraManager implements IBrowserManager {
     const isAlreadyRunning = await this.checkHealth();
     if (isAlreadyRunning) {
       if (this.verbose) {
-        console.log(`[ObscuraManager] Found existing Obscura instance on port ${this.port}.`);
+        Logger.debug('Obscura', `Found existing Obscura instance on port ${this.port}.`);
       }
       return this.getCdpUrl();
     }
@@ -69,11 +70,11 @@ export class ObscuraManager implements IBrowserManager {
         '--hide-scrollbars',
         '--mute-audio',
       ];
-      console.log(`[ObscuraManager] Launching system Chromium: ${execPath}`);
+      Logger.info('Obscura', `Launching system Chromium: ${execPath}`);
     }
 
     if (this.verbose) {
-      console.log(`[ObscuraManager] Spawning process: ${execPath} ${args.join(' ')}`);
+      Logger.debug('Obscura', `Spawning process: ${execPath} ${args.join(' ')}`);
     }
 
     this.process = spawn(execPath, args, {
@@ -84,23 +85,23 @@ export class ObscuraManager implements IBrowserManager {
 
     this.process.stderr?.on('data', (chunk: Buffer) => {
       if (this.verbose) {
-        console.error(`[Obscura STDERR] ${chunk.toString().trim()}`);
+        Logger.debug('Obscura:STDERR', chunk.toString().trim());
       }
     });
 
     this.process.stdout?.on('data', (chunk: Buffer) => {
       if (this.verbose) {
-        console.log(`[Obscura STDOUT] ${chunk.toString().trim()}`);
+        Logger.debug('Obscura:STDOUT', chunk.toString().trim());
       }
     });
 
     this.process.on('error', (err: Error) => {
-      console.error('[ObscuraManager] Process failed to spawn:', err);
+      Logger.error('Obscura', `Process failed to spawn: ${err.message}`);
     });
 
     this.process.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
       if (this.verbose) {
-        console.log(`[ObscuraManager] Process exited with code=${code}, signal=${signal}`);
+        Logger.debug('Obscura', `Process exited with code=${code}, signal=${signal}`);
       }
       this.process = null;
       this.startedByUs = false;

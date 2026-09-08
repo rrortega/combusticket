@@ -12,6 +12,16 @@ export interface IStorageService {
   readonly driverName: string;
 
   /**
+   * Initialize storage backend (e.g. verify connection, auto-create buckets/directories).
+   */
+  init?(): Promise<void>;
+
+  /**
+   * Explicitly ensure target bucket or storage namespace exists.
+   */
+  ensureBucket?(): Promise<void>;
+
+  /**
    * Upload an in-memory buffer or byte array to storage.
    */
   upload(

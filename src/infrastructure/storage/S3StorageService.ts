@@ -6,12 +6,16 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
+  HeadBucketCommand,
+  CreateBucketCommand,
+  PutBucketPolicyCommand,
 } from '@aws-sdk/client-s3';
 import {
   IStorageService,
   StorageUploadOptions,
   StorageUploadResult,
 } from '../../core/interfaces/IStorageService.js';
+import { Logger } from '../../utils/logger.js';
 
 export interface S3StorageConfig {
   bucket: string;
@@ -27,6 +31,8 @@ export class S3StorageService implements IStorageService {
   public readonly driverName = 's3';
   private readonly client: S3Client;
   private readonly config: S3StorageConfig;
+  private bucketEnsured = false;
+  private ensuringPromise: Promise<void> | null = null;
 
   constructor(config: S3StorageConfig) {
     let normalizedEndpoint = config.endpoint ? config.endpoint.trim() : undefined;
@@ -46,14 +52,14 @@ export class S3StorageService implements IStorageService {
       try {
         const u = new URL(normalizedEndpoint);
         if (u.hostname.includes('_')) {
-          console.error(
-            `\n[S3StorageService] ⚠️ CRITICAL WARNING: S3/MinIO endpoint hostname "${u.hostname}" contains an underscore ("_").` +
-            `\nRFC 1123 / DNS standards forbid underscores in hostnames. MinIO will reject requests with: "Invalid Request (invalid hostname)".` +
-            `\nACTION REQUIRED: Rename your Docker service/container or domain to use hyphens (e.g., "minio-service" instead of "minio_service").\n`
+          Logger.warn(
+            'Storage:S3',
+            `Endpoint hostname "${u.hostname}" contains an underscore ("_"). ` +
+            `MinIO enforces RFC 1123 DNS standards. Automatically applying Host-header sanitizer middleware.`
           );
         }
       } catch (err: any) {
-        console.warn(`[S3StorageService] Warning: Could not parse endpoint URL "${normalizedEndpoint}":`, err.message);
+        Logger.warn('Storage:S3', `Could not parse endpoint URL "${normalizedEndpoint}": ${err.message}`);
       }
     }
 
@@ -85,6 +91,23 @@ export class S3StorageService implements IStorageService {
             }
           : undefined,
     });
+
+    // MinIO & Go HTTP servers strictly enforce RFC 1123, rejecting hostnames with underscores '_' (e.g. "chambapro_minio").
+    // We attach an SDK middleware to sanitize the outgoing HTTP 'host' header to replace '_' with '-' before SigV4 signing.
+    this.client.middlewareStack.add(
+      (next) => async (args) => {
+        const req: any = args.request;
+        if (req?.headers?.host && req.headers.host.includes('_')) {
+          req.headers.host = req.headers.host.replace(/_/g, '-');
+        }
+        return next(args);
+      },
+      {
+        step: 'build',
+        name: 'sanitizeMinioHostHeader',
+        priority: 'low',
+      }
+    );
   }
 
   private sanitizeKey(key: string): string {
@@ -147,11 +170,120 @@ export class S3StorageService implements IStorageService {
     return `https://${this.config.bucket}.s3.${region}.amazonaws.com/${cleanKey}`;
   }
 
+  public async init(): Promise<void> {
+    return this.ensureBucket();
+  }
+
+  public async ensureBucket(): Promise<void> {
+    if (this.bucketEnsured) return;
+    if (this.ensuringPromise) return this.ensuringPromise;
+
+    this.ensuringPromise = (async () => {
+      const bucket = this.config.bucket;
+      const isCustomEndpoint = Boolean(this.config.endpoint);
+
+      try {
+        Logger.debug('Storage:S3', `Checking if bucket "${bucket}" exists in MinIO/S3...`);
+        await this.client.send(new HeadBucketCommand({ Bucket: bucket }));
+        this.bucketEnsured = true;
+        Logger.info('Storage:S3', `🟢 Bucket "${bucket}" is ready and accessible.`);
+      } catch (err: any) {
+        const statusCode = err.$metadata?.httpStatusCode;
+        const errName = err.name || '';
+        const errMsg = err.message || '';
+
+        if (
+          statusCode === 404 ||
+          errName === 'NotFound' ||
+          errName === 'NoSuchBucket' ||
+          errMsg.includes('Not Found') ||
+          errMsg.includes('NoSuchBucket')
+        ) {
+          Logger.info('Storage:S3', `Bucket "${bucket}" does not exist. Auto-creating bucket in MinIO/S3...`);
+          try {
+            const createParams: any = { Bucket: bucket };
+            if (this.config.region && this.config.region !== 'us-east-1' && !isCustomEndpoint) {
+              createParams.CreateBucketConfiguration = {
+                LocationConstraint: this.config.region,
+              };
+            }
+            await this.client.send(new CreateBucketCommand(createParams));
+            this.bucketEnsured = true;
+            Logger.info('Storage:S3', `✅ Bucket "${bucket}" created successfully in MinIO/S3.`);
+
+            // Configure bucket policy for public read (essential for MinIO so downloaded PDFs/images are directly viewable)
+            await this.applyPublicReadPolicy(bucket);
+          } catch (createErr: any) {
+            if (createErr.name === 'BucketAlreadyOwnedByYou' || createErr.name === 'BucketAlreadyExists') {
+              this.bucketEnsured = true;
+            } else {
+              Logger.error('Storage:S3', `Failed to create bucket "${bucket}": ${createErr.message}`);
+              throw createErr;
+            }
+          }
+        } else if (statusCode === 403 || errName === 'AccessDenied') {
+          Logger.error(
+            'Storage:S3',
+            `❌ AccessDenied (403) for bucket "${bucket}". Verify S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY credentials.`
+          );
+          throw err;
+        } else {
+          Logger.warn('Storage:S3', `Bucket check warning (${errName || statusCode}): ${errMsg}. Attempting CreateBucket...`);
+          try {
+            await this.client.send(new CreateBucketCommand({ Bucket: bucket }));
+            this.bucketEnsured = true;
+            Logger.info('Storage:S3', `✅ Bucket "${bucket}" created successfully.`);
+            await this.applyPublicReadPolicy(bucket);
+          } catch (createErr: any) {
+            if (createErr.name === 'BucketAlreadyOwnedByYou' || createErr.name === 'BucketAlreadyExists') {
+              this.bucketEnsured = true;
+            } else {
+              Logger.error('Storage:S3', `Could not create bucket "${bucket}": ${createErr.message}`);
+              throw createErr;
+            }
+          }
+        }
+      } finally {
+        this.ensuringPromise = null;
+      }
+    })();
+
+    return this.ensuringPromise;
+  }
+
+  private async applyPublicReadPolicy(bucket: string): Promise<void> {
+    try {
+      const publicPolicy = JSON.stringify({
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Sid: 'PublicReadGetObject',
+            Effect: 'Allow',
+            Principal: '*',
+            Action: ['s3:GetObject'],
+            Resource: [`arn:aws:s3:::${bucket}/*`],
+          },
+        ],
+      });
+
+      await this.client.send(
+        new PutBucketPolicyCommand({
+          Bucket: bucket,
+          Policy: publicPolicy,
+        })
+      );
+      Logger.debug('Storage:S3', `Applied public read policy to bucket "${bucket}".`);
+    } catch (policyErr: any) {
+      Logger.debug('Storage:S3', `Bucket policy notice: ${policyErr.message}`);
+    }
+  }
+
   public async upload(
     key: string,
     data: Buffer | Uint8Array,
     options?: StorageUploadOptions
   ): Promise<StorageUploadResult> {
+    await this.ensureBucket();
     const cleanKey = this.sanitizeKey(key);
     const contentType = options?.contentType || this.detectContentType(cleanKey);
 
@@ -166,13 +298,14 @@ export class S3StorageService implements IStorageService {
       );
     } catch (err: any) {
       if (err.message && err.message.toLowerCase().includes('invalid hostname')) {
-        console.error(
-          `\n[S3StorageService] ❌ MinIO/S3 rejected upload with: "${err.message}"\n` +
-          `Diagnostic: This occurs when:\n` +
+        Logger.error(
+          'Storage:S3',
+          `❌ MinIO/S3 rejected upload with: "${err.message}"\n` +
+          `Diagnostic:\n` +
           ` 1. S3_ENDPOINT hostname contains underscores "_" (RFC 1123 violation). MinIO requires hyphens "-".\n` +
           ` 2. S3_ENDPOINT protocol is mismatched (e.g. https instead of http or vice versa).\n` +
           ` 3. MinIO requires S3_FORCE_PATH_STYLE=true.\n` +
-          `Configured Endpoint: "${this.config.endpoint}", Bucket: "${this.config.bucket}"\n`
+          `Configured Endpoint: "${this.config.endpoint}", Bucket: "${this.config.bucket}"`
         );
       }
       throw err;

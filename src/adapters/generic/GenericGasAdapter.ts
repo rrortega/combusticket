@@ -7,6 +7,7 @@ import {
   InvoiceResult,
   PortalDescriptor,
 } from '../../core/types.js';
+import { Logger } from '../../utils/logger.js';
 
 export class GenericGasAdapter implements IBillingPortalAdapter {
   public readonly descriptor: PortalDescriptor = {
@@ -26,7 +27,7 @@ export class GenericGasAdapter implements IBillingPortalAdapter {
     profile: BillingProfile,
     options: AutomationOptions = {}
   ): Promise<InvoiceResult> {
-    console.log(`[GenericGasAdapter] Navigating to ${receipt.billingUrl}...`);
+    Logger.info('GenericGas', `Navigating to ${receipt.billingUrl}...`);
     await page.goto(receipt.billingUrl, { waitUntil: 'domcontentloaded', timeout: options.timeoutMs || 30000 });
 
     return {

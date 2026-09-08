@@ -20,6 +20,8 @@ import {
   PortalDescriptor,
 } from '../core/types.js';
 
+import { Logger } from '../utils/logger.js';
+
 export interface GasInvoiceServiceOptions {
   profilePath?: string;
   defaultProfile?: BillingProfile;
@@ -41,7 +43,7 @@ export class GasInvoiceService {
 
   public static async createDefault(options: GasInvoiceServiceOptions = {}): Promise<GasInvoiceService> {
     const ocrEngine = await OcrEngineFactory.createEngine();
-    const browserManager = new ObscuraManager({ port: 9222, stealth: true });
+    const browserManager = new ObscuraManager({ port: 9222, stealth: true, verbose: Logger.isDebugEnabled() });
     const registry = new BillingPortalRegistry();
 
     // Register supported portal adapters
@@ -127,29 +129,35 @@ export class GasInvoiceService {
     profileOverride?: BillingProfile,
     options: AutomationOptions = {}
   ): Promise<InvoiceResult> {
-    console.log('\n======================================================');
-    console.log('[GasInvoiceService] Starting receipt processing pipeline');
-    console.log('======================================================\n');
+    Logger.info(
+      'Service',
+      `\n======================================================\n` +
+      `🧾 Starting receipt processing pipeline\n` +
+      `======================================================`
+    );
 
     // 1. OCR Step
-    console.log(`[1/4] Running OCR with engine: ${this.ocrEngine.name}...`);
+    Logger.step('Service', '1/4', `Running OCR with engine: ${this.ocrEngine.name}...`);
     const ocrOutput = await this.ocrEngine.recognize(imagePathOrBuffer);
     if (!ocrOutput.success) {
       throw new Error(ocrOutput.error || 'OCR recognition failed');
     }
 
     // 2. Parse receipt fields
-    console.log('[2/4] Parsing structured receipt metadata...');
+    Logger.step('Service', '2/4', 'Parsing structured receipt metadata...');
     const receiptData = this.receiptParser.parse(ocrOutput);
-    console.log('Extracted Data:');
-    console.log(`  - Gasolinera:    ${receiptData.gasStation}`);
-    console.log(`  - No. Estación:  ${receiptData.stationNumber || 'N/A'}`);
-    console.log(`  - No. Rastreo:   ${receiptData.trackingNumber || 'NOT FOUND'}`);
-    console.log(`  - Transacción:   ${receiptData.transaction || 'N/A'}`);
-    console.log(`  - Fecha:         ${receiptData.date || 'N/A'}`);
-    console.log(`  - Medio de Pago: ${receiptData.paymentMethod}`);
-    console.log(`  - Total:         $${receiptData.amount.toFixed(2)}`);
-    console.log(`  - Portal Web:    ${receiptData.billingUrl}`);
+    Logger.info(
+      'Service',
+      `Extracted Data:\n` +
+      `  • Gasolinera:    ${receiptData.gasStation}\n` +
+      `  • No. Estación:  ${receiptData.stationNumber || 'N/A'}\n` +
+      `  • No. Rastreo:   ${receiptData.trackingNumber || 'NOT FOUND'}\n` +
+      `  • Transacción:   ${receiptData.transaction || 'N/A'}\n` +
+      `  • Fecha:         ${receiptData.date || 'N/A'}\n` +
+      `  • Medio de Pago: ${receiptData.paymentMethod}\n` +
+      `  • Total:         $${receiptData.amount.toFixed(2)}\n` +
+      `  • Portal Web:    ${receiptData.billingUrl}`
+    );
 
     if (!receiptData.trackingNumber) {
       throw new Error('Tracking number (No. Rastreo) could not be extracted from receipt image.');
@@ -165,10 +173,14 @@ export class GasInvoiceService {
     options: AutomationOptions = {}
   ): Promise<InvoiceResult> {
     // 3. Resolve portal adapter
-    console.log('\n[Portal Resolver] Resolving billing portal adapter...');
     const adapter = this.portalRegistry.resolve(receiptData);
-    console.log(`Selected Adapter: ${adapter.descriptor.name} [id: ${adapter.descriptor.id}]`);
-    console.log(`Billing Profile: ${profile.razonSocial} (RFC: ${profile.rfc})`);
+    if (!adapter) {
+      throw new Error(
+        `No billing portal adapter found to handle receipt from station "${receiptData.gasStation}" or URL "${receiptData.billingUrl}".`
+      );
+    }
+    Logger.info('PortalResolver', `Resolved adapter: ${adapter.descriptor.name} [id: ${adapter.descriptor.id}]`);
+    Logger.debug('PortalResolver', `Target billing portal: ${receiptData.billingUrl || 'N/A'}`);
 
     const rawRfc = (profile?.rfc || 'GENERAL').toString().trim().toUpperCase();
     const rfcFolder = rawRfc.replace(/[^A-Z0-9&Ñ]/g, '') || 'GENERAL';
@@ -187,9 +199,9 @@ export class GasInvoiceService {
     };
 
     // 4. Execute Browser Automation
-    console.log('\n[Browser Automation] Launching Obscura agent browser daemon and connecting via Playwright...');
+    Logger.info('Browser', 'Launching Obscura agent browser daemon and connecting via Playwright...');
     const cdpUrl = await this.browserManager.start();
-    console.log(`Obscura ready at CDP: ${cdpUrl}`);
+    Logger.debug('Browser', `Obscura ready at CDP URL: ${cdpUrl}`);
 
     const videoDir = rfcVideoDir;
     if (recordVideo && !fs.existsSync(videoDir)) {
@@ -210,10 +222,37 @@ export class GasInvoiceService {
 
       const page = await context.newPage();
 
+      // In debug mode, stream live browser console events, network errors, and uncaught exceptions to stdout
+      if (Logger.isDebugEnabled()) {
+        page.on('console', (msg) => {
+          const type = msg.type();
+          const text = msg.text();
+          // Filter out generic noise unless relevant
+          if (!text.includes('Download the React DevTools')) {
+            Logger.debug('Browser:Console', `[${type}] ${text}`);
+          }
+        });
+
+        page.on('pageerror', (err) => {
+          Logger.error('Browser:PageError', `Uncaught exception in browser page: ${err.message}`);
+        });
+
+        page.on('requestfailed', (req) => {
+          Logger.debug('Browser:NetFail', `${req.method()} ${req.url()} (${req.failure()?.errorText || 'Unknown failure'})`);
+        });
+
+        page.on('response', (res) => {
+          if (res.status() >= 400) {
+            Logger.debug('Browser:HTTP', `${res.status()} ${res.request().method()} ${res.url()}`);
+          }
+        });
+      }
+
       try {
         // Delegate automation execution to the resolved adapter
+        Logger.info('Adapter', `Executing ${adapter.descriptor.name}...`);
         const result = await adapter.execute(page, receiptData, profile, effectiveOptions);
-        console.log(`\nAdapter execution finished: ${result.message}`);
+        Logger.info('Adapter', `Adapter finished. Result message: "${result.message}"`);
 
         // If recording video, wait a moment to capture the final validated state
         if (recordVideo) {
@@ -235,10 +274,10 @@ export class GasInvoiceService {
                 const finalVideoPath = path.join(videoDir, destName);
                 fs.renameSync(rawVideoPath, finalVideoPath);
                 result.videoPath = finalVideoPath;
-                console.log(`[GasInvoiceService] Video recorded and saved: ${finalVideoPath}`);
+                Logger.info('Service', `Video recorded and saved: ${finalVideoPath}`);
               }
             } catch (vErr) {
-              console.warn('[GasInvoiceService] Note: Video path resolution:', vErr);
+              Logger.warn('Service', 'Video path resolution warning:', vErr);
             }
           }
         }
@@ -252,8 +291,9 @@ export class GasInvoiceService {
               result.screenshotPath
             );
             result.screenshotUrl = uploadRes.url;
+            Logger.info('Service', `📸 Screenshot uploaded to storage: ${uploadRes.url}`);
           } catch (err: any) {
-            console.warn('[GasInvoiceService] Storage upload error for screenshot:', err.message);
+            Logger.error('Service', `❌ Storage upload error for screenshot (${result.screenshotPath}): ${err.message}`);
           }
         }
 
@@ -265,8 +305,9 @@ export class GasInvoiceService {
               result.videoPath
             );
             result.videoUrl = uploadRes.url;
+            Logger.info('Service', `🎬 Video uploaded to storage: ${uploadRes.url}`);
           } catch (err: any) {
-            console.warn('[GasInvoiceService] Storage upload error for video:', err.message);
+            Logger.error('Service', `❌ Storage upload error for video (${result.videoPath}): ${err.message}`);
           }
         }
 
@@ -278,8 +319,9 @@ export class GasInvoiceService {
               result.pdfPath
             );
             result.pdfUrl = uploadRes.url;
+            Logger.info('Service', `📄 PDF Invoice uploaded to storage: ${uploadRes.url}`);
           } catch (err: any) {
-            console.warn('[GasInvoiceService] Storage upload error for PDF:', err.message);
+            Logger.error('Service', `❌ Storage upload error for PDF (${result.pdfPath}): ${err.message}`);
           }
         }
 
@@ -291,8 +333,9 @@ export class GasInvoiceService {
               result.xmlPath
             );
             result.xmlUrl = uploadRes.url;
+            Logger.info('Service', `📑 XML Invoice uploaded to storage: ${uploadRes.url}`);
           } catch (err: any) {
-            console.warn('[GasInvoiceService] Storage upload error for XML:', err.message);
+            Logger.error('Service', `❌ Storage upload error for XML (${result.xmlPath}): ${err.message}`);
           }
         }
 

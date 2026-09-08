@@ -9,6 +9,7 @@ import {
   InvoiceResult,
   PortalDescriptor,
 } from '../../core/types.js';
+import { Logger } from '../../utils/logger.js';
 
 export class FacturasGasAdapter implements IBillingPortalAdapter {
   public readonly descriptor: PortalDescriptor = {
@@ -47,7 +48,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       targetUrl = targetUrl.replace(/\/$/, '') + '/facturacion/autofactura.php';
     }
 
-    console.log(`[FacturasGasAdapter] Navigating to ${targetUrl}...`);
+    Logger.info('FacturasGas', `Navigating to ${targetUrl}...`);
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: options.timeoutMs || 30000 });
     await page.waitForTimeout(1200);
 
@@ -70,7 +71,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       })()
     `).catch(() => {});
 
-    console.log('[FacturasGasAdapter] Filling billing profile into form...');
+    Logger.info('FacturasGas', 'Filling billing profile into form...');
     const paymentCode = this.resolvePaymentMethodCode(receipt.paymentMethod, profile.formaPago);
 
     // Step 1: Select Dropdowns with realistic pacing
@@ -91,7 +92,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
             }
           })()
         `);
-        console.log(`[FacturasGasAdapter] Set select ${item.label} (${item.id}) to: "${item.val}"`);
+        Logger.debug('FacturasGas', `Set select ${item.label} (${item.id}) to: "${item.val}"`);
         await page.waitForTimeout(350);
       }
     }
@@ -105,7 +106,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       { selector: '#CP', value: profile.codigoPostal, label: 'Código Postal' },
     ];
 
-    console.log('[FacturasGasAdapter] Profile data to fill:', {
+    Logger.debug('FacturasGas', 'Profile data to fill:', {
       rfc: profile.rfc,
       razonSocial: profile.razonSocial,
       email: profile.email,
@@ -140,7 +141,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
             }
           })()
         `);
-        console.log(`[FacturasGasAdapter] Filled ${field.label} (${field.selector}): "${field.value}"`);
+        Logger.debug('FacturasGas', `Filled ${field.label} (${field.selector}): "${field.value}"`);
         await page.waitForTimeout(350);
       }
     }
@@ -159,7 +160,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
           }
         })()
       `);
-      console.log(`[FacturasGasAdapter] Filled Ticket (#Ticket): "${receipt.trackingNumber}"`);
+      Logger.debug('FacturasGas', `Filled Ticket (#Ticket): "${receipt.trackingNumber}"`);
       await page.waitForTimeout(400);
     }
 
@@ -179,7 +180,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     await page.waitForTimeout(400);
 
     // Step 4: Click "Agregar" to register ticket into the invoice list
-    console.log(`[FacturasGasAdapter] Registering ticket: ${receipt.trackingNumber}...`);
+    Logger.info('FacturasGas', `Registering ticket: ${receipt.trackingNumber}...`);
     await page.click('#Button_Add');
     await page.waitForTimeout(2500);
 
@@ -192,8 +193,9 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       })()
     `) as { ticketHelp: string; ticketsVal: string; showTickets: string };
 
-    console.log(
-      `[FacturasGasAdapter] Registered tickets: "${ticketStatus.ticketsVal}", Validation status: "${ticketStatus.ticketHelp || 'OK'}"`
+    Logger.info(
+      'FacturasGas',
+      `Registered tickets: "${ticketStatus.ticketsVal}", Validation status: "${ticketStatus.ticketHelp || 'OK'}"`
     );
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -207,11 +209,11 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     let downloadedPdfPath: string | undefined;
 
     if (!dryRun) {
-      console.log('[FacturasGasAdapter] Submitting invoice: Clicking "Solicitar Factura" (#Button_Insert)...');
+      Logger.info('FacturasGas', 'Submitting invoice: Clicking "Solicitar Factura" (#Button_Insert)...');
 
       // Automatically accept any confirmation dialog
       page.on('dialog', async (dialog) => {
-        console.log(`[FacturasGasAdapter] Dialog detected: "${dialog.message()}". Accepting...`);
+        Logger.info('FacturasGas', `Dialog detected: "${dialog.message()}". Accepting...`);
         await dialog.accept().catch(() => {});
       });
 
@@ -226,7 +228,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
           page.click('#Button_Insert', { timeout: 10000 }),
         ]);
       } catch (err: any) {
-        console.warn('[FacturasGasAdapter] Navigation notice on submit:', err.message);
+        Logger.warn('FacturasGas', `Navigation notice on submit: ${err.message}`);
       }
 
       await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => null);
@@ -238,7 +240,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
         await page.screenshot({ path: submittedScreenshot });
         evidenceScreenshot = submittedScreenshot;
       } catch (e: any) {
-        console.warn('[FacturasGasAdapter] Viewport screenshot notice, retrying after pause:', e.message);
+        Logger.warn('FacturasGas', `Viewport screenshot notice, retrying after pause: ${e.message}`);
         await page.waitForTimeout(2000);
         try {
           await page.screenshot({ path: submittedScreenshot });
@@ -303,12 +305,12 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
           });
           if (pageOutcome) break;
         } catch (evalErr: any) {
-          console.warn(`[FacturasGasAdapter] Outcome evaluation attempt #${attempt} error: ${evalErr.message}`);
+          Logger.warn('FacturasGas', `Outcome evaluation attempt #${attempt} error: ${evalErr.message}`);
           await page.waitForTimeout(2000);
         }
       }
 
-      console.log('[FacturasGasAdapter] Resulting outcome evaluation:', pageOutcome);
+      Logger.info('FacturasGas', 'Resulting outcome evaluation:', pageOutcome);
 
       let downloadedPdfPath: string | undefined;
 
@@ -316,7 +318,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
         submitted = false;
         isSuccess = false;
         finalMessage = 'No se pudo confirmar la generación de la factura en el portal.';
-        console.warn(`[FacturasGasAdapter] Evaluation failed closed: "${finalMessage}"`);
+        Logger.warn('FacturasGas', `Evaluation failed closed: "${finalMessage}"`);
       } else if (pageOutcome.isAlreadyBilled || pageOutcome.isInvalid || pageOutcome.isExpired) {
         submitted = false;
         isSuccess = false;
@@ -325,7 +327,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
           (pageOutcome.isAlreadyBilled
             ? `El ticket '${receipt.trackingNumber}' ya fue facturado previamente en el portal.`
             : `El ticket '${receipt.trackingNumber}' fue rechazado por el portal.`);
-        console.warn(`[FacturasGasAdapter] Portal rejection detected: "${finalMessage}"`);
+        Logger.warn('FacturasGas', `Portal rejection detected: "${finalMessage}"`);
       } else if (pageOutcome.formStillActive && !pageOutcome.pdfLink && !pageOutcome.xmlLink) {
         // Form is still active on screen with no downloads -> submission failed or stayed on form
         submitted = false;
@@ -333,7 +335,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
         finalMessage = pageOutcome.alerts.length > 0
           ? pageOutcome.alerts.join(' | ')
           : `El formulario no avanzó para el ticket ${receipt.trackingNumber}.`;
-        console.warn(`[FacturasGasAdapter] Submission did not complete: "${finalMessage}"`);
+        Logger.warn('FacturasGas', `Submission did not complete: "${finalMessage}"`);
       } else {
         submitted = true;
         isSuccess = true;
@@ -355,10 +357,10 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
             if (pdfBuffer && pdfBuffer.length > 0) {
               fs.writeFileSync(targetPdfPath, Buffer.from(pdfBuffer));
               downloadedPdfPath = targetPdfPath;
-              console.log(`[FacturasGasAdapter] PDF invoice downloaded to: ${targetPdfPath}`);
+              Logger.info('FacturasGas', `PDF invoice downloaded to: ${targetPdfPath}`);
             }
           } catch (pdfErr: any) {
-            console.warn('[FacturasGasAdapter] Could not download PDF file directly:', pdfErr.message);
+            Logger.warn('FacturasGas', `Could not download PDF file directly: ${pdfErr.message}`);
           }
         }
       }

@@ -1,12 +1,24 @@
 import { ENV } from './config/env.js';
 import { createHttpServer } from './interfaces/http/server.js';
 import { startInvoiceWorker } from './infrastructure/queue/invoiceWorker.js';
+import { StorageFactory } from './infrastructure/storage/storageFactory.js';
+import { Logger } from './utils/logger.js';
 
 async function bootstrap() {
   const mode = ENV.APP_MODE;
   console.log(`\n======================================================`);
   console.log(`[CombusTicket] Starting application (APP_MODE="${mode}")`);
   console.log(`======================================================\n`);
+
+  // Ensure storage (local directories or MinIO/S3 bucket) is ready
+  const storage = StorageFactory.getStorageService();
+  if (storage.init) {
+    try {
+      await storage.init();
+    } catch (storageErr: any) {
+      Logger.error('Bootstrap', `Storage initialization notice: ${storageErr.message}`);
+    }
+  }
 
   if (mode === 'worker') {
     console.log('[CombusTicket Worker] Initializing dedicated BullMQ Worker daemon...');

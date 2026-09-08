@@ -8,6 +8,8 @@ export const ENV = {
   HOST: process.env.HOST || '0.0.0.0',
   APP_MODE: (process.env.APP_MODE || process.env.SERVICE_ROLE || process.env.MODE || 'all').toLowerCase().trim(),
   REDIS_URL: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+  DEBUG: process.env.DEBUG === 'true' || process.env.LOG_LEVEL === 'debug',
+  LOG_LEVEL: (process.env.LOG_LEVEL || (process.env.DEBUG === 'true' ? 'debug' : 'info')).toLowerCase(),
   RECORD_VIDEO: process.env.RECORD_VIDEO === 'true',
   DRY_RUN: process.env.DRY_RUN === 'true', // defaults to false (real submit with "Solicitar Factura")
   SCREENSHOT_DIR: path.resolve(process.env.SCREENSHOT_DIR || 'output'),

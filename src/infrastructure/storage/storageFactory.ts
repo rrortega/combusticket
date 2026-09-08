@@ -2,6 +2,7 @@ import { IStorageService } from '../../core/interfaces/IStorageService.js';
 import { LocalStorageService } from './LocalStorageService.js';
 import { S3StorageService } from './S3StorageService.js';
 import { ENV } from '../../config/env.js';
+import { Logger } from '../../utils/logger.js';
 
 export class StorageFactory {
   private static instance: IStorageService | null = null;
@@ -23,11 +24,12 @@ export class StorageFactory {
           ? ENV.S3_FORCE_PATH_STYLE
           : isMinio;
 
-      console.log(
-        `[StorageFactory] Initializing S3/MinIO Storage Service (driver="${driver}", bucket="${ENV.S3_BUCKET}", endpoint="${ENV.S3_ENDPOINT || 'aws-default'}", forcePathStyle=${forcePathStyle})`
+      Logger.info(
+        'StorageFactory',
+        `Initializing S3/MinIO Storage Service (driver="${driver}", bucket="${ENV.S3_BUCKET}", endpoint="${ENV.S3_ENDPOINT || 'aws-default'}", forcePathStyle=${forcePathStyle})`
       );
 
-      return new S3StorageService({
+      const service = new S3StorageService({
         bucket: ENV.S3_BUCKET,
         region: ENV.S3_REGION,
         endpoint: ENV.S3_ENDPOINT || undefined,
@@ -36,12 +38,22 @@ export class StorageFactory {
         forcePathStyle,
         publicUrl: ENV.S3_PUBLIC_URL || undefined,
       });
+
+      // Auto-ensure bucket on initialization
+      service.init?.().catch((err) => {
+        Logger.error('StorageFactory', `Failed to initialize/verify bucket "${ENV.S3_BUCKET}": ${err.message}`);
+      });
+
+      return service;
     }
 
-    console.log(
-      `[StorageFactory] Initializing Local Disk Storage Service (dir="${ENV.SCREENSHOT_DIR}")`
+    Logger.info(
+      'StorageFactory',
+      `Initializing Local Disk Storage Service (dir="${ENV.SCREENSHOT_DIR}")`
     );
-    return new LocalStorageService(ENV.SCREENSHOT_DIR);
+    const service = new LocalStorageService(ENV.SCREENSHOT_DIR);
+    service.init?.().catch(() => {});
+    return service;
   }
 
   public static resetInstance(): void {

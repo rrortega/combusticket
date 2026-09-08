@@ -18,6 +18,12 @@ export class LocalStorageService implements IStorageService {
     }
   }
 
+  public async init(): Promise<void> {
+    if (!fs.existsSync(this.baseDir)) {
+      fs.mkdirSync(this.baseDir, { recursive: true });
+    }
+  }
+
   private sanitizeKey(key: string): string {
     return key
       .replace(/\\/g, '/')
