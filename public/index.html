@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CombusTicket — Asistente Inteligente de Facturación de Combustible</title>
   <meta name="description" content="Automatización empresarial de facturación de gasolina en México (CFDI 4.0). Extracción OCR de tickets, colas asíncronas y navegación desatendida.">
   <meta name="keywords" content="facturacion gasolina, cfdi 4.0, gogas, facturasgas, oxxo gas, sat mexico, combustible, facturacion automatica, ocr tickets, pwa">
@@ -49,7 +49,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=5">
   <script>
     // Immediate anti-FOUC state detection before initial DOM paint
     (function() {
@@ -180,7 +180,10 @@
             <!-- RFC -->
             <div class="form-group">
               <label for="prof-rfc" class="form-label">RFC (Registro Federal de Contribuyentes) <span class="req">*</span></label>
-              <input type="text" id="prof-rfc" name="rfc" class="form-input text-uppercase" placeholder="Ej. MADR600405BK1" maxlength="13" required autocomplete="off" spellcheck="false">
+              <div class="input-with-icon">
+                <input type="text" id="prof-rfc" name="rfc" class="form-input text-uppercase" placeholder="Ej. MADR600405BK1" maxlength="13" required autocomplete="off" spellcheck="false">
+                <span class="field-status-icon hidden" id="prof-rfc-icon" aria-hidden="true"></span>
+              </div>
               <div class="validation-feedback" id="prof-rfc-feedback" aria-live="polite"></div>
               <span class="form-hint" id="prof-rfc-hint">12 caracteres para empresas, 13 para personas físicas.</span>
             </div>
@@ -188,7 +191,10 @@
             <!-- Razón Social -->
             <div class="form-group">
               <label for="prof-razon" class="form-label">Razón Social o Nombre Completo <span class="req">*</span></label>
-              <input type="text" id="prof-razon" name="razonSocial" class="form-input text-uppercase" placeholder="Ej. REYNOL MARTINEZ DIAZ" required autocomplete="off">
+              <div class="input-with-icon">
+                <input type="text" id="prof-razon" name="razonSocial" class="form-input text-uppercase" placeholder="Ej. REYNOL MARTINEZ DIAZ" required autocomplete="off">
+                <span class="field-status-icon hidden" id="prof-razon-icon" aria-hidden="true"></span>
+              </div>
               <div class="validation-feedback" id="prof-razon-feedback" aria-live="polite"></div>
               <span class="form-hint">Tal como aparece en tu Constancia de Situación Fiscal.</span>
             </div>
@@ -196,7 +202,10 @@
             <!-- Email -->
             <div class="form-group">
               <label for="prof-email" class="form-label">Correo Electrónico para Recibir Facturas <span class="req">*</span></label>
-              <input type="email" id="prof-email" name="email" class="form-input" placeholder="correo@ejemplo.com" required autocomplete="email">
+              <div class="input-with-icon">
+                <input type="email" id="prof-email" name="email" class="form-input" placeholder="correo@ejemplo.com" required autocomplete="email">
+                <span class="field-status-icon hidden" id="prof-email-icon" aria-hidden="true"></span>
+              </div>
               <div class="validation-feedback" id="prof-email-feedback" aria-live="polite"></div>
               <span class="form-hint">Aquí te llegarán los archivos PDF y XML de cada factura.</span>
             </div>
@@ -204,14 +213,17 @@
             <!-- Código Postal -->
             <div class="form-group">
               <label for="prof-cp" class="form-label">Código Postal Fiscal <span class="req">*</span></label>
-              <input type="text" id="prof-cp" name="codigoPostal" class="form-input" placeholder="Ej. 77536" maxlength="5" pattern="[0-9]{5}" inputmode="numeric" required autocomplete="postal-code">
+              <div class="input-with-icon">
+                <input type="text" id="prof-cp" name="codigoPostal" class="form-input" placeholder="Ej. 77536" maxlength="5" pattern="[0-9]{5}" inputmode="numeric" required autocomplete="postal-code">
+                <span class="field-status-icon hidden" id="prof-cp-icon" aria-hidden="true"></span>
+              </div>
               <div class="validation-feedback" id="prof-cp-feedback" aria-live="polite"></div>
               <span class="form-hint">Código postal de tu domicilio fiscal registrado en el SAT (5 dígitos).</span>
             </div>
 
             <!-- Régimen Fiscal Custom Searchable Choice -->
             <div class="form-group form-group-full">
-              <label for="prof-regimen" class="form-label">Régimen Fiscal <span class="req">*</span></label>
+              <label for="regimen-select-trigger" class="form-label">Régimen Fiscal <span class="req">*</span></label>
               
               <div class="custom-select-container" id="custom-regimen-container">
                 <button type="button" class="custom-select-trigger" id="regimen-select-trigger" aria-haspopup="listbox" aria-expanded="false">
@@ -223,6 +235,9 @@
                     </div>
                   </div>
                   <div class="custom-select-actions">
+                    <span class="choice-check-icon hidden" id="regimen-select-check" title="Régimen seleccionado" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
                     <span class="custom-select-clear hidden" id="regimen-select-clear" title="Quitar selección" role="button">&times;</span>
                     <svg class="custom-select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                   </div>
@@ -231,7 +246,7 @@
                 <div class="custom-select-dropdown hidden" id="regimen-select-dropdown">
                   <div class="custom-select-search-wrapper">
                     <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" class="custom-select-search" id="regimen-search-input" placeholder="Buscar por código (ej. 625) o nombre (ej. plataformas, sueldos)..." autocomplete="off" spellcheck="false">
+                    <input type="text" class="custom-select-search" id="regimen-search-input" placeholder="Buscar por código (ej. 625) o nombre..." autocomplete="off" spellcheck="false">
                     <button type="button" class="custom-search-clear hidden" id="regimen-search-clear">&times;</button>
                   </div>
                   
@@ -251,7 +266,7 @@
                 </div>
 
                 <!-- Hidden native select for form serialization and programmatic compatibility -->
-                <select id="prof-regimen" name="regimenFiscal" class="sr-only" required tabindex="-1" aria-hidden="true">
+                <select id="prof-regimen" name="regimenFiscal" class="sr-only" style="position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;opacity:0!important;pointer-events:none!important;" tabindex="-1" aria-hidden="true">
                   <option value="">-- Selecciona tu Régimen Fiscal --</option>
                 </select>
               </div>
@@ -259,12 +274,56 @@
               <span class="form-hint">Selecciona el régimen que corresponda a tu actividad registrada ante el SAT.</span>
             </div>
 
-            <!-- Uso de CFDI Dropdown -->
+            <!-- Uso de CFDI Custom Combobox -->
             <div class="form-group form-group-full">
-              <label for="prof-uso" class="form-label">Uso de CFDI Habitual <span class="req">*</span></label>
-              <select id="prof-uso" name="usoCfdi" class="form-select" required>
-                <option value="">Cargando usos de CFDI...</option>
-              </select>
+              <label for="uso-select-trigger" class="form-label">Uso de CFDI Habitual <span class="req">*</span></label>
+              
+              <div class="custom-select-container" id="custom-uso-container">
+                <button type="button" class="custom-select-trigger" id="uso-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                  <div class="custom-select-content">
+                    <span class="custom-select-placeholder" id="uso-select-placeholder">-- Selecciona el Uso de CFDI (ej. G03) --</span>
+                    <div class="custom-select-selected-value hidden" id="uso-selected-value">
+                      <span class="regimen-code-tag uso-code-tag" id="uso-selected-code"></span>
+                      <span class="regimen-name" id="uso-selected-desc"></span>
+                    </div>
+                  </div>
+                  <div class="custom-select-actions">
+                    <span class="choice-check-icon hidden" id="uso-select-check" title="Uso de CFDI seleccionado" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
+                    <span class="custom-select-clear hidden" id="uso-select-clear" title="Quitar selección" role="button">&times;</span>
+                    <svg class="custom-select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                </button>
+                
+                <div class="custom-select-dropdown hidden" id="uso-select-dropdown">
+                  <div class="custom-select-search-wrapper">
+                    <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="custom-select-search" id="uso-search-input" placeholder="Buscar por código (ej. G03) o concepto..." autocomplete="off" spellcheck="false">
+                    <button type="button" class="custom-search-clear hidden" id="uso-search-clear">&times;</button>
+                  </div>
+                  
+                  <div class="custom-select-filters" id="uso-filters">
+                    <button type="button" class="filter-chip active" data-filter="ALL" id="chip-uso-all">Todos</button>
+                    <button type="button" class="filter-chip" data-filter="GASTOS" id="chip-uso-gastos">Gastos (G)</button>
+                    <button type="button" class="filter-chip" data-filter="INVERSIONES" id="chip-uso-inversiones">Inversiones (I)</button>
+                    <button type="button" class="filter-chip" data-filter="DEDUCCIONES" id="chip-uso-deducciones">Deducciones (D)</button>
+                  </div>
+                  
+                  <ul class="custom-select-options" id="uso-options-list" role="listbox" tabindex="-1">
+                  </ul>
+                  
+                  <div class="custom-select-empty hidden" id="uso-empty-state">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                    <span>No se encontraron usos de CFDI que coincidan con la búsqueda.</span>
+                  </div>
+                </div>
+
+                <!-- Hidden native select for form serialization and programmatic compatibility -->
+                <select id="prof-uso" name="usoCfdi" class="sr-only" style="position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;opacity:0!important;pointer-events:none!important;" tabindex="-1" aria-hidden="true">
+                  <option value="">-- Selecciona Uso de CFDI --</option>
+                </select>
+              </div>
               <div class="validation-feedback" id="prof-uso-feedback" aria-live="polite"></div>
               <span class="form-hint">Uso preferente para deducción de gasolina (comúnmente G03 - Gastos en general).</span>
             </div>
@@ -832,6 +891,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

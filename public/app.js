@@ -134,6 +134,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const regimenOptionsList = document.getElementById('regimen-options-list');
   const regimenEmptyState = document.getElementById('regimen-empty-state');
 
+  // Custom Searchable Uso de CFDI Choice
+  const customUsoContainer = document.getElementById('custom-uso-container');
+  const usoSelectTrigger = document.getElementById('uso-select-trigger');
+  const usoSelectPlaceholder = document.getElementById('uso-select-placeholder');
+  const usoSelectedValue = document.getElementById('uso-selected-value');
+  const usoSelectedCode = document.getElementById('uso-selected-code');
+  const usoSelectedDesc = document.getElementById('uso-selected-desc');
+  const usoSelectClear = document.getElementById('uso-select-clear');
+  const usoSelectDropdown = document.getElementById('uso-select-dropdown');
+  const usoSearchInput = document.getElementById('uso-search-input');
+  const usoSearchClear = document.getElementById('uso-search-clear');
+  const chipUsoAll = document.getElementById('chip-uso-all');
+  const chipUsoGastos = document.getElementById('chip-uso-gastos');
+  const chipUsoInversiones = document.getElementById('chip-uso-inversiones');
+  const chipUsoDeducciones = document.getElementById('chip-uso-deducciones');
+  const usoOptionsList = document.getElementById('uso-options-list');
+  const usoEmptyState = document.getElementById('uso-empty-state');
+
   // Workbench
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('file-input');
@@ -305,8 +323,14 @@ document.addEventListener('DOMContentLoaded', () => {
             profRazon.value = data.profile.razonSocial || '';
             profEmail.value = data.profile.email || '';
             profCp.value = data.profile.codigoPostal || '';
-            if (data.profile.regimenFiscal) profRegimen.value = data.profile.regimenFiscal;
-            if (data.profile.usoCfdi) profUso.value = data.profile.usoCfdi;
+            if (data.profile.regimenFiscal) {
+              profRegimen.value = data.profile.regimenFiscal;
+              syncCustomRegimenFromValue(data.profile.regimenFiscal);
+            }
+            if (data.profile.usoCfdi) {
+              profUso.value = data.profile.usoCfdi;
+              syncCustomUsoFromValue(data.profile.usoCfdi);
+            }
           }
         })
         .catch(() => {});
@@ -413,6 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (profUso.querySelector('option[value="G03"]')) {
         profUso.value = 'G03';
       }
+      syncCustomUsoFromValue(profUso.value);
+      renderUsoOptions();
     }
   }
 
@@ -590,16 +616,19 @@ document.addEventListener('DOMContentLoaded', () => {
       profRegimen.value = '';
       profRegimen.dispatchEvent(new Event('change'));
     }
+    document.getElementById('regimen-select-check')?.classList.add('hidden');
     syncCustomRegimenFromValue('');
   }
 
   function syncCustomRegimenFromValue(code, knownDesc) {
+    const checkEl = document.getElementById('regimen-select-check');
     if (!regimenSelectPlaceholder || !regimenSelectedValue) return;
 
     if (!code) {
       regimenSelectPlaceholder.classList.remove('hidden');
       regimenSelectedValue.classList.add('hidden');
       regimenSelectClear?.classList.add('hidden');
+      if (checkEl) checkEl.classList.add('hidden');
       return;
     }
 
@@ -615,10 +644,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (regimenSelectedCode) regimenSelectedCode.textContent = code;
     if (regimenSelectedDesc) regimenSelectedDesc.textContent = desc;
     regimenSelectClear?.classList.remove('hidden');
+    if (checkEl) checkEl.classList.remove('hidden');
   }
 
   function openRegimenDropdown() {
     if (!regimenSelectDropdown) return;
+    closeUsoDropdown();
     customRegimenContainer?.classList.add('open');
     regimenSelectDropdown.classList.remove('hidden');
     regimenSelectTrigger?.setAttribute('aria-expanded', 'true');
@@ -695,25 +726,324 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function validateRegimenField(isTouched = false) {
-    if (!profRegimenFeedback) return true;
     const val = profRegimen ? profRegimen.value : '';
+    const checkEl = document.getElementById('regimen-select-check');
     if (!val) {
+      if (checkEl) checkEl.classList.add('hidden');
       if (isTouched) {
         customRegimenContainer?.classList.add('is-invalid');
-        profRegimenFeedback.className = 'validation-feedback is-invalid';
-        profRegimenFeedback.innerHTML = `
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span>Selecciona tu Régimen Fiscal del SAT.</span>
-        `;
+        regimenSelectTrigger?.classList.add('is-invalid');
+        if (profRegimenFeedback) {
+          profRegimenFeedback.className = 'validation-feedback is-invalid';
+          profRegimenFeedback.innerHTML = `<span>Selecciona tu Régimen Fiscal del SAT.</span>`;
+        }
       }
       return false;
     }
     customRegimenContainer?.classList.remove('is-invalid');
-    profRegimenFeedback.className = 'validation-feedback is-valid';
-    profRegimenFeedback.innerHTML = `
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-      <span>Régimen Fiscal seleccionado correctamente.</span>
-    `;
+    regimenSelectTrigger?.classList.remove('is-invalid');
+    if (checkEl) checkEl.classList.remove('hidden');
+    if (profRegimenFeedback) {
+      profRegimenFeedback.className = 'validation-feedback';
+      profRegimenFeedback.innerHTML = '';
+    }
+    return true;
+  }
+
+  // --- CUSTOM ACCESSIBLE SEARCHABLE SELECT (COMBOBOX) FOR USO DE CFDI ---
+  let activeUsoFilter = 'ALL'; // 'ALL' | 'GASTOS' | 'INVERSIONES' | 'DEDUCCIONES'
+  let activeUsoSearch = '';
+  let activeUsoHighlightedIndex = -1;
+
+  function initCustomUsoSelect() {
+    if (!customUsoContainer || !usoSelectTrigger) return;
+
+    // Trigger open/close
+    usoSelectTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleUsoDropdown();
+    });
+
+    usoSelectTrigger.addEventListener('keydown', handleUsoKeydown);
+
+    // Search input typing
+    usoSearchInput?.addEventListener('input', (e) => {
+      activeUsoSearch = e.target.value;
+      if (usoSearchClear) {
+        if (activeUsoSearch.length > 0) {
+          usoSearchClear.classList.remove('hidden');
+        } else {
+          usoSearchClear.classList.add('hidden');
+        }
+      }
+      renderUsoOptions();
+    });
+
+    usoSearchClear?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (usoSearchInput) usoSearchInput.value = '';
+      activeUsoSearch = '';
+      usoSearchClear.classList.add('hidden');
+      renderUsoOptions();
+      usoSearchInput?.focus();
+    });
+
+    // Filter chips
+    const usoFilterChips = [chipUsoAll, chipUsoGastos, chipUsoInversiones, chipUsoDeducciones];
+    usoFilterChips.forEach((chip) => {
+      chip?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        usoFilterChips.forEach((c) => c?.classList.remove('active'));
+        chip.classList.add('active');
+        activeUsoFilter = chip.dataset.filter || 'ALL';
+        renderUsoOptions();
+      });
+    });
+
+    // Clear selection
+    usoSelectClear?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearUsoSelection();
+      validateUsoField(true);
+    });
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+      if (!customUsoContainer.contains(e.target)) {
+        closeUsoDropdown();
+      }
+    });
+
+    // Sync initial state if profUso already has a value
+    if (profUso && profUso.value) {
+      syncCustomUsoFromValue(profUso.value);
+    }
+  }
+
+  function renderUsoOptions() {
+    if (!usoOptionsList) return;
+
+    const items = catalogs.usosCfdi?.usos || DEFAULT_SAT_USOS;
+    const query = (activeUsoSearch || '').trim().toLowerCase();
+
+    // 1. Filter by category
+    let filtered = items.filter((item) => {
+      const code = (item.code || item.codigo || '').toUpperCase();
+      if (activeUsoFilter === 'GASTOS') {
+        return code.startsWith('G');
+      }
+      if (activeUsoFilter === 'INVERSIONES') {
+        return code.startsWith('I');
+      }
+      if (activeUsoFilter === 'DEDUCCIONES') {
+        return code.startsWith('D');
+      }
+      return true;
+    });
+
+    // 2. Filter by search query
+    if (query) {
+      filtered = filtered.filter((item) => {
+        const code = (item.code || item.codigo || '').toLowerCase();
+        const desc = (item.description || item.descripcion || '').toLowerCase();
+        return code.includes(query) || desc.includes(query);
+      });
+    }
+
+    usoOptionsList.innerHTML = '';
+    activeUsoHighlightedIndex = -1;
+
+    if (filtered.length === 0) {
+      usoEmptyState?.classList.remove('hidden');
+      return;
+    }
+
+    usoEmptyState?.classList.add('hidden');
+
+    filtered.forEach((item, index) => {
+      const code = item.code || item.codigo;
+      const desc = item.description || item.descripcion;
+      const isSelected = profUso && profUso.value === code;
+      const isGasolina = item.defaultGasolina || code === 'G03';
+
+      const li = document.createElement('li');
+      li.className = `custom-select-option ${isSelected ? 'is-selected' : ''}`;
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      li.dataset.code = code;
+      li.dataset.index = index;
+
+      const highlightedDesc = highlightText(desc, query);
+      const highlightedCode = highlightText(code, query);
+
+      li.innerHTML = `
+        <div class="option-main">
+          <span class="regimen-code-tag uso-code-tag">${highlightedCode}</span>
+          <span class="option-desc">${highlightedDesc}</span>
+        </div>
+        <div class="option-meta">
+          ${isGasolina ? '<span class="uso-recommended-badge">Recomendado Gasolina</span>' : ''}
+          ${isSelected ? '<span class="option-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>' : ''}
+        </div>
+      `;
+
+      li.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectUso(code, desc);
+        closeUsoDropdown();
+      });
+
+      usoOptionsList.appendChild(li);
+    });
+  }
+
+  function selectUso(code, desc) {
+    if (profUso) {
+      profUso.value = code;
+      profUso.dispatchEvent(new Event('change'));
+    }
+    syncCustomUsoFromValue(code, desc);
+    customUsoContainer?.classList.remove('is-invalid');
+    validateUsoField(true);
+  }
+
+  function clearUsoSelection() {
+    if (profUso) {
+      profUso.value = '';
+      profUso.dispatchEvent(new Event('change'));
+    }
+    document.getElementById('uso-select-check')?.classList.add('hidden');
+    syncCustomUsoFromValue('');
+  }
+
+  function syncCustomUsoFromValue(code, knownDesc) {
+    const checkEl = document.getElementById('uso-select-check');
+    if (!usoSelectPlaceholder || !usoSelectedValue) return;
+
+    if (!code) {
+      usoSelectPlaceholder.classList.remove('hidden');
+      usoSelectedValue.classList.add('hidden');
+      usoSelectClear?.classList.add('hidden');
+      if (checkEl) checkEl.classList.add('hidden');
+      return;
+    }
+
+    let desc = knownDesc;
+    if (!desc) {
+      const items = catalogs.usosCfdi?.usos || DEFAULT_SAT_USOS;
+      const found = items.find((i) => (i.code || i.codigo) === code);
+      desc = found ? (found.description || found.descripcion) : `Uso ${code}`;
+    }
+
+    usoSelectPlaceholder.classList.add('hidden');
+    usoSelectedValue.classList.remove('hidden');
+    if (usoSelectedCode) usoSelectedCode.textContent = code;
+    if (usoSelectedDesc) usoSelectedDesc.textContent = desc;
+    usoSelectClear?.classList.remove('hidden');
+    if (checkEl) checkEl.classList.remove('hidden');
+  }
+
+  function openUsoDropdown() {
+    if (!usoSelectDropdown) return;
+    // Close regimen dropdown if open to avoid overlap
+    closeRegimenDropdown();
+    customUsoContainer?.classList.add('open');
+    usoSelectDropdown.classList.remove('hidden');
+    usoSelectTrigger?.setAttribute('aria-expanded', 'true');
+    renderUsoOptions();
+    setTimeout(() => {
+      usoSearchInput?.focus();
+    }, 40);
+  }
+
+  function closeUsoDropdown() {
+    if (!usoSelectDropdown) return;
+    customUsoContainer?.classList.remove('open');
+    usoSelectDropdown.classList.add('hidden');
+    usoSelectTrigger?.setAttribute('aria-expanded', 'false');
+    activeUsoHighlightedIndex = -1;
+  }
+
+  function toggleUsoDropdown() {
+    if (usoSelectDropdown?.classList.contains('hidden')) {
+      openUsoDropdown();
+    } else {
+      closeUsoDropdown();
+    }
+  }
+
+  function handleUsoKeydown(e) {
+    const isDropdownOpen = !usoSelectDropdown?.classList.contains('hidden');
+
+    if (e.key === 'Escape') {
+      if (isDropdownOpen) {
+        e.preventDefault();
+        closeUsoDropdown();
+        usoSelectTrigger?.focus();
+      }
+      return;
+    }
+
+    if (!isDropdownOpen) {
+      if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+        e.preventDefault();
+        openUsoDropdown();
+      }
+      return;
+    }
+
+    const options = usoOptionsList?.querySelectorAll('.custom-select-option') || [];
+    if (options.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeUsoHighlightedIndex = (activeUsoHighlightedIndex + 1) % options.length;
+      updateUsoHighlightedOption(options);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeUsoHighlightedIndex = (activeUsoHighlightedIndex - 1 + options.length) % options.length;
+      updateUsoHighlightedOption(options);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeUsoHighlightedIndex >= 0 && activeUsoHighlightedIndex < options.length) {
+        options[activeUsoHighlightedIndex].click();
+      }
+    }
+  }
+
+  function updateUsoHighlightedOption(options) {
+    options.forEach((opt, idx) => {
+      if (idx === activeUsoHighlightedIndex) {
+        opt.classList.add('is-focused');
+        opt.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } else {
+        opt.classList.remove('is-focused');
+      }
+    });
+  }
+
+  function validateUsoField(isTouched = false) {
+    const val = profUso ? profUso.value : '';
+    const checkEl = document.getElementById('uso-select-check');
+    if (!val) {
+      if (checkEl) checkEl.classList.add('hidden');
+      if (isTouched) {
+        customUsoContainer?.classList.add('is-invalid');
+        usoSelectTrigger?.classList.add('is-invalid');
+        if (profUsoFeedback) {
+          profUsoFeedback.className = 'validation-feedback is-invalid';
+          profUsoFeedback.innerHTML = `<span>Selecciona el Uso de CFDI para tus facturas.</span>`;
+        }
+      }
+      return false;
+    }
+    customUsoContainer?.classList.remove('is-invalid');
+    usoSelectTrigger?.classList.remove('is-invalid');
+    if (checkEl) checkEl.classList.remove('hidden');
+    if (profUsoFeedback) {
+      profUsoFeedback.className = 'validation-feedback';
+      profUsoFeedback.innerHTML = '';
+    }
     return true;
   }
 
@@ -773,30 +1103,52 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setFieldValidationUI(inputEl, feedbackEl, result, isTouched) {
-    if (!feedbackEl || !inputEl) return;
+    if (!inputEl) return;
+    const iconEl = document.getElementById(inputEl.id + '-icon') || 
+                   inputEl.parentElement?.querySelector('.field-status-icon');
+
     if (!isTouched && (!inputEl.value || !inputEl.value.trim())) {
       inputEl.classList.remove('is-valid', 'is-invalid');
-      feedbackEl.className = 'validation-feedback';
-      feedbackEl.innerHTML = '';
+      if (iconEl) {
+        iconEl.className = 'field-status-icon hidden';
+        iconEl.innerHTML = '';
+      }
+      if (feedbackEl) {
+        feedbackEl.className = 'validation-feedback';
+        feedbackEl.innerHTML = '';
+      }
       return;
     }
 
     if (result.valid) {
       inputEl.classList.remove('is-invalid');
       inputEl.classList.add('is-valid');
-      feedbackEl.className = 'validation-feedback is-valid';
-      feedbackEl.innerHTML = `
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        <span>${escapeHtml(result.message)}</span>
-      `;
+      if (iconEl) {
+        iconEl.className = 'field-status-icon is-valid';
+        iconEl.innerHTML = `
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        `;
+        iconEl.classList.remove('hidden');
+      }
+      // Never show check below, only inside on the right
+      if (feedbackEl) {
+        feedbackEl.className = 'validation-feedback';
+        feedbackEl.innerHTML = '';
+      }
     } else {
       inputEl.classList.remove('is-valid');
       inputEl.classList.add('is-invalid');
-      feedbackEl.className = 'validation-feedback is-invalid';
-      feedbackEl.innerHTML = `
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span>${escapeHtml(result.message)}</span>
-      `;
+      if (iconEl) {
+        iconEl.className = 'field-status-icon is-invalid';
+        iconEl.innerHTML = `
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        `;
+        iconEl.classList.remove('hidden');
+      }
+      if (feedbackEl) {
+        feedbackEl.className = 'validation-feedback is-invalid';
+        feedbackEl.innerHTML = `<span>${escapeHtml(result.message || 'Campo no válido.')}</span>`;
+      }
     }
   }
 
@@ -905,8 +1257,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Initialize custom accessible searchable select for Régimen Fiscal
+    // Initialize custom accessible searchable select for Régimen Fiscal & Uso de CFDI
     initCustomRegimenSelect();
+    initCustomUsoSelect();
 
     // Real-time RFC input sanitization & validation
     profRfc?.addEventListener('input', () => {
@@ -958,28 +1311,15 @@ document.addEventListener('DOMContentLoaded', () => {
       setFieldValidationUI(profCp, profCpFeedback, res, true);
     });
 
-    // Razón Social validation on blur
+    // Razón Social validation on input & blur
+    profRazon?.addEventListener('input', () => {
+      const isValid = !!profRazon.value.trim();
+      setFieldValidationUI(profRazon, profRazonFeedback, { valid: isValid, message: 'Ingresa tu Razón Social o Nombre Completo.' }, true);
+    });
+
     profRazon?.addEventListener('blur', () => {
-      if (!profRazon.value.trim()) {
-        profRazon.classList.add('is-invalid');
-        if (profRazonFeedback) {
-          profRazonFeedback.className = 'validation-feedback is-invalid';
-          profRazonFeedback.innerHTML = `
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>Ingresa tu Razón Social o Nombre Completo.</span>
-          `;
-        }
-      } else {
-        profRazon.classList.remove('is-invalid');
-        profRazon.classList.add('is-valid');
-        if (profRazonFeedback) {
-          profRazonFeedback.className = 'validation-feedback is-valid';
-          profRazonFeedback.innerHTML = `
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Razón social completa.</span>
-          `;
-        }
-      }
+      const isValid = !!profRazon.value.trim();
+      setFieldValidationUI(profRazon, profRazonFeedback, { valid: isValid, message: 'Ingresa tu Razón Social o Nombre Completo.' }, true);
     });
 
     // Profile form submission
@@ -1292,27 +1632,21 @@ document.addEventListener('DOMContentLoaded', () => {
           profRegimen.dispatchEvent(new Event('change'));
         }
         syncCustomRegimenFromValue('625');
-        if (profUso?.querySelector('option[value="G03"]')) {
+        if (profUso) {
           profUso.value = 'G03';
+          profUso.dispatchEvent(new Event('change'));
         }
+        syncCustomUsoFromValue('G03');
 
         // Trigger real-time visual validation states
         setFieldValidationUI(profRfc, profRfcFeedback, validateRFC(profRfc.value), true);
+        setFieldValidationUI(profRazon, profRazonFeedback, { valid: true }, true);
         setFieldValidationUI(profEmail, profEmailFeedback, validateEmail(profEmail.value), true);
         setFieldValidationUI(profCp, profCpFeedback, validatePostalCode(profCp.value), true);
-        if (profRazon) {
-          profRazon.classList.remove('is-invalid');
-          profRazon.classList.add('is-valid');
-          if (profRazonFeedback) {
-            profRazonFeedback.className = 'validation-feedback is-valid';
-            profRazonFeedback.innerHTML = `
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Razón social completa.</span>
-            `;
-          }
-        }
         customRegimenContainer?.classList.remove('is-invalid');
         validateRegimenField(true);
+        customUsoContainer?.classList.remove('is-invalid');
+        validateUsoField(true);
         showToast('Datos de prueba de REYNOL cargados correctamente.', 'info');
       });
     }
@@ -1331,14 +1665,23 @@ document.addEventListener('DOMContentLoaded', () => {
   function openProfileScreen(isEditing) {
     switchScreen(screenProfile);
 
-    // Reset validation feedback states
+    // Reset validation feedback states, inner icons, and error borders
     [profRfc, profRazon, profEmail, profCp].forEach(el => {
       el?.classList.remove('is-valid', 'is-invalid');
     });
+    document.querySelectorAll('.field-status-icon').forEach(icon => {
+      icon.className = 'field-status-icon hidden';
+      icon.innerHTML = '';
+    });
+    document.getElementById('regimen-select-check')?.classList.add('hidden');
+    document.getElementById('uso-select-check')?.classList.add('hidden');
     [profRfcFeedback, profRazonFeedback, profEmailFeedback, profCpFeedback, profRegimenFeedback, profUsoFeedback].forEach(el => {
       if (el) { el.className = 'validation-feedback'; el.innerHTML = ''; }
     });
     customRegimenContainer?.classList.remove('is-invalid');
+    customUsoContainer?.classList.remove('is-invalid');
+    regimenSelectTrigger?.classList.remove('is-invalid');
+    usoSelectTrigger?.classList.remove('is-invalid');
 
     if (isEditing) {
       const profile = getProfile() || {};
@@ -1352,22 +1695,30 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         clearRegimenSelection();
       }
-      if (profile.usoCfdi && profUso) profUso.value = profile.usoCfdi;
+      if (profile.usoCfdi && profUso) {
+        profUso.value = profile.usoCfdi;
+        syncCustomUsoFromValue(profile.usoCfdi);
+      } else {
+        syncCustomUsoFromValue('G03');
+      }
       btnCancelProfile.style.display = 'inline-flex';
 
       // Pre-evaluate visual validation for existing fields
       if (profRfc.value) setFieldValidationUI(profRfc, profRfcFeedback, validateRFC(profRfc.value), true);
+      if (profRazon.value) setFieldValidationUI(profRazon, profRazonFeedback, { valid: true }, true);
       if (profEmail.value) setFieldValidationUI(profEmail, profEmailFeedback, validateEmail(profEmail.value), true);
       if (profCp.value) setFieldValidationUI(profCp, profCpFeedback, validatePostalCode(profCp.value), true);
       if (profRegimen?.value) validateRegimenField(false);
+      if (profUso?.value) validateUsoField(false);
     } else {
       btnCancelProfile.style.display = 'none';
       profileForm.reset();
       clearRegimenSelection();
       // Default to common values
-      if (profUso?.querySelector('option[value="G03"]')) {
+      if (profUso) {
         profUso.value = 'G03';
       }
+      syncCustomUsoFromValue('G03');
     }
   }
 
@@ -1390,17 +1741,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Razón Social Validation
     if (!razonSocial) {
-      profRazon?.classList.add('is-invalid');
-      if (profRazonFeedback) {
-        profRazonFeedback.className = 'validation-feedback is-invalid';
-        profRazonFeedback.innerHTML = `
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span>Ingresa tu Razón Social o Nombre Completo.</span>
-        `;
-      }
+      setFieldValidationUI(profRazon, profRazonFeedback, { valid: false, message: 'Ingresa tu Razón Social o Nombre Completo.' }, true);
       showToast('Ingresa tu Razón Social o Nombre Completo tal como aparece en tu Constancia Fiscal.', 'error');
       profRazon?.focus();
       return;
+    } else {
+      setFieldValidationUI(profRazon, profRazonFeedback, { valid: true }, true);
     }
 
     // 3. Strict Email Validation
@@ -1434,9 +1780,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 6. Uso de CFDI Selection
     if (!usoCfdi) {
+      customUsoContainer?.classList.add('is-invalid');
+      validateUsoField(true);
       showToast('Por favor selecciona el Uso de CFDI preferente para tus comprobantes.', 'error');
-      profUso.focus();
+      openUsoDropdown();
       return;
+    } else {
+      customUsoContainer?.classList.remove('is-invalid');
     }
 
     const profileData = {

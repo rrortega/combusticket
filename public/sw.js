@@ -1,4 +1,4 @@
-const CACHE_NAME = 'combusticket-shell-v3';
+const CACHE_NAME = 'combusticket-shell-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
