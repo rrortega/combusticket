@@ -18,9 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Environment variables
-ENV NODE_ENV=production \
-    PORT=4000 \
+# Base environment variables
+ENV PORT=4000 \
     HOST=0.0.0.0 \
     CHROME_BIN=/usr/bin/chromium \
     CHROMIUM_PATH=/usr/bin/chromium
@@ -30,8 +29,8 @@ WORKDIR /app
 # Copy dependency manifests and TypeScript configuration
 COPY package*.json tsconfig.json ./
 
-# Install all dependencies required for building the TypeScript project
-RUN npm ci
+# Install all dependencies (ensuring devDependencies like typescript are available for build)
+RUN npm ci --include=dev
 
 # Copy application source code and assets
 COPY . .
@@ -39,8 +38,11 @@ COPY . .
 # Compile TypeScript to JavaScript (/app/dist)
 RUN npm run build
 
-# Prune development dependencies to keep the image lightweight
+# Prune development dependencies to keep the runtime image lean
 RUN npm prune --omit=dev
+
+# Set production environment variable for runtime
+ENV NODE_ENV=production
 
 # Ensure storage directories exist with appropriate read/write permissions
 RUN mkdir -p output/videos output/receipts && chmod -R 777 output
