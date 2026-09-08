@@ -181,6 +181,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalBody = document.getElementById('modal-body');
   const btnCloseModal = document.getElementById('btn-close-modal');
 
+  // Legal Modal Elements
+  const legalModal = document.getElementById('legal-modal');
+  const legalModalTitle = document.getElementById('legal-modal-title');
+  const btnCloseLegalModal = document.getElementById('btn-close-legal-modal');
+  const btnAcceptLegalModal = document.getElementById('btn-accept-legal-modal');
+  const btnLegalTerms = document.getElementById('btn-legal-terms');
+  const btnLegalPrivacy = document.getElementById('btn-legal-privacy');
+  const btnLegalDisclaimer = document.getElementById('btn-legal-disclaimer');
+
   // Fullscreen Receipt Viewer
   const receiptViewerOverlay = document.getElementById('receipt-viewer-overlay');
   const receiptViewerTitle = document.getElementById('receipt-viewer-title');
@@ -1077,6 +1086,24 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target === mediaModal) closeModal();
     });
 
+    // Legal Modal & Footer Links Interactions
+    btnLegalTerms?.addEventListener('click', () => openLegalModal('legal-pane-terms'));
+    btnLegalPrivacy?.addEventListener('click', () => openLegalModal('legal-pane-privacy'));
+    btnLegalDisclaimer?.addEventListener('click', () => openLegalModal('legal-pane-disclaimer'));
+    btnCloseLegalModal?.addEventListener('click', closeLegalModal);
+    btnAcceptLegalModal?.addEventListener('click', closeLegalModal);
+    legalModal?.addEventListener('click', (e) => {
+      if (e.target === legalModal) closeLegalModal();
+    });
+
+    const legalTabBtns = document.querySelectorAll('.legal-tab-btn');
+    legalTabBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tab = btn.getAttribute('data-tab');
+        if (tab) openLegalModal(tab);
+      });
+    });
+
     // Fullscreen Receipt Viewer Toolbar & Canvas Controls
     btnViewerClose?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1176,7 +1203,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keyboard & Back Button handlers
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        if (receiptViewerOverlay && !receiptViewerOverlay.classList.contains('hidden')) {
+        if (legalModal && !legalModal.classList.contains('hidden')) {
+          closeLegalModal();
+        } else if (receiptViewerOverlay && !receiptViewerOverlay.classList.contains('hidden')) {
           closeReceiptViewer();
         } else if (mediaModal && !mediaModal.classList.contains('hidden')) {
           closeModal();
@@ -1185,7 +1214,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('popstate', () => {
-      if (receiptViewerOverlay && !receiptViewerOverlay.classList.contains('hidden')) {
+      if (legalModal && !legalModal.classList.contains('hidden')) {
+        closeLegalModal(false);
+      } else if (receiptViewerOverlay && !receiptViewerOverlay.classList.contains('hidden')) {
         closeReceiptViewer(false);
       } else if (mediaModal && !mediaModal.classList.contains('hidden')) {
         closeModal(false);
@@ -2527,6 +2558,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCard = document.getElementById('modal-card');
     if (modalCard) modalCard.style.transform = '';
     if (shouldGoBack && window.history.state && window.history.state.modalOpen) {
+      try {
+        window.history.back();
+      } catch {}
+    }
+  }
+
+  function openLegalModal(tabId = 'legal-pane-terms') {
+    if (!legalModal) return;
+
+    const tabButtons = legalModal.querySelectorAll('.legal-tab-btn');
+    const panes = legalModal.querySelectorAll('.legal-pane');
+
+    tabButtons.forEach((btn) => {
+      if (btn.getAttribute('data-tab') === tabId) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    panes.forEach((pane) => {
+      if (pane.id === tabId) {
+        pane.classList.add('active');
+      } else {
+        pane.classList.remove('active');
+      }
+    });
+
+    if (tabId === 'legal-pane-terms') {
+      if (legalModalTitle) legalModalTitle.textContent = 'Términos y Condiciones de Uso';
+    } else if (tabId === 'legal-pane-privacy') {
+      if (legalModalTitle) legalModalTitle.textContent = 'Política de Privacidad Integral';
+    } else if (tabId === 'legal-pane-disclaimer') {
+      if (legalModalTitle) legalModalTitle.textContent = 'Aviso Legal y Deslinde SAT';
+    }
+
+    const modalBody = legalModal.querySelector('.legal-modal-body');
+    if (modalBody) modalBody.scrollTop = 0;
+
+    legalModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    try {
+      window.history.pushState({ legalModalOpen: true }, '');
+    } catch {}
+  }
+
+  function closeLegalModal(shouldGoBack = true) {
+    if (!legalModal) return;
+    legalModal.classList.add('hidden');
+    document.body.style.overflow = '';
+    if (shouldGoBack && window.history.state && window.history.state.legalModalOpen) {
       try {
         window.history.back();
       } catch {}

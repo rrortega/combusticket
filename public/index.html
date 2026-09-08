@@ -423,11 +423,11 @@
           </div>
         </div>
 
-        <!-- Mobile Floating Fixed Bottom Button for Historial Screen -->
-        <div class="mobile-history-bar" id="mobile-history-bar">
-          <button type="button" class="btn btn-primary btn-block" id="btn-mobile-new-receipt">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>Cargar nuevo Recibo</span>
+        <!-- Floating Round Action Button (FAB) for New Receipt (Desktop & Mobile) -->
+        <div class="fab-container hidden" id="mobile-history-bar">
+          <button type="button" class="fab-btn" id="btn-mobile-new-receipt" title="Cargar Nuevo Recibo / Facturar" aria-label="Cargar Nuevo Recibo">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span class="fab-label">Nueva Factura</span>
           </button>
         </div>
       </div>
@@ -435,12 +435,88 @@
 
   </main>
 
-  <!-- Product Footer -->
+  <!-- Product Sticky Footer -->
   <footer class="app-footer">
     <div class="footer-container">
-      <p class="footer-text">
-        Powered by <a href="https://chamba.pro" target="_blank" rel="noopener noreferrer" class="footer-link">CHAMBAPRO SAPI DE CV</a>
-      </p>
+      <div class="footer-grid">
+        <!-- Brand & Legal Shield Description -->
+        <div class="footer-brand-col">
+          <div class="footer-logo">
+            <svg class="footer-logo-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8" />
+              <path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5" />
+              <path d="M4 22h16" />
+              <path d="M14 13l2-2 4 4" />
+            </svg>
+            <span class="footer-brand-name">Combus<strong>Ticket</strong></span>
+          </div>
+          <p class="footer-mission">
+            Plataforma de automatización robótica (RPA) para la gestión, extracción y conciliación de facturas de combustible en México.
+          </p>
+          <p class="footer-disclaimer">
+            CombusTicket es un software de asistencia digital desarrollado y operado de manera independiente por <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> No mantiene afiliación, relación comercial, patrocinio ni representación con el Servicio de Administración Tributaria (SAT), la Comisión Reguladora de Energía (CRE) ni con los grupos gasolineros o permisionarios de estaciones de servicio. La expedición, timbrado y validez legal del CFDI 4.0 es responsabilidad exclusiva de las estaciones emisoras y de los datos fiscales confirmados por el usuario.
+          </p>
+        </div>
+
+        <!-- Legal Navigation Links -->
+        <div class="footer-links-col">
+          <h4 class="footer-col-title">Marco Legal y Protección</h4>
+          <ul class="footer-links-list">
+            <li>
+              <button type="button" class="footer-legal-btn" id="btn-legal-terms">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span>Términos y Condiciones</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="footer-legal-btn" id="btn-legal-privacy">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>Política de Privacidad (LFPDPPP)</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="footer-legal-btn" id="btn-legal-disclaimer">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Aviso Legal y Deslinde SAT</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Security & Compliance -->
+        <div class="footer-security-col">
+          <h4 class="footer-col-title">Seguridad y Privacidad</h4>
+          <div class="footer-badges">
+            <span class="footer-badge">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Cifrado SSL / TLS 1.3
+            </span>
+            <span class="footer-badge">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+              Estándar CFDI 4.0 SAT
+            </span>
+            <span class="footer-badge">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Protección Datos LFPDPPP
+            </span>
+          </div>
+          <p class="footer-security-note">
+            Tus datos fiscales se emplean estrictamente para la automatización de tus solicitudes ante los portales de combustible. No comercializamos ni transferimos información con terceros.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-footer bar: Directly below the footer -->
+    <div class="footer-subbar">
+      <div class="footer-subbar-container">
+        <p class="footer-copyright">
+          © 2026 CombusTicket. Desarrollado y operado por <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> Todos los derechos reservados.
+        </p>
+        <p class="footer-powered">
+          Powered by <a href="https://chamba.pro" target="_blank" rel="noopener noreferrer" class="footer-link">CHAMBAPRO SAPI DE CV</a>
+        </p>
+      </div>
     </div>
   </footer>
 
@@ -496,6 +572,208 @@
       </div>
       <div class="modal-body" id="modal-body">
         <!-- Injected img or video -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Legal Documents Modal (Términos, Privacidad, Deslinde) -->
+  <div class="modal-overlay hidden" id="legal-modal" role="dialog" aria-modal="true" aria-labelledby="legal-modal-title">
+    <div class="modal-card legal-modal-card">
+      <div class="modal-header legal-modal-header">
+        <div class="legal-header-meta">
+          <span class="legal-badge-pill">CHAMBAPRO S.A.P.I. DE C.V.</span>
+          <h3 class="modal-title" id="legal-modal-title">Términos y Condiciones de Uso</h3>
+        </div>
+        <button type="button" class="btn-icon" id="btn-close-legal-modal" aria-label="Cerrar modal">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Tabs navigation inside modal -->
+      <div class="legal-modal-tabs">
+        <button type="button" class="legal-tab-btn active" data-tab="legal-pane-terms">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span>Términos y Condiciones</span>
+        </button>
+        <button type="button" class="legal-tab-btn" data-tab="legal-pane-privacy">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>Política de Privacidad</span>
+        </button>
+        <button type="button" class="legal-tab-btn" data-tab="legal-pane-disclaimer">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Deslinde Fiscal SAT</span>
+        </button>
+      </div>
+
+      <!-- Legal Content Body (Scrollable) -->
+      <div class="modal-body legal-modal-body">
+        <!-- PANE 1: TÉRMINOS Y CONDICIONES -->
+        <div class="legal-pane active" id="legal-pane-terms">
+          <div class="legal-doc-content">
+            <h4>1. Información General y Titularidad</h4>
+            <p>
+              El presente contrato de Términos y Condiciones de Uso regula el acceso y utilización de la plataforma web, herramientas de software y servicios de automatización denominados <strong>CombusTicket</strong> (en lo sucesivo, "El Software" o "El Servicio"), cuyo desarrollo, operación, derechos de propiedad industrial y comercialización pertenecen de forma exclusiva y plena a <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> (en lo sucesivo, "CHAMBAPRO"), sociedad mercantil legalmente constituida conforme a las leyes de los Estados Unidos Mexicanos.
+            </p>
+            <p>
+              Al registrar un perfil de facturación, cargar imágenes de tickets de consumo o hacer uso de los motores de automatización, el Usuario declara expresamente ser mayor de edad, contar con capacidad legal para obligarse y aceptar sin reserva alguna el contenido integral de estos Términos.
+            </p>
+
+            <h4>2. Naturaleza Tecnológica del Servicio (Software RPA Autónomo)</h4>
+            <p>
+              CombusTicket es una herramienta tecnológica de <em>Automatización Robótica de Procesos (RPA)</em> y <em>Reconocimiento Óptico de Caracteres (OCR)</em>. Su única finalidad técnica es asistir al Usuario final a digitalizar los datos visibles en sus recibos de compra de combustible e introducirlos de forma automatizada en los portales web públicos provistos por las empresas concesionarias y permisionarias de las estaciones de servicio para la solicitud de facturas.
+            </p>
+
+            <h4>3. Deslinde Fiscal y de Emisión (No Intermediación ante el SAT ni Carácter de PAC)</h4>
+            <p>
+              <strong>CHAMBAPRO NO ES UN PROVEEDOR AUTORIZADO DE CERTIFICACIÓN (PAC) NI ACTÚA COMO EMISOR DE COMPROBANTES FISCALES DIGITALES POR INTERNET (CFDI).</strong>
+            </p>
+            <p>
+              La expedición formal, el timbrado digital, la certificación de sellos fiscales y la entrega de los archivos XML y PDF conforme a las normas del Servicio de Administración Tributaria (SAT) corresponden única y exclusivamente a la persona física o moral permisionaria de la estación de servicio expendedora de combustible y al PAC que dicha estación tenga contratado. CHAMBAPRO no garantiza ni valida la deducibilidad fiscal del comprobante, siendo esta responsabilidad del contribuyente y de su situación ante las autoridades tributarias.
+            </p>
+
+            <h4>4. Responsabilidad y Obligaciones del Usuario sobre la Información Fiscal</h4>
+            <p>
+              El Usuario es el único y exclusivo responsable de:
+            </p>
+            <ul>
+              <li>La exactitud, veracidad y vigencia de sus datos de identificación fiscal (RFC, Nombre o Razón Social, Código Postal del Domicilio Fiscal, Régimen Fiscal y Uso de CFDI).</li>
+              <li>La legal procedencia, autenticidad y propiedad de los tickets de gasolina cargados al sistema.</li>
+              <li>Verificar que el medio de pago asentado en el ticket coincida con los requisitos de deducibilidad estipulados en el Artículo 27, fracción III de la Ley del Impuesto sobre la Renta (LISR).</li>
+              <li>Revisar los datos extraídos por el motor OCR antes de ordenar la ejecución del proceso automatizado de timbrado.</li>
+            </ul>
+
+            <h4>5. Exclusión de Responsabilidad por Fallas en Portales de Terceros</h4>
+            <p>
+              CHAMBAPRO no tiene injerencia, control, convenio ni alianza obligatoria con los portales de facturación de las estaciones de servicio. En consecuencia, CHAMBAPRO queda plenamente liberada de cualquier responsabilidad civil, mercantil o de cualquier índole derivada de:
+            </p>
+            <ul>
+              <li>Caídas de servidor, fallas de conectividad, lentitud o mantenimientos no programados en los sitios web de las gasolineras.</li>
+              <li>Rechazo de tickets por haber excedido el plazo de facturación fijado por cada gasolinera (por ejemplo, fin de mes calendario o ventanas de 24 a 72 horas).</li>
+              <li>Tickets previamente facturados por terceros, folios duplicados o datos borrosos/ilegibles.</li>
+              <li>Mecanismos de protección anti-bot, captchas de alta complejidad o bloqueos perimetrales impuestos por los servidores de las estaciones de servicio.</li>
+            </ul>
+
+            <h4>6. Límite Máximo de Responsabilidad Legal de CHAMBAPRO</h4>
+            <p>
+              En la máxima medida permitida por la legislación aplicable en los Estados Unidos Mexicanos, bajo ninguna circunstancia CHAMBAPRO S.A.P.I. DE C.V., sus accionistas, consejeros, directores, empleados o apoderados serán responsables por daños indirectos, incidentales, consecuenciales, punitivos o especiales, incluyendo sin limitación: lucro cesante, pérdida de deducciones fiscales, sanciones, multas, recargos o actualizaciones impuestas por el SAT o cualquier otra autoridad gubernamental derivadas del uso, imposibilidad de uso o demora en la emisión de comprobantes fiscales por parte de las gasolineras.
+            </p>
+
+            <h4>7. Propiedad Intelectual y Restricciones</h4>
+            <p>
+              El código fuente, arquitectura de microservicios, algoritmos de visión artificial, interfaz gráfica de usuario (UI/UX), logotipos, isotipos y marcas asociadas a CombusTicket son propiedad exclusiva de CHAMBAPRO S.A.P.I. DE C.V. Queda estrictamente prohibida su descompilación, ingeniería inversa, reproducción no autorizada o explotación comercial sin el consentimiento previo y por escrito de CHAMBAPRO.
+            </p>
+
+            <h4>8. Legislación Aplicable y Jurisdicción</h4>
+            <p>
+              Para todo lo relativo a la validez, interpretación, cumplimiento y ejecución de los presentes Términos, las partes se someten expresamente a las leyes federales de los Estados Unidos Mexicanos y a la jurisdicción exclusiva de los tribunales competentes en la Ciudad de México, renunciando expresamente a cualquier otro fuero que pudiera corresponderles por razón de sus domicilios presentes o futuros.
+            </p>
+          </div>
+        </div>
+
+        <!-- PANE 2: POLÍTICA DE PRIVACIDAD (LFPDPPP) -->
+        <div class="legal-pane" id="legal-pane-privacy">
+          <div class="legal-doc-content">
+            <h4>Aviso de Privacidad Integral</h4>
+            <p class="legal-meta-text">
+              En cumplimiento con la <strong>Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP)</strong>, su Reglamento y los Lineamientos del Aviso de Privacidad vigentes en los Estados Unidos Mexicanos, se pone a disposición del Titular el presente Aviso de Privacidad Integral.
+            </p>
+
+            <h4>1. Identidad y Domicilio del Responsable</h4>
+            <p>
+              <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong> (en lo sucesivo "El Responsable"), con domicilio legal y fiscal en la República Mexicana, manifiesta que es el responsable legítimo del uso, tratamiento, resguardo y protección de los datos personales que usted nos proporcione.
+            </p>
+
+            <h4>2. Datos Personales Recabados</h4>
+            <p>
+              Para las finalidades operativas de la plataforma, recabamos las siguientes categorías de datos personales y fiscales:
+            </p>
+            <ul>
+              <li><strong>Datos de Identificación y Fiscales:</strong> Registro Federal de Contribuyentes (RFC), Nombre completo o Razón Social, Régimen Fiscal SAT, Código Postal del Domicilio Fiscal y Uso de CFDI.</li>
+              <li><strong>Datos de Contacto:</strong> Correo electrónico para el envío o recepción de los comprobantes XML/PDF generados por los portales.</li>
+              <li><strong>Datos de Comprobantes:</strong> Fotografías e imágenes de recibos y tickets de compra de combustible (incluyendo fecha, hora, monto, estación y número de rastreo).</li>
+            </ul>
+            <p>
+              El Responsable <strong>no recaba datos personales sensibles</strong> (origen racial, estado de salud, información genética, creencias religiosas, etc.). Los datos bancarios completos de tarjetas de crédito o débito no son almacenados por CHAMBAPRO.
+            </p>
+
+            <h4>3. Finalidades Primarias del Tratamiento</h4>
+            <p>
+              Los datos personales recabados son tratados indispensablemente para:
+            </p>
+            <ol>
+              <li>Procesar mediante motores OCR y algoritmos de visión los tickets proporcionados para extraer los identificadores de compra.</li>
+              <li>Ejecutar los agentes de navegación automatizada para suministrar la información fiscal ante los portales web autorizados por las estaciones de servicio correspondientes.</li>
+              <li>Descargar, almacenar y presentar al Usuario sus comprobantes digitales (PDF y XML), así como las capturas de pantalla que sirven como evidencia del proceso.</li>
+              <li>Mantener el registro histórico local y en la nube segregado por RFC para consulta exclusiva del titular.</li>
+            </ol>
+
+            <h4>4. Transferencia de Datos Personales</h4>
+            <p>
+              <strong>CHAMBAPRO no vende, alquila, comercializa ni transfiere sus datos personales a terceros con fines publicitarios, de prospección comercial ni mercadotécnicos.</strong>
+            </p>
+            <p>
+              Las únicas transferencias efectuadas son las estrictamente necesarias para el cumplimiento del servicio solicitado por el Usuario, consistentes en la transmisión de los datos fiscales hacia los formularios web de facturación de las estaciones gasolineras emisoras, en términos del Artículo 37 de la LFPDPPP.
+            </p>
+
+            <h4>5. Medidas de Seguridad y Cifrado</h4>
+            <p>
+              CHAMBAPRO implementa estrictas medidas de seguridad administrativas, técnicas y físicas para evitar el daño, pérdida, alteración, destrucción o uso no autorizado de sus datos:
+            </p>
+            <ul>
+              <li>Tráfico protegido mediante cifrado TLS 1.3 de extremo a extremo.</li>
+              <li>Aislamiento y segmentación de archivos y evidencias en carpetas dedicadas por RFC.</li>
+              <li>Servidores de alta disponibilidad con cortafuegos perimetrales y monitoreo de accesos.</li>
+            </ul>
+
+            <h4>6. Ejercicio de Derechos ARCO y Revocación del Consentimiento</h4>
+            <p>
+              Usted tiene derecho a conocer qué datos personales tenemos de usted, para qué los utilizamos y las condiciones del uso que les damos (<strong>Acceso</strong>). Asimismo, es su derecho solicitar la corrección de su información (<strong>Rectificación</strong>), que la eliminemos de nuestros registros cuando considere que no está siendo utilizada adecuadamente (<strong>Cancelación</strong>), así como oponerse al uso de sus datos para fines específicos (<strong>Oposición</strong>).
+            </p>
+            <p>
+              Para ejercer cualquiera de sus Derechos ARCO o revocar su consentimiento, el Titular podrá enviar una solicitud por escrito al correo electrónico: <strong>privacidad@chamba.pro</strong> o a través del área de soporte de CombusTicket, acreditando su identidad de acuerdo con la LFPDPPP.
+            </p>
+          </div>
+        </div>
+
+        <!-- PANE 3: DESLINDE SAT Y AVISO FISCAL -->
+        <div class="legal-pane" id="legal-pane-disclaimer">
+          <div class="legal-doc-content">
+            <h4>Aviso Legal, Deslinde y Aclaración Regulatoria SAT</h4>
+            <p>
+              Con la finalidad de brindar total certidumbre jurídica al Usuario y proteger a <strong>CHAMBAPRO S.A.P.I. DE C.V.</strong>, se emiten las siguientes declaraciones imperativas:
+            </p>
+
+            <div class="legal-callout">
+              <strong>DESLINDE DE REPRESENTACIÓN GUBERNAMENTAL</strong>
+              <p>
+                CombusTicket y CHAMBAPRO S.A.P.I. DE C.V. son entidades privadas 100% independientes. NO forman parte del Servicio de Administración Tributaria (SAT), de la Secretaría de Hacienda y Crédito Público (SHCP), de la Comisión Reguladora de Energía (CRE) ni de ninguna dependencia del Gobierno Federal, Estatal o Municipal de México.
+              </p>
+            </div>
+
+            <h4>1. Deducibilidad Fiscal de Combustibles (Artículo 27 LISR)</h4>
+            <p>
+              Conforme a las leyes tributarias vigentes en México, para que la adquisición de combustibles sea estrictamente deducible para efectos del Impuesto sobre la Renta (ISR) y acreditable para el Impuesto al Valor Agregado (IVA):
+            </p>
+            <ul>
+              <li>El pago del combustible debe efectuarse mediante tarjeta de crédito, débito o servicios, cheque nominativo o monedero electrónico autorizado por el SAT (aún cuando el monto sea inferior a $2,000.00 M.N.).</li>
+              <li>El comprobante fiscal digital (CFDI) debe incorporar el complemento correspondiente y haber sido expedido válidamente por el permisionario de la estación.</li>
+            </ul>
+            <p>
+              CombusTicket actúa exclusivamente como un facilitador de llenado robótico de portales. CombusTicket no audita si el Usuario efectivamente liquidó el consumo mediante un medio autorizado, ni asume responsabilidad en auditorías o revisiones electrónicas que el SAT lleve a cabo contra el contribuyente.
+            </p>
+
+            <h4>2. Fallas Atribuibles a Terceros Permisionarios</h4>
+            <p>
+              Cada estación expendedora de hidrocarburos es responsable ante la PROFECO y el SAT de contar con sistemas estables de facturación. Si una estación se niega a expedir la factura, tiene sus sistemas caídos de forma prolongada o rechaza folios válidos, el Usuario cuenta con el derecho expedito de interponer una <em>Solicitud de Conciliación de Factura</em> directamente en el portal del SAT (sat.gob.mx) contra el RFC emisor de la estación. CHAMBAPRO no puede ser obligada a responder por las omisiones de terceros permisionarios.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legal Modal Footer -->
+      <div class="modal-footer legal-modal-footer">
+        <span class="legal-footer-update">Vigente a partir de Septiembre 2026 • Ciudad de México</span>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-accept-legal-modal">Cerrar y Aceptar</button>
       </div>
     </div>
   </div>

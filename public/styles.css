@@ -49,6 +49,9 @@ body {
   background-color: var(--bg-main);
   color: var(--text-primary);
   min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   position: relative;
@@ -312,8 +315,10 @@ html.no-profile:not(.app-initialized) #screen-welcome {
 /* Main Container */
 .main-container {
   max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem 1.5rem 4rem;
+  flex: 1 0 auto;
 }
 
 /* Screen Views */
@@ -2184,8 +2189,69 @@ html.no-profile:not(.app-initialized) #screen-welcome {
   display: none;
 }
 
-.mobile-history-bar {
-  display: none;
+/* Round Floating Action Button (FAB) for New Receipt (Desktop & Mobile) */
+.fab-container {
+  position: fixed;
+  bottom: 2.25rem;
+  right: 2.25rem;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+}
+
+.fab-container.hidden {
+  display: none !important;
+}
+
+.fab-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  color: #04101e;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45), 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  outline: none;
+}
+
+.fab-btn:hover {
+  transform: translateY(-4px) scale(1.08);
+  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.65), 0 4px 12px rgba(0, 0, 0, 0.5);
+  color: #01060f;
+}
+
+.fab-btn:active {
+  transform: translateY(-1px) scale(0.96);
+}
+
+.fab-label {
+  position: absolute;
+  right: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%) translateX(8px);
+  background: #0d1527;
+  color: #f8fafc;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.fab-btn:hover .fab-label {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
 }
 
 #btn-refresh-history {
@@ -2210,35 +2276,344 @@ html.no-profile:not(.app-initialized) #screen-welcome {
   background: var(--danger-bg);
 }
 
-/* Product Footer */
+/* Product Sticky Footer */
 .app-footer {
   margin-top: auto;
   border-top: 1px solid var(--border-color);
-  background: rgba(10, 15, 29, 0.95);
-  padding: 1.25rem 1.5rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
-  text-align: center;
+  background: #080d19;
+  position: relative;
+  z-index: 10;
+  width: 100%;
 }
 
 .footer-container {
   max-width: 1280px;
   margin: 0 auto;
+  padding: 3rem 1.5rem 2.5rem;
 }
 
-.footer-text {
-  font-size: 0.82rem;
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1.1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+.footer-brand-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.footer-logo-icon {
+  color: var(--accent);
+}
+
+.footer-brand-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.footer-brand-name strong {
+  color: var(--accent);
+}
+
+.footer-mission {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.footer-disclaimer {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  padding: 0.75rem 0.9rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.footer-disclaimer strong {
+  color: #cbd5e1;
+}
+
+.footer-col-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.1rem;
+}
+
+.footer-links-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.footer-legal-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  padding: 0.35rem 0;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.footer-legal-btn svg {
+  color: var(--accent-light);
+  flex-shrink: 0;
+}
+
+.footer-legal-btn:hover {
+  color: #fff;
+  transform: translateX(4px);
+}
+
+.footer-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+}
+
+.footer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  width: fit-content;
+}
+
+.footer-badge svg {
+  color: var(--accent);
+}
+
+.footer-security-note {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Sub-footer bar: Directly below the footer */
+.footer-subbar {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: #050811;
+  padding: 1rem 1.5rem calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+.footer-subbar-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.footer-copyright {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.footer-copyright strong {
+  color: #94a3b8;
+}
+
+.footer-powered {
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
 .footer-link {
   color: var(--accent-light);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
   transition: color 0.2s ease;
 }
 
 .footer-link:hover {
   color: #fff;
   text-decoration: underline;
+}
+
+/* Legal Modal Styling */
+.legal-modal-card {
+  max-width: 840px;
+  max-height: 85vh;
+  background: #0b1120;
+}
+
+.legal-modal-header {
+  padding: 1.25rem 1.5rem;
+  background: #0f172a;
+}
+
+.legal-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.legal-badge-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  width: fit-content;
+}
+
+.legal-modal-tabs {
+  display: flex;
+  background: #090e1a;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.legal-modal-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.legal-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.legal-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.legal-tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.legal-modal-body {
+  padding: 1.75rem;
+  overflow-y: auto;
+  max-height: 55vh;
+}
+
+.legal-pane {
+  display: none;
+}
+
+.legal-pane.active {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+
+.legal-doc-content {
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+
+.legal-doc-content h4 {
+  color: #f8fafc;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 1.4rem 0 0.5rem;
+}
+
+.legal-doc-content h4:first-child {
+  margin-top: 0;
+}
+
+.legal-doc-content p {
+  margin-bottom: 0.85rem;
+}
+
+.legal-doc-content ul, .legal-doc-content ol {
+  padding-left: 1.35rem;
+  margin-bottom: 0.9rem;
+}
+
+.legal-doc-content li {
+  margin-bottom: 0.45rem;
+}
+
+.legal-doc-content strong {
+  color: #fff;
+}
+
+.legal-callout {
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid var(--danger);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 0.9rem 1.1rem;
+  margin: 1.25rem 0;
+}
+
+.legal-callout strong {
+  display: block;
+  color: #f87171;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.legal-callout p {
+  margin-bottom: 0;
+  font-size: 0.82rem;
+  color: #fecaca;
+  line-height: 1.55;
+}
+
+.legal-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background: #0f172a;
+}
+
+.legal-footer-update {
+  font-size: 0.76rem;
+  color: var(--text-muted);
 }
 
 /* Fullscreen Scanner Overlay with Laser Light Beam */
@@ -3076,39 +3451,62 @@ html.no-profile:not(.app-initialized) #screen-welcome {
 
   /* 6. History Screen on Mobile */
   #screen-history .history-header {
+    margin-bottom: 1.25rem;
+  }
+
+  #btn-new-from-history {
+    display: none !important; /* Managed seamlessly by the floating FAB on mobile */
+  }
+
+  .fab-container {
+    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    right: 1.25rem;
+  }
+
+  .fab-btn {
+    width: 54px;
+    height: 54px;
+  }
+
+  .fab-label {
     display: none !important;
   }
 
-  .mobile-history-bar {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    background: #0d1424;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.7);
-    align-items: center;
+  /* Responsive Footer */
+  .footer-container {
+    padding: 2.25rem 1.25rem 1.75rem;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 2.25rem;
+  }
+
+  .footer-subbar-container {
+    flex-direction: column;
+    text-align: center;
     justify-content: center;
+    gap: 0.6rem;
   }
 
-  .mobile-history-bar.hidden {
-    display: none !important;
+  /* Responsive Legal Modal */
+  .legal-modal-card {
+    max-height: 88vh;
+    border-radius: var(--radius-md);
   }
 
-  .mobile-history-bar .btn {
-    width: 100%;
-    padding: 0.85rem 1rem;
-    font-size: 0.95rem;
-    font-weight: 700;
-    justify-content: center;
-    box-shadow: 0 4px 14px var(--accent-glow);
+  .legal-modal-tabs {
+    padding: 0 0.5rem;
   }
 
-  #screen-history {
-    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  .legal-tab-btn {
+    font-size: 0.78rem;
+    padding: 0.75rem 0.65rem;
+  }
+
+  .legal-modal-body {
+    max-height: 50vh;
+    padding: 1.25rem;
   }
 
   .history-loading {
