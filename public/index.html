@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FacturaGas — Asistente Inteligente de Facturación de Combustible</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2306b6d4' stroke-width='2'%3E%3Cpath d='M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8'/%3E%3Cpath d='M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5'/%3E%3Cpath d='M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4'/%3E%3Cpath d='M13 2h4a2 2 0 0 1 2 2v7'/%3E%3Cpath d='M4 22h16'/%3E%3C/svg%3E">
+  <script>
+    // Immediate anti-FOUC state detection before initial DOM paint
+    (function() {
+      try {
+        var raw = localStorage.getItem('facturagas_profile');
+        if (raw) {
+          var p = JSON.parse(raw);
+          if (p && p.rfc) {
+            document.documentElement.classList.add('has-profile');
+            return;
+          }
+        }
+      } catch (e) {}
+      document.documentElement.classList.add('no-profile');
+    })();
+  </script>
+</head>
+<body>
+  <div class="app-background"></div>
+
+  <!-- Header / Navigation Bar -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand" id="brand-logo" role="button">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8"/>
+            <path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5"/>
+            <path d="M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/>
+            <path d="M13 2h4a2 2 0 0 1 2 2v7"/>
+            <path d="M4 22h16"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Factura<span class="gradient-text">Gas</span></h1>
+          <p class="brand-subtitle">Facturación Automática de Combustible</p>
+        </div>
+      </div>
+
+      <!-- Active Profile Pill / Action (Deferred render until state resolved) -->
+      <div class="header-profile is-loading" id="header-profile">
+        <div class="profile-pill hidden" id="profile-pill" role="button" tabindex="0" title="Ver mi perfil">
+          <span class="profile-avatar">
+            <span class="avatar-initials" id="avatar-initials">--</span>
+            <svg class="avatar-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="12"/><line x1="15" y1="22" x2="15" y2="12"/><line x1="8" y1="6" x2="10" y2="6"/><line x1="14" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/></svg>
+          </span>
+          <div class="profile-info-text">
+            <span class="profile-name" id="pill-razon-social">Cargando...</span>
+            <span class="profile-rfc" id="pill-rfc">RFC: ---</span>
+          </div>
+          <button type="button" class="btn-icon-xs" id="btn-edit-profile" title="Editar datos fiscales">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline hidden" id="btn-header-onboard">
+          Crear Perfil Fiscal
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- 1. SCREEN: WELCOME / LANDING -->
+    <section class="screen-view active" id="screen-welcome">
+      <div class="welcome-hero">
+        <div class="hero-badge">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span>Asistente Inteligente de Facturas</span>
+        </div>
+        <h2 class="hero-title">Tus facturas de gasolina, <span class="gradient-text">listas en segundos</span></h2>
+        <p class="hero-description">
+          Olvídate de entrar a portales complicados y llenar los mismos formularios una y otra vez.
+          Sube la foto de tu ticket y nuestro sistema se encarga de rellenar los datos fiscales del SAT y generar tu factura automáticamente.
+        </p>
+
+        <div class="hero-cta-group">
+          <button type="button" class="btn btn-primary btn-lg" id="btn-welcome-start">
+            <span>Comenzar Ahora</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Supported Stations Section -->
+      <div class="stations-section">
+        <div class="section-title-wrap">
+          <h3 class="section-title">Gasolineras y Portales Compatibles</h3>
+          <p class="section-subtitle">Continuamente añadimos nuevas redes de servicio para que nunca te quedes sin facturar.</p>
+        </div>
+
+        <div class="stations-grid" id="stations-grid">
+          <!-- Populated dynamically via /api/stations -->
+          <div class="station-card loading-skeleton">
+            <div class="station-logo">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/><path d="M15 11h2a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L20.5 6.5"/><rect x="6" y="6" width="6" height="5" rx="1"/></svg>
+            </div>
+            <div class="station-details">
+              <h4>Cargando plataformas...</h4>
+              <p>Consultando catálogo de gasolineras disponibles</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. SCREEN: ONBOARDING / PROFILE FORM -->
+    <section class="screen-view hidden" id="screen-profile">
+      <div class="form-container-card">
+        <div class="form-card-header">
+          <div class="step-indicator">Paso 1 de 2</div>
+          <h2 class="form-card-title">Configura tus Datos Fiscales</h2>
+          <p class="form-card-subtitle">
+            Para poder rellenar automáticamente los portales de facturación, necesitamos saber a nombre de quién se expedirán tus comprobantes fiscales.
+          </p>
+        </div>
+
+        <form id="profile-form" class="profile-form" novalidate>
+          <div class="form-grid">
+            <!-- RFC -->
+            <div class="form-group">
+              <label for="prof-rfc" class="form-label">RFC (Registro Federal de Contribuyentes) <span class="req">*</span></label>
+              <input type="text" id="prof-rfc" name="rfc" class="form-input text-uppercase" placeholder="Ej. MADR600405BK1" maxlength="13" required autocomplete="off">
+              <span class="form-hint">12 caracteres para empresas, 13 para personas físicas.</span>
+            </div>
+
+            <!-- Razón Social -->
+            <div class="form-group">
+              <label for="prof-razon" class="form-label">Razón Social o Nombre Completo <span class="req">*</span></label>
+              <input type="text" id="prof-razon" name="razonSocial" class="form-input text-uppercase" placeholder="Ej. REYNOL MARTINEZ DIAZ" required autocomplete="off">
+              <span class="form-hint">Tal como aparece en tu Constancia de Situación Fiscal.</span>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+              <label for="prof-email" class="form-label">Correo Electrónico para Recibir Facturas <span class="req">*</span></label>
+              <input type="email" id="prof-email" name="email" class="form-input" placeholder="correo@ejemplo.com" required autocomplete="email">
+              <span class="form-hint">Aquí te llegarán los archivos PDF y XML de cada factura.</span>
+            </div>
+
+            <!-- Código Postal -->
+            <div class="form-group">
+              <label for="prof-cp" class="form-label">Código Postal Fiscal <span class="req">*</span></label>
+              <input type="text" id="prof-cp" name="codigoPostal" class="form-input" placeholder="Ej. 77536" maxlength="5" pattern="[0-9]{5}" required autocomplete="postal-code">
+              <span class="form-hint">Código postal de tu domicilio fiscal registrado en el SAT.</span>
+            </div>
+
+            <!-- Régimen Fiscal Dropdown -->
+            <div class="form-group form-group-full">
+              <label for="prof-regimen" class="form-label">Régimen Fiscal <span class="req">*</span></label>
+              <select id="prof-regimen" name="regimenFiscal" class="form-select" required>
+                <option value="">Cargando regímenes fiscales del SAT...</option>
+              </select>
+              <span class="form-hint">Selecciona el régimen que corresponda a tu actividad registrada.</span>
+            </div>
+
+            <!-- Uso de CFDI Dropdown -->
+            <div class="form-group form-group-full">
+              <label for="prof-uso" class="form-label">Uso de CFDI Habitual <span class="req">*</span></label>
+              <select id="prof-uso" name="usoCfdi" class="form-select" required>
+                <option value="">Cargando usos de CFDI...</option>
+              </select>
+              <span class="form-hint">Uso preferente para deducción de gasolina (comúnmente G03 - Gastos en general).</span>
+            </div>
+          </div>
+
+          <!-- Localhost Predefined Test Profile Button (Only shown in dev) -->
+          <div class="dev-profile-container hidden" id="dev-profile-container">
+            <button type="button" class="btn-dev-load" id="btn-load-test-profile">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Cargar datos de prueba de REYNOL</span>
+            </button>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-profile" style="display:none;">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-lg" id="btn-save-profile">
+              <span class="btn-text-desktop">Guardar Perfil y Continuar</span>
+              <span class="btn-text-mobile">Guardar</span>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 3. SCREEN: RECEIPT CAPTURE & REVIEW WORKBENCH -->
+    <section class="screen-view hidden" id="screen-workbench">
+      <div class="workbench-layout">
+
+        <!-- Upload Box Panel -->
+        <div class="panel upload-card" id="upload-card">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Subir Tickets de Gasolina</h2>
+              <p class="panel-subtitle">Puedes subir uno o varios tickets al mismo tiempo para procesarlos por lotes.</p>
+            </div>
+            <div class="panel-header-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+              <button type="button" class="btn btn-sm btn-outline" id="btn-load-demo-receipt">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Cargar Ticket de Muestra
+              </button>
+              <button type="button" class="btn btn-sm btn-ghost hidden" id="btn-back-to-history">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                <span>Volver al Historial</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dropzone -->
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="file-input" accept="image/*" multiple class="file-input">
+            
+            <div class="dropzone-content" id="dropzone-prompt">
+              <div class="dropzone-icon-wrap">
+                <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <p class="dropzone-main-text">Arrastra aquí tus fotos de tickets o <span class="highlight">haz clic para seleccionarlas</span></p>
+              <p class="dropzone-hint">Formatos compatibles: JPG, PNG, WEBP (Permite selección múltiple)</p>
+            </div>
+
+            <!-- Upload scanning spinner overlay -->
+            <div class="dropzone-scanning hidden" id="dropzone-scanning">
+              <div class="spinner"></div>
+              <p class="scanning-text">Leyendo y analizando ticket(s)...</p>
+              <p class="scanning-subtext">Extrayendo estación, monto, fecha y código de rastreo...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Review & Edit Scanned Receipts List -->
+        <div class="review-section hidden" id="review-section">
+          <!-- Main Review Navigation Bar with the 2 Primary Tabs -->
+          <div class="review-navbar">
+            <div class="review-main-tabs" id="review-main-tabs">
+              <button type="button" class="review-tab active" id="tab-btn-data" data-tab-target="pane-data">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span>Datos Extraídos</span>
+              </button>
+              <button type="button" class="review-tab" id="tab-btn-image" data-tab-target="pane-image">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Recibo Escaneado</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab Pane 1: Extracted Form Data -->
+          <div class="review-pane" id="pane-data">
+            <div class="receipts-list" id="receipts-list">
+              <!-- Dynamically populated form fields -->
+            </div>
+          </div>
+
+          <!-- Tab Pane 2: Scanned Receipt Image (Visible at full width) -->
+          <div class="review-pane hidden" id="pane-image">
+            <div class="fullwidth-receipt-container" id="fullwidth-receipt-container">
+              <div class="scanned-image-actions">
+                <button type="button" class="btn btn-sm btn-ghost text-danger" id="btn-scanned-clear">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  <span>Limpiar</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" id="btn-scanned-upload-another">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <span>Cargar otro</span>
+                </button>
+              </div>
+              <div class="fullwidth-image-wrapper">
+                <img id="fullwidth-scanned-img" class="fullwidth-scanned-img" src="" alt="Recibo escaneado">
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Execution Bar -->
+          <div class="execution-bar">
+            <button type="button" class="btn btn-secondary btn-lg" id="btn-cancel-review">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <span>Cancelar</span>
+            </button>
+            <button type="button" class="btn btn-primary btn-lg" id="btn-enqueue-invoices">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Avanzar y Facturar</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 4. SCREEN: HISTORIAL UNIFICADO (EN PROCESO + FACTURAS REGISTRADAS) -->
+    <section class="screen-view hidden" id="screen-history">
+      <div class="history-layout">
+        <div class="history-header">
+          <div>
+            <h2 class="panel-title">Historial de Facturas</h2>
+            <p class="panel-subtitle" id="history-subtitle">Consulta tus facturas expedidas y procesos en curso.</p>
+          </div>
+          <div class="history-header-actions">
+            <button type="button" class="btn btn-sm btn-outline" id="btn-new-from-history">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nueva Factura
+            </button>
+            <button type="button" class="btn btn-sm btn-ghost hidden" id="btn-refresh-history" title="Actualizar">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Unified History & Processing Queue Rows List -->
+        <div class="history-content" id="history-content">
+          <div class="history-loading">
+            <div class="spinner"></div>
+            <p>Cargando facturas e historial...</p>
+          </div>
+        </div>
+
+        <!-- Mobile Floating Fixed Bottom Button for Historial Screen -->
+        <div class="mobile-history-bar" id="mobile-history-bar">
+          <button type="button" class="btn btn-primary btn-block" id="btn-mobile-new-receipt">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Cargar nuevo Recibo</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Product Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <p class="footer-text">
+        Powered by <a href="https://chamba.pro" target="_blank" rel="noopener noreferrer" class="footer-link">CHAMBAPRO SAPI DE CV</a>
+      </p>
+    </div>
+  </footer>
+
+  <!-- Fullscreen Scanning Overlay with Animated Scanning Light Beam -->
+  <div class="scanner-overlay hidden" id="scanner-overlay">
+    <div class="scanner-card">
+      <div class="scanner-header">
+        <div class="scanner-beacon">
+          <span class="pulse-beacon-dot"></span>
+        </div>
+        <div class="scanner-header-text">
+          <h3 class="scanner-title">Escaneando Recibo con IA</h3>
+          <p class="scanner-subtitle">Reconociendo caracteres y detectando datos fiscales...</p>
+        </div>
+      </div>
+
+      <div class="scanner-viewport" id="scanner-viewport">
+        <!-- Viewfinder Corners -->
+        <div class="scanner-corner corner-tl"></div>
+        <div class="scanner-corner corner-tr"></div>
+        <div class="scanner-corner corner-bl"></div>
+        <div class="scanner-corner corner-br"></div>
+
+        <!-- Ticket Image Preview -->
+        <img id="scanner-receipt-img" class="scanner-img" src="" alt="Ticket escaneándose">
+
+        <!-- Animated Light Beam Sweeping Side to Side -->
+        <div class="scanner-laser-bar" id="scanner-laser-bar">
+          <div class="laser-glow"></div>
+        </div>
+      </div>
+
+      <div class="scanner-footer">
+        <div class="scanner-progress-info">
+          <div class="spinner-sm"></div>
+          <span id="scanner-status-text">Extrayendo estación, monto, fecha y código de rastreo...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Media Modal (Drawer on mobile, dialog on desktop) -->
+  <div class="modal-overlay hidden" id="media-modal">
+    <div class="modal-card" id="modal-card">
+      <div class="drawer-handle-bar" id="drawer-handle-bar">
+        <div class="drawer-handle"></div>
+      </div>
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Comprobante de Facturación</h3>
+        <button type="button" class="btn-icon" id="btn-close-modal">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Injected img or video -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Receipt Viewer (Full-Page, Zoom, Rotate, Pan) -->
+  <div class="receipt-viewer-overlay hidden" id="receipt-viewer-overlay" role="dialog" aria-modal="true" aria-label="Visor Completo de Recibo">
+    <div class="receipt-viewer-topbar">
+      <div class="viewer-meta">
+        <div class="viewer-station-badge">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8"/><path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5"/><path d="M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/><path d="M13 2h4a2 2 0 0 1 2 2v7"/><path d="M4 22h16"/></svg>
+        </div>
+        <div class="viewer-info">
+          <strong class="viewer-title" id="receipt-viewer-title">Recibo de Gasolina</strong>
+          <span class="viewer-subtitle font-mono" id="receipt-viewer-subtitle">---</span>
+        </div>
+      </div>
+
+      <div class="viewer-toolbar">
+        <div class="viewer-btn-group">
+          <button type="button" class="viewer-btn" id="viewer-zoom-out" title="Reducir zoom (-)" aria-label="Reducir zoom">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </button>
+          <span class="viewer-zoom-level font-mono" id="viewer-zoom-level">100%</span>
+          <button type="button" class="viewer-btn" id="viewer-zoom-in" title="Ampliar zoom (+)" aria-label="Ampliar zoom">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          </button>
+        </div>
+
+        <button type="button" class="viewer-btn" id="viewer-rotate" title="Rotar 90° hacia la derecha" aria-label="Rotar 90 grados">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          <span class="viewer-btn-text">Rotar 90°</span>
+        </button>
+
+        <button type="button" class="viewer-btn" id="viewer-reset" title="Restablecer tamaño y posición original" aria-label="Restablecer">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span class="viewer-btn-text">Reiniciar</span>
+        </button>
+
+        <button type="button" class="viewer-btn viewer-btn-close" id="viewer-close" title="Cerrar visor (Esc)" aria-label="Cerrar visor">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="receipt-viewer-canvas" id="receipt-viewer-canvas">
+      <div class="receipt-viewer-stage" id="receipt-viewer-stage">
+        <img id="receipt-viewer-img" src="" alt="Recibo escaneado a pantalla completa" draggable="false">
+      </div>
+    </div>
+
+    <div class="receipt-viewer-footer">
+      <span class="viewer-hint">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        Arrastra con el mouse para mover • Rueda o botones para zoom • Botón rotar (90°) • Tecla Esc para salir
+      </span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

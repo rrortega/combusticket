@@ -1,0 +1,49 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: facturagas-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: facturagas-web
+    restart: unless-stopped
+    environment:
+      - APP_MODE=web
+      - PORT=4000
+      - HOST=0.0.0.0
+      - REDIS_URL=redis://redis:6379
+      - RECORD_VIDEO=false
+      - DRY_RUN=false
+    ports:
+      - '4000:4000'
+    depends_on:
+      - redis
+    volumes:
+      - shared-output:/app/output
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: facturagas-worker
+    restart: unless-stopped
+    environment:
+      - APP_MODE=worker
+      - REDIS_URL=redis://redis:6379
+      - RECORD_VIDEO=false
+      - DRY_RUN=false
+    depends_on:
+      - redis
+    volumes:
+      - shared-output:/app/output
+
+volumes:
+  redis-data:
+  shared-output:

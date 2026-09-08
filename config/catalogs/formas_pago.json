@@ -1,0 +1,56 @@
+{
+  "description": "Catálogo de Formas de Pago del portal y mapeo con claves oficiales del SAT",
+  "formasPago": [
+    {
+      "portalValue": "1",
+      "satCode": "01",
+      "description": "Efectivo",
+      "ocrAliases": ["EFECTIVO", "CASH", "EFEC"]
+    },
+    {
+      "portalValue": "2",
+      "satCode": "04",
+      "description": "Tarjeta de Crédito",
+      "ocrAliases": ["CREDITO", "CRÉDITO", "T. CREDITO", "VISA", "MC", "MASTERCARD", "TC", "T.C."]
+    },
+    {
+      "portalValue": "3",
+      "satCode": "28",
+      "description": "Tarjeta de Débito",
+      "ocrAliases": ["DEBITO", "DÉBITO", "T. DEBITO", "TD", "T.D.", "RED COMPRA"]
+    },
+    {
+      "portalValue": "4",
+      "satCode": "04",
+      "description": "Tarjeta de Servicios",
+      "ocrAliases": ["AMEX", "AMERICAN EXPRESS", "SERVICIOS"]
+    },
+    {
+      "portalValue": "10",
+      "satCode": "03",
+      "description": "Transferencia Electrónica de Fondos",
+      "ocrAliases": ["TRANSFERENCIA", "SPEI", "TEF", "TRANSF"]
+    },
+    {
+      "portalValue": "11",
+      "satCode": "02",
+      "description": "Cheque",
+      "ocrAliases": ["CHEQUE", "CHQ"]
+    }
+  ],
+  "lookupByPortalValue": {
+    "1": "Efectivo",
+    "2": "Tarjeta de Crédito",
+    "3": "Tarjeta de Débito",
+    "4": "Tarjeta de Servicios",
+    "10": "Transferencia Electrónica de Fondos",
+    "11": "Cheque"
+  },
+  "lookupBySatCode": {
+    "01": { "portalValue": "1", "description": "Efectivo" },
+    "04": { "portalValue": "2", "description": "Tarjeta de Crédito" },
+    "28": { "portalValue": "3", "description": "Tarjeta de Débito" },
+    "03": { "portalValue": "10", "description": "Transferencia Electrónica de Fondos" },
+    "02": { "portalValue": "11", "description": "Cheque" }
+  }
+}

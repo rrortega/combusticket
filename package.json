@@ -1,0 +1,39 @@
+{
+  "name": "facturagasolina",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Gas receipt OCR and Obscura browser automation service",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "invoice": "tsx src/index.ts",
+    "invoice:submit": "tsx src/index.ts --submit",
+    "mcp": "tsx src/interfaces/mcp/server.ts",
+    "api": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "start:web": "APP_MODE=web tsx src/main.ts",
+    "start:worker": "APP_MODE=worker tsx src/main.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^26.4.1",
+    "@types/sharp": "^0.31.1",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "bullmq": "^6.3.4",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "ioredis": "^6.0.0",
+    "multer": "^2.3.0",
+    "playwright-core": "^1.63.0",
+    "sharp": "^0.35.4",
+    "tesseract.js": "^7.0.0"
+  }
+}

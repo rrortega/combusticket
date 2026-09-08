@@ -1,0 +1,121 @@
+{
+  "description": "Catálogo de Regímenes Fiscales del SAT (México) para portales de facturación",
+  "regimenes": [
+    {
+      "code": "601",
+      "description": "General de Ley Personas Morales",
+      "tipoPersona": "MORAL"
+    },
+    {
+      "code": "603",
+      "description": "Personas Morales con Fines no Lucrativos",
+      "tipoPersona": "MORAL"
+    },
+    {
+      "code": "605",
+      "description": "Sueldos y Salarios e Ingresos Asimilados a Salarios",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "606",
+      "description": "Arrendamiento",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "607",
+      "description": "Régimen de Enajenación o Adquisición de Bienes",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "608",
+      "description": "Demás ingresos",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "610",
+      "description": "Residentes en el Extranjero sin Establecimiento Permanente en México",
+      "tipoPersona": "AMBAS"
+    },
+    {
+      "code": "611",
+      "description": "Ingresos por Dividendos (socios y accionistas)",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "612",
+      "description": "Personas Físicas con Actividades Empresariales y Profesionales",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "614",
+      "description": "Ingresos por intereses",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "615",
+      "description": "Régimen de los ingresos por obtención de premios",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "616",
+      "description": "Sin obligaciones fiscales",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "620",
+      "description": "Sociedades Cooperativas de Producción que optan por diferir sus ingresos",
+      "tipoPersona": "MORAL"
+    },
+    {
+      "code": "621",
+      "description": "Incorporación Fiscal",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "622",
+      "description": "Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras",
+      "tipoPersona": "AMBAS"
+    },
+    {
+      "code": "623",
+      "description": "Opcional para Grupos de Sociedades",
+      "tipoPersona": "MORAL"
+    },
+    {
+      "code": "624",
+      "description": "Coordinados",
+      "tipoPersona": "MORAL"
+    },
+    {
+      "code": "625",
+      "description": "Régimen de las Actividades Empresariales con ingresos a través de Plataformas Tecnológicas",
+      "tipoPersona": "FISICA"
+    },
+    {
+      "code": "626",
+      "description": "Régimen Simplificado de Confianza",
+      "tipoPersona": "AMBAS"
+    }
+  ],
+  "lookupByCode": {
+    "601": "General de Ley Personas Morales",
+    "603": "Personas Morales con Fines no Lucrativos",
+    "605": "Sueldos y Salarios e Ingresos Asimilados a Salarios",
+    "606": "Arrendamiento",
+    "607": "Régimen de Enajenación o Adquisición de Bienes",
+    "608": "Demás ingresos",
+    "610": "Residentes en el Extranjero sin Establecimiento Permanente en México",
+    "611": "Ingresos por Dividendos (socios y accionistas)",
+    "612": "Personas Físicas con Actividades Empresariales y Profesionales",
+    "614": "Ingresos por intereses",
+    "615": "Régimen de los ingresos por obtención de premios",
+    "616": "Sin obligaciones fiscales",
+    "620": "Sociedades Cooperativas de Producción que optan por diferir sus ingresos",
+    "621": "Incorporación Fiscal",
+    "622": "Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras",
+    "623": "Opcional para Grupos de Sociedades",
+    "624": "Coordinados",
+    "625": "Régimen de las Actividades Empresariales con ingresos a través de Plataformas Tecnológicas",
+    "626": "Régimen Simplificado de Confianza"
+  }
+}

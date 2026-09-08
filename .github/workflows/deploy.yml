@@ -1,0 +1,92 @@
+name: Build Docker Image & Deploy to Easypanel
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata (Tags & Labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=,format=short
+            type=ref,event=branch
+
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trigger Easypanel Deployment Webhook(s)
+        run: |
+          echo "======================================================="
+          echo "Triggering Easypanel deployment webhooks..."
+          echo "======================================================="
+          
+          TRIGGERED=0
+
+          # 1. Web / API Service Webhook
+          if [ -n "${{ secrets.EASYPANEL_WEBHOOK_WEB }}" ]; then
+            echo "Dispatching Web service webhook..."
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.EASYPANEL_WEBHOOK_WEB }}")
+            echo "Web service webhook response status: $HTTP_CODE"
+            TRIGGERED=1
+          fi
+
+          # 2. Worker Service Webhook
+          if [ -n "${{ secrets.EASYPANEL_WEBHOOK_WORKER }}" ]; then
+            echo "Dispatching Worker service webhook..."
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.EASYPANEL_WEBHOOK_WORKER }}")
+            echo "Worker service webhook response status: $HTTP_CODE"
+            TRIGGERED=1
+          fi
+
+          # 3. Fallback / Single Combined Webhook
+          if [ -n "${{ secrets.EASYPANEL_WEBHOOK_URL }}" ]; then
+            echo "Dispatching combined webhook..."
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.EASYPANEL_WEBHOOK_URL }}")
+            echo "Combined webhook response status: $HTTP_CODE"
+            TRIGGERED=1
+          fi
+
+          if [ "$TRIGGERED" -eq 0 ]; then
+            echo "Notice: No Easypanel webhook secret found."
+            echo "To enable automatic deployment in Easypanel, add EASYPANEL_WEBHOOK_WEB and EASYPANEL_WEBHOOK_WORKER in GitHub Repo Settings -> Secrets -> Actions."
+          else
+            echo "All configured Easypanel webhooks triggered successfully!"
+          fi

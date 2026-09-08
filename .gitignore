@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Build artifacts
+dist/
+build/
+*.tsbuildinfo
+
+# Binaries and platform-specific executables
+obscura
+obscura-worker
+*.exe
+*.dmg
+*.bin
+
+# OCR trained datasets
+*.traineddata
+
+# Generated evidence, screenshots, receipts, and videos
+output/*
+!output/.gitkeep
+output/receipts/*
+!output/receipts/.gitkeep
+output/videos/*
+!output/videos/.gitkeep
+output/verification/*
+
+# Scratchpad test scripts and temporary data
+scratch/
+scratch_*
+*.tmp
+
+# Operating system files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# IDE / Editor configuration
+.idea/
+.vscode/
+*.swp
+*.swo

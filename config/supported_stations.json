@@ -1,0 +1,14 @@
+[
+  {
+    "id": "gogas",
+    "name": "GoGas",
+    "brandName": "GoGas / FacturasGas",
+    "logoEmoji": "⛽",
+    "domain": "facturasgas.com",
+    "portalUrl": "https://www.facturasgas.com/facturacion/autofactura.php",
+    "status": "active",
+    "statusText": "Disponible",
+    "description": "Estaciones de servicio GoGas y Red FacturasGas a nivel nacional.",
+    "ticketExample": "Requiere No. Estación y No. de Rastreo (código de barras/ticket)."
+  }
+]
