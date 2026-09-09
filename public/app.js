@@ -4175,7 +4175,7 @@ document.addEventListener("DOMContentLoaded", () => {
         : window.location.origin + rawUrl;
     }
 
-    const message = `Hola ROLODEV, intente subir un recibo de "${stationName}" y aun no esta disoinible, te envio la foto del recibo para que lo agreges cuando puedas!${photoUrl ? `\n\nFoto del recibo: ${photoUrl}` : ""}`;
+    const message = `Hola ROLO, intenté subir un recibo de "${stationName}" y aun no has desarrollado esa automatización, te envío la foto del recibo para que lo agreges cuando puedas!${photoUrl ? `\n\nFoto del recibo: ${photoUrl}` : ""}`;
     const whatsappUrl = `https://api.whatsapp.com/send?phone=529984137684&text=${encodeURIComponent(message)}`;
 
     window.open(whatsappUrl, "_blank");
@@ -4663,7 +4663,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         showToast(
           data.error ||
-            "Este ticket ya se encuentra registrado en tu historial. Te redirigimos a tu lista.",
+          "Este ticket ya se encuentra registrado en tu historial. Te redirigimos a tu lista.",
           "info",
         );
 
@@ -5152,25 +5152,25 @@ document.addEventListener("DOMContentLoaded", () => {
               <span>${dateFormatted}</span>
             </span>
             ${item.liters
-              ? `
+        ? `
               <span class="history-amount-pill" style="background: rgba(6, 182, 212, 0.12); color: #06b6d4; border-color: rgba(6, 182, 212, 0.25);" title="Volumen despachado">
                 <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 2px;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
                 ${Number(item.liters).toFixed(2)} L
               </span>
             `
-              : ""
-            }
+        : ""
+      }
             <span class="history-amount-pill">
               $${Number(item.amount || 0).toFixed(2)} MXN
             </span>
             ${item.paymentMethod
-              ? `
+        ? `
               <span class="history-amount-pill history-payment-pill" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); display: inline-flex; align-items: center; justify-content: center; padding: 0.18rem 0.45rem; border-radius: 9999px;" title="Forma de pago: ${escapeHtml(item.paymentMethod)}">
                 ${getPaymentMethodIcon(item.paymentMethod)}
               </span>
             `
-              : ""
-            }
+        : ""
+      }
           </div>
 
           <div class="history-row-actions">
@@ -5426,7 +5426,7 @@ document.addEventListener("DOMContentLoaded", () => {
       customRangeModal?.classList.remove("hidden");
       try {
         history.pushState({ modal: "custom-range" }, "");
-      } catch (_) {}
+      } catch (_) { }
     }
 
     function closeCustomRangeModal() {
@@ -5435,7 +5435,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (window.history.state && window.history.state.modal === "custom-range") {
         try {
           window.history.back();
-        } catch (_) {}
+        } catch (_) { }
       }
     }
 
