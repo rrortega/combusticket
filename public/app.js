@@ -4702,7 +4702,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (
           e.target.closest("button") ||
           e.target.closest("a") ||
-          e.target.closest("input")
+          e.target.closest("input") ||
+          e.target.closest(".history-row-actions") ||
+          e.target.closest(".btn-delete-history") ||
+          e.target.closest(".btn-cancel-history")
         ) {
           return;
         }
@@ -4723,20 +4726,58 @@ document.addEventListener("DOMContentLoaded", () => {
     // Cancel in-progress buttons
     historyContent.querySelectorAll(".btn-cancel-history").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
+        e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
         const entryId = btn.getAttribute("data-entry-id");
         const jobId = btn.getAttribute("data-job-id");
-        await handleDeleteHistoryItem(entryId, jobId, true);
+        const item = redisHistoryItems.find(
+          (h) => h.id === entryId || h.jobId === jobId || h.id === `hist_${jobId}`,
+        );
+        const ticketNum = item?.trackingNumber || jobId || entryId || "";
+
+        const confirmed = await showCustomConfirm({
+          title: "¿Cancelar proceso?",
+          message: ticketNum
+            ? `¿Estás seguro de que deseas cancelar y eliminar el proceso del ticket #${ticketNum}?`
+            : "¿Estás seguro de que deseas cancelar y eliminar este proceso en cola?",
+          confirmText: "Sí, cancelar",
+          cancelText: "Volver",
+          isDanger: true,
+        });
+
+        if (confirmed) {
+          await handleDeleteHistoryItem(entryId, jobId, true);
+        }
       });
     });
 
     // Delete completed/failed buttons
     historyContent.querySelectorAll(".btn-delete-history").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
+        e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
         const entryId = btn.getAttribute("data-entry-id");
         const jobId = btn.getAttribute("data-job-id");
-        await handleDeleteHistoryItem(entryId, jobId, false);
+        const item = redisHistoryItems.find(
+          (h) => h.id === entryId || h.jobId === jobId || h.id === `hist_${jobId}`,
+        );
+        const ticketNum = item?.trackingNumber || jobId || entryId || "";
+
+        const confirmed = await showCustomConfirm({
+          title: "¿Eliminar del historial?",
+          message: ticketNum
+            ? `¿Deseas eliminar la factura del ticket #${ticketNum}? Esta acción no se puede deshacer.`
+            : "¿Deseas eliminar este registro del historial? Esta acción no se puede deshacer.",
+          confirmText: "Sí, eliminar",
+          cancelText: "Cancelar",
+          isDanger: true,
+        });
+
+        if (confirmed) {
+          await handleDeleteHistoryItem(entryId, jobId, false);
+        }
       });
     });
   }
@@ -4944,6 +4985,84 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       showToast(`Error al eliminar: ${err.message}`, "error");
     }
+  }
+
+  /**
+   * Promisified custom confirmation dialog (Desktop Modal / Mobile Bottom Sheet Drawer)
+   */
+  function showCustomConfirm({
+    title = "¿Eliminar registro?",
+    message = "Esta acción eliminará el registro permanentemente.",
+    confirmText = "Sí, eliminar",
+    cancelText = "Cancelar",
+    isDanger = true,
+  } = {}) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById("custom-confirm-modal");
+      const modalTitle = document.getElementById("confirm-modal-title");
+      const modalMsg = document.getElementById("confirm-modal-message");
+      const btnAccept = document.getElementById("btn-confirm-accept");
+      const btnCancel = document.getElementById("btn-confirm-cancel");
+      const iconContainer = document.getElementById("confirm-icon-container");
+
+      if (!modal || !btnAccept || !btnCancel) {
+        resolve(true);
+        return;
+      }
+
+      if (modalTitle) modalTitle.textContent = title;
+      if (modalMsg) modalMsg.textContent = message;
+      if (btnAccept) btnAccept.textContent = confirmText;
+      if (btnCancel) btnCancel.textContent = cancelText;
+
+      if (isDanger) {
+        btnAccept.className = "btn btn-danger btn-action-modal";
+        if (iconContainer) {
+          iconContainer.style.background = "rgba(239, 68, 68, 0.12)";
+          iconContainer.style.color = "#f87171";
+          iconContainer.style.borderColor = "rgba(239, 68, 68, 0.3)";
+        }
+      } else {
+        btnAccept.className = "btn btn-primary btn-action-modal";
+        if (iconContainer) {
+          iconContainer.style.background = "rgba(16, 185, 129, 0.12)";
+          iconContainer.style.color = "#34d399";
+          iconContainer.style.borderColor = "rgba(16, 185, 129, 0.3)";
+        }
+      }
+
+      const cleanup = (result) => {
+        modal.classList.remove("active");
+        setTimeout(() => {
+          modal.classList.add("hidden");
+          modal.setAttribute("aria-hidden", "true");
+        }, 220);
+        btnAccept.removeEventListener("click", onAccept);
+        btnCancel.removeEventListener("click", onCancel);
+        modal.removeEventListener("click", onBackdropClick);
+        document.removeEventListener("keydown", onKeyDown);
+        resolve(result);
+      };
+
+      const onAccept = () => cleanup(true);
+      const onCancel = () => cleanup(false);
+      const onBackdropClick = (e) => {
+        if (e.target === modal) cleanup(false);
+      };
+      const onKeyDown = (e) => {
+        if (e.key === "Escape") cleanup(false);
+      };
+
+      btnAccept.addEventListener("click", onAccept);
+      btnCancel.addEventListener("click", onCancel);
+      modal.addEventListener("click", onBackdropClick);
+      document.addEventListener("keydown", onKeyDown);
+
+      modal.classList.remove("hidden");
+      void modal.offsetWidth;
+      modal.classList.add("active");
+      modal.setAttribute("aria-hidden", "false");
+    });
   }
 
   // --- TRENDS & SUB-TABS MANAGEMENT ---
