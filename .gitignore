@@ -59,3 +59,5 @@ logs/
 .vscode/
 *.swp
 *.swo
+# Local Pi runtime state
+.atl/

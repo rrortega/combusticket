@@ -13,12 +13,14 @@ export interface OcrOutput {
 export interface ParsedReceiptData {
   gasStation: string;
   stationNumber?: string;
+  address?: string;
   cashier?: string;
   trackingNumber: string;
   transaction?: string;
   date: string;
   paymentMethod: string;
   amount: number;
+  liters?: number;
   subtotal?: number;
   iva?: number;
   billingUrl: string;
@@ -39,27 +41,27 @@ export interface ReceiptTransactionRecord {
   jsonFileName: string;
   jsonUrl: string;
   rfc: string;
-  razonSocial?: string;
   createdAt: string;
   updatedAt: string;
   submittedAt?: string;
   completedAt?: string;
-  status: 'scanned' | 'enqueued' | 'completed' | 'failed';
+  status: "scanned" | "enqueued" | "dry_run" | "completed" | "failed";
   jobId?: string;
   ticket: {
     trackingNumber: string;
     stationNumber?: string;
+    address?: string;
     cashier?: string;
     gasStation: string;
     transaction?: string;
     date: string;
     paymentMethod: string;
     amount: number;
+    liters?: number;
     subtotal?: number;
     iva?: number;
     billingUrl: string;
   };
-  billingProfile?: Partial<BillingProfile>;
   invoiceResult?: {
     submitted: boolean;
     pdfUrl?: string;
@@ -111,7 +113,7 @@ export interface InvoiceResult {
   xmlPath?: string;
   xmlUrl?: string;
   message: string;
-  extraData?: Record<string, any>;
+  extraData?: Record<string, unknown>;
 }
 
 export interface PortalDescriptor {

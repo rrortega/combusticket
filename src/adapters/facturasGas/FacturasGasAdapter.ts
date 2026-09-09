@@ -1,33 +1,33 @@
-import { Page } from 'playwright-core';
-import path from 'path';
-import fs from 'fs';
-import { IBillingPortalAdapter } from '../../core/interfaces/IBillingPortalAdapter.js';
+import { Page } from "playwright-core";
+import path from "path";
+import fs from "fs";
+import { IBillingPortalAdapter } from "../../core/interfaces/IBillingPortalAdapter.js";
 import {
   ParsedReceiptData,
   BillingProfile,
   AutomationOptions,
   InvoiceResult,
   PortalDescriptor,
-} from '../../core/types.js';
-import { Logger } from '../../utils/logger.js';
+} from "../../core/types.js";
+import { Logger } from "../../utils/logger.js";
 
 export class FacturasGasAdapter implements IBillingPortalAdapter {
   public readonly descriptor: PortalDescriptor = {
-    id: 'facturasgas',
-    name: 'FacturasGas (GoGas / Red FacturasGas)',
-    supportedDomains: ['facturasgas.com', 'www.facturasgas.com'],
-    supportedBrands: ['GOGAS', 'SERVICIO SEIS ANEMONAS'],
+    id: "facturasgas",
+    name: "FacturasGas (GoGas / Red FacturasGas)",
+    supportedDomains: ["facturasgas.com", "www.facturasgas.com"],
+    supportedBrands: ["GOGAS", "SERVICIO SEIS ANEMONAS"],
   };
 
   public canHandle(receipt: ParsedReceiptData): boolean {
-    const url = (receipt.billingUrl || '').toLowerCase();
-    const brand = (receipt.gasStation || '').toUpperCase();
-    const raw = (receipt.rawText || '').toLowerCase();
+    const url = (receipt.billingUrl || "").toLowerCase();
+    const brand = (receipt.gasStation || "").toUpperCase();
+    const raw = (receipt.rawText || "").toLowerCase();
 
     return (
-      url.includes('facturasgas.com') ||
-      brand.includes('GOGAS') ||
-      raw.includes('facturasgas.com')
+      url.includes("facturasgas.com") ||
+      brand.includes("GOGAS") ||
+      raw.includes("facturasgas.com")
     );
   }
 
@@ -35,30 +35,37 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     page: Page,
     receipt: ParsedReceiptData,
     profile: BillingProfile,
-    options: AutomationOptions = {}
+    options: AutomationOptions = {},
   ): Promise<InvoiceResult> {
     const dryRun = options.dryRun ?? false;
     const takeScreenshot = options.takeScreenshot ?? true;
-    const screenshotDir = path.resolve(options.screenshotDir || 'output');
+    const screenshotDir = path.resolve(options.screenshotDir || "output");
     if (takeScreenshot && !fs.existsSync(screenshotDir)) {
       fs.mkdirSync(screenshotDir, { recursive: true });
     }
 
-    let targetUrl = receipt.billingUrl.replace('://www.', '://');
-    if (!targetUrl.includes('autofactura.php')) {
-      targetUrl = targetUrl.replace(/\/$/, '') + '/facturacion/autofactura.php';
+    let targetUrl = receipt.billingUrl.replace("://www.", "://");
+    if (!targetUrl.includes("autofactura.php")) {
+      targetUrl = targetUrl.replace(/\/$/, "") + "/facturacion/autofactura.php";
     }
 
-    Logger.info('FacturasGas', `Navigating to ${targetUrl}...`);
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: options.timeoutMs || 30000 });
+    Logger.info("FacturasGas", `Navigating to ${targetUrl}...`);
+    await page.goto(targetUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: options.timeoutMs || 30000,
+    });
     await page.waitForTimeout(1200);
 
     // Suppress Bootstrap popovers, alert banners, and jQuery UI autocomplete dropdowns to prevent layout jumping
-    await page.addStyleTag({
-      content: '.popover, .ui-autocomplete, .alert, .alert-warning { display: none !important; opacity: 0 !important; visibility: hidden !important; }',
-    }).catch(() => {});
+    await page
+      .addStyleTag({
+        content:
+          ".popover, .ui-autocomplete, .alert, .alert-warning { display: none !important; opacity: 0 !important; visibility: hidden !important; }",
+      })
+      .catch(() => {});
 
-    await page.evaluate(`
+    await page
+      .evaluate(`
       (() => {
         try {
           if (window.$) {
@@ -70,16 +77,24 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
           }
         } catch {}
       })()
-    `).catch(() => {});
+    `)
+      .catch(() => {});
 
-    Logger.info('FacturasGas', 'Filling billing profile into form...');
-    const paymentCode = this.resolvePaymentMethodCode(receipt.paymentMethod, profile.formaPago);
+    Logger.info("FacturasGas", "Filling billing profile into form...");
+    const paymentCode = this.resolvePaymentMethodCode(
+      receipt.paymentMethod,
+      profile.formaPago,
+    );
 
     // Step 1: Select Dropdowns with realistic pacing
     const selectsToSet = [
-      { id: '#CdCfdiRegimen', val: profile.regimenFiscal, label: 'Régimen Fiscal' },
-      { id: '#CfdiMetodoPago', val: paymentCode, label: 'Forma de Pago' },
-      { id: '#CdUsoCfdi', val: profile.usoCfdi, label: 'Uso de CFDI' },
+      {
+        id: "#CdCfdiRegimen",
+        val: profile.regimenFiscal,
+        label: "Régimen Fiscal",
+      },
+      { id: "#CfdiMetodoPago", val: paymentCode, label: "Forma de Pago" },
+      { id: "#CdUsoCfdi", val: profile.usoCfdi, label: "Uso de CFDI" },
     ];
 
     for (const item of selectsToSet) {
@@ -93,21 +108,36 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
             }
           })()
         `);
-        Logger.debug('FacturasGas', `Set select ${item.label} (${item.id}) to: "${item.val}"`);
+        Logger.debug(
+          "FacturasGas",
+          `Set select ${item.label} (${item.id}) to: "${item.val}"`,
+        );
         await page.waitForTimeout(350);
       }
     }
 
     // Step 2: Fill text fields sequentially with visible HTML attribute & event dispatching
-    const textFields: Array<{ selector: string; value: string; label: string }> = [
-      { selector: '#RFC', value: profile.rfc, label: 'RFC' },
-      { selector: '#RazonSocial', value: profile.razonSocial, label: 'Razón Social' },
-      { selector: '#Email', value: profile.email, label: 'Email' },
-      { selector: '#Email_verif', value: profile.emailConfirm, label: 'Confirmar Email' },
-      { selector: '#CP', value: profile.codigoPostal, label: 'Código Postal' },
+    const textFields: Array<{
+      selector: string;
+      value: string;
+      label: string;
+    }> = [
+      { selector: "#RFC", value: profile.rfc, label: "RFC" },
+      {
+        selector: "#RazonSocial",
+        value: profile.razonSocial,
+        label: "Razón Social",
+      },
+      { selector: "#Email", value: profile.email, label: "Email" },
+      {
+        selector: "#Email_verif",
+        value: profile.emailConfirm,
+        label: "Confirmar Email",
+      },
+      { selector: "#CP", value: profile.codigoPostal, label: "Código Postal" },
     ];
 
-    Logger.debug('FacturasGas', 'Profile data to fill:', {
+    Logger.debug("FacturasGas", "Profile data to fill:", {
       rfc: profile.rfc,
       razonSocial: profile.razonSocial,
       email: profile.email,
@@ -118,14 +148,16 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     });
 
     // Pre-assign both Email inputs so the portal validator never detects a temporary mismatch
-    await page.evaluate(`
+    await page
+      .evaluate(`
       (() => {
         const e1 = document.querySelector('#Email');
         const e2 = document.querySelector('#Email_verif');
         if (e1) { e1.value = ${JSON.stringify(profile.email)}; e1.setAttribute('value', ${JSON.stringify(profile.email)}); }
         if (e2) { e2.value = ${JSON.stringify(profile.emailConfirm)}; e2.setAttribute('value', ${JSON.stringify(profile.emailConfirm)}); }
       })()
-    `).catch(() => {});
+    `)
+      .catch(() => {});
 
     for (const field of textFields) {
       if (field.value) {
@@ -142,7 +174,10 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
             }
           })()
         `);
-        Logger.debug('FacturasGas', `Filled ${field.label} (${field.selector}): "${field.value}"`);
+        Logger.debug(
+          "FacturasGas",
+          `Filled ${field.label} (${field.selector}): "${field.value}"`,
+        );
         await page.waitForTimeout(350);
       }
     }
@@ -161,7 +196,10 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
           }
         })()
       `);
-      Logger.debug('FacturasGas', `Filled Ticket (#Ticket): "${receipt.trackingNumber}"`);
+      Logger.debug(
+        "FacturasGas",
+        `Filled Ticket (#Ticket): "${receipt.trackingNumber}"`,
+      );
       await page.waitForTimeout(400);
     }
 
@@ -177,36 +215,45 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       })()
     `);
 
-    await page.keyboard.press('Escape');
+    await page.keyboard.press("Escape");
     await page.waitForTimeout(400);
 
     // Step 4: Click "Agregar" to register ticket into the invoice list
-    Logger.info('FacturasGas', `Registering ticket: ${receipt.trackingNumber}...`);
-    await page.click('#Button_Add');
+    Logger.info(
+      "FacturasGas",
+      `Registering ticket: ${receipt.trackingNumber}...`,
+    );
+    await page.click("#Button_Add");
     await page.waitForTimeout(2500);
 
-    const ticketStatus = await page.evaluate(`
+    const ticketStatus = (await page.evaluate(`
       (() => {
         const ticketHelp = document.querySelector('#Ticket_help')?.textContent?.trim() || '';
         const ticketsVal = document.querySelector('#Tickets')?.value || '';
         const showTickets = document.querySelector('#show_tickets')?.innerHTML || '';
         return { ticketHelp, ticketsVal, showTickets };
       })()
-    `) as { ticketHelp: string; ticketsVal: string; showTickets: string };
+    `)) as { ticketHelp: string; ticketsVal: string; showTickets: string };
 
     Logger.info(
-      'FacturasGas',
-      `Registered tickets: "${ticketStatus.ticketsVal}", Validation status: "${ticketStatus.ticketHelp || 'OK'}"`
+      "FacturasGas",
+      `Registered tickets: "${ticketStatus.ticketsVal}", Validation status: "${ticketStatus.ticketHelp || "OK"}"`,
     );
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     let filledScreenshot: string | undefined;
     if (takeScreenshot) {
-      filledScreenshot = path.join(screenshotDir, `facturasgas_${timestamp}.png`);
+      filledScreenshot = path.join(
+        screenshotDir,
+        `facturasgas_${timestamp}.png`,
+      );
       try {
         await page.screenshot({ path: filledScreenshot, fullPage: true });
       } catch (err: any) {
-        Logger.warn('FacturasGas', `Could not capture filled screenshot: ${err.message}`);
+        Logger.warn(
+          "FacturasGas",
+          `Could not capture filled screenshot: ${err.message}`,
+        );
       }
     }
 
@@ -217,39 +264,64 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     let downloadedPdfPath: string | undefined;
 
     if (!dryRun) {
-      Logger.info('FacturasGas', 'Submitting invoice: Clicking "Solicitar Factura" (#Button_Insert)...');
+      Logger.info(
+        "FacturasGas",
+        'Submitting invoice: Clicking "Solicitar Factura" (#Button_Insert)...',
+      );
 
       // Automatically accept any confirmation dialog
-      page.on('dialog', async (dialog) => {
-        Logger.info('FacturasGas', `Dialog detected: "${dialog.message()}". Accepting...`);
+      page.on("dialog", async (dialog) => {
+        Logger.info(
+          "FacturasGas",
+          `Dialog detected: "${dialog.message()}". Accepting...`,
+        );
         await dialog.accept().catch(() => {});
       });
 
       // Unhide alerts so result/confirmation banners on the resulting page are visible
-      await page.addStyleTag({
-        content: '.alert, .alert-success, .alert-danger, .alert-warning, .alert-info { display: block !important; opacity: 1 !important; visibility: visible !important; }',
-      }).catch(() => {});
+      await page
+        .addStyleTag({
+          content:
+            ".alert, .alert-success, .alert-danger, .alert-warning, .alert-info { display: block !important; opacity: 1 !important; visibility: visible !important; }",
+        })
+        .catch(() => {});
 
       try {
         await Promise.all([
-          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => null),
-          page.click('#Button_Insert', { timeout: 10000 }),
+          page
+            .waitForNavigation({
+              waitUntil: "domcontentloaded",
+              timeout: 60000,
+            })
+            .catch(() => null),
+          page.click("#Button_Insert", { timeout: 10000 }),
         ]);
       } catch (err: any) {
-        Logger.warn('FacturasGas', `Navigation notice on submit: ${err.message}`);
+        Logger.warn(
+          "FacturasGas",
+          `Navigation notice on submit: ${err.message}`,
+        );
       }
 
-      await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => null);
-      await page.waitForLoadState('load', { timeout: 30000 }).catch(() => null);
+      await page
+        .waitForLoadState("domcontentloaded", { timeout: 30000 })
+        .catch(() => null);
+      await page.waitForLoadState("load", { timeout: 30000 }).catch(() => null);
       await page.waitForTimeout(3000);
 
       if (takeScreenshot) {
-        const submittedScreenshot = path.join(screenshotDir, `facturasgas_submitted_${timestamp}.png`);
+        const submittedScreenshot = path.join(
+          screenshotDir,
+          `facturasgas_submitted_${timestamp}.png`,
+        );
         try {
           await page.screenshot({ path: submittedScreenshot });
           evidenceScreenshot = submittedScreenshot;
         } catch (e: any) {
-          Logger.warn('FacturasGas', `Viewport screenshot notice, retrying after pause: ${e.message}`);
+          Logger.warn(
+            "FacturasGas",
+            `Viewport screenshot notice, retrying after pause: ${e.message}`,
+          );
           await page.waitForTimeout(2000);
           try {
             await page.screenshot({ path: submittedScreenshot });
@@ -264,43 +336,70 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
         try {
           pageOutcome = await page.evaluate(() => {
             const alertElements = Array.from(
-              document.querySelectorAll('#dynamic_custom_error, .alert, .alert-warning, .alert-danger, .alert-success, .mensaje, #mensaje, #Ticket_help')
+              document.querySelectorAll(
+                "#dynamic_custom_error, .alert, .alert-warning, .alert-danger, .alert-success, .mensaje, #mensaje, #Ticket_help",
+              ),
             );
             const alerts = alertElements
-              .map((el) => el.textContent?.trim() || '')
+              .map((el) => el.textContent?.trim() || "")
               .filter((t) => t.length > 5);
 
-            const bodyText = document.body?.innerText || '';
+            const bodyText = document.body?.innerText || "";
 
-            const pdfLink = (document.querySelector('a[href*=".pdf"], a[href*="descargar"], a[href*="Descargar"]') as HTMLAnchorElement)?.href || null;
-            const xmlLink = (document.querySelector('a[href*=".xml"]') as HTMLAnchorElement)?.href || null;
+            const pdfLink =
+              (
+                document.querySelector(
+                  'a[href*=".pdf"], a[href*="descargar"], a[href*="Descargar"]',
+                ) as HTMLAnchorElement
+              )?.href || null;
+            const xmlLink =
+              (document.querySelector('a[href*=".xml"]') as HTMLAnchorElement)
+                ?.href || null;
 
             // Check for specific rejection / already-billed patterns
-            const alreadyBilledRegex = /ya\s*(?:fue|se\s*encuentra|est[aá])\s*facturado|\(743\)|ya\s*ha\s*sido\s*facturado/i;
-            const invalidTicketRegex = /ticket.*(?:no\s*es\s*v[aá]lido|no\s*existe|incorrecto|inv[aá]lido)|\(901\)|\(902\)|\(903\)/i;
-            const expiredRegex = /periodo.*(?:vencido|cerrado)|fuera\s*de\s*tiempo|mes\s*en\s*curso/i;
+            const alreadyBilledRegex =
+              /ya\s*(?:fue|se\s*encuentra|est[aá])\s*facturado|\(743\)|ya\s*ha\s*sido\s*facturado/i;
+            const invalidTicketRegex =
+              /ticket.*(?:no\s*es\s*v[aá]lido|no\s*existe|incorrecto|inv[aá]lido)|\(901\)|\(902\)|\(903\)/i;
+            const expiredRegex =
+              /periodo.*(?:vencido|cerrado)|fuera\s*de\s*tiempo|mes\s*en\s*curso/i;
 
-            const isAlreadyBilled = alreadyBilledRegex.test(bodyText) || alerts.some((a) => alreadyBilledRegex.test(a));
-            const isInvalid = invalidTicketRegex.test(bodyText) || alerts.some((a) => invalidTicketRegex.test(a));
-            const isExpired = expiredRegex.test(bodyText) || alerts.some((a) => expiredRegex.test(a));
+            const isAlreadyBilled =
+              alreadyBilledRegex.test(bodyText) ||
+              alerts.some((a) => alreadyBilledRegex.test(a));
+            const isInvalid =
+              invalidTicketRegex.test(bodyText) ||
+              alerts.some((a) => invalidTicketRegex.test(a));
+            const isExpired =
+              expiredRegex.test(bodyText) ||
+              alerts.some((a) => expiredRegex.test(a));
 
             // Locate any explicit alert text matching the rejection
-            let rejectionMessage = '';
+            let rejectionMessage = "";
             for (const alert of alerts) {
-              if (alreadyBilledRegex.test(alert) || invalidTicketRegex.test(alert) || expiredRegex.test(alert)) {
+              if (
+                alreadyBilledRegex.test(alert) ||
+                invalidTicketRegex.test(alert) ||
+                expiredRegex.test(alert)
+              ) {
                 rejectionMessage = alert;
                 break;
               }
             }
 
             if (!rejectionMessage && isAlreadyBilled) {
-              const match = bodyText.match(/El ticket\s*['"]?[^'"]+['"]?\s*ya fue facturado[^\n.]*(?:\([0-9]+\))?/i);
+              const match = bodyText.match(
+                /El ticket\s*['"]?[^'"]+['"]?\s*ya fue facturado[^\n.]*(?:\([0-9]+\))?/i,
+              );
               if (match) {
                 rejectionMessage = match[0];
               }
             }
 
-            const formStillActive = Boolean(document.querySelector('#Button_Insert') || document.querySelector('#RFC'));
+            const formStillActive = Boolean(
+              document.querySelector("#Button_Insert") ||
+                document.querySelector("#RFC"),
+            );
 
             return {
               alerts,
@@ -315,21 +414,32 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
           });
           if (pageOutcome) break;
         } catch (evalErr: any) {
-          Logger.warn('FacturasGas', `Outcome evaluation attempt #${attempt} error: ${evalErr.message}`);
+          Logger.warn(
+            "FacturasGas",
+            `Outcome evaluation attempt #${attempt} error: ${evalErr.message}`,
+          );
           await page.waitForTimeout(2000);
         }
       }
 
-      Logger.info('FacturasGas', 'Resulting outcome evaluation:', pageOutcome);
+      Logger.info("FacturasGas", "Resulting outcome evaluation:", pageOutcome);
 
       let downloadedPdfPath: string | undefined;
 
       if (!pageOutcome) {
         submitted = false;
         isSuccess = false;
-        finalMessage = 'No se pudo confirmar la generación de la factura en el portal.';
-        Logger.warn('FacturasGas', `Evaluation failed closed: "${finalMessage}"`);
-      } else if (pageOutcome.isAlreadyBilled || pageOutcome.isInvalid || pageOutcome.isExpired) {
+        finalMessage =
+          "No se pudo confirmar la generación de la factura en el portal.";
+        Logger.warn(
+          "FacturasGas",
+          `Evaluation failed closed: "${finalMessage}"`,
+        );
+      } else if (
+        pageOutcome.isAlreadyBilled ||
+        pageOutcome.isInvalid ||
+        pageOutcome.isExpired
+      ) {
         submitted = false;
         isSuccess = false;
         finalMessage =
@@ -337,22 +447,33 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
           (pageOutcome.isAlreadyBilled
             ? `El ticket '${receipt.trackingNumber}' ya fue facturado previamente en el portal.`
             : `El ticket '${receipt.trackingNumber}' fue rechazado por el portal.`);
-        Logger.warn('FacturasGas', `Portal rejection detected: "${finalMessage}"`);
-      } else if (pageOutcome.formStillActive && !pageOutcome.pdfLink && !pageOutcome.xmlLink) {
+        Logger.warn(
+          "FacturasGas",
+          `Portal rejection detected: "${finalMessage}"`,
+        );
+      } else if (
+        pageOutcome.formStillActive &&
+        !pageOutcome.pdfLink &&
+        !pageOutcome.xmlLink
+      ) {
         // Form is still active on screen with no downloads -> submission failed or stayed on form
         submitted = false;
         isSuccess = false;
-        finalMessage = pageOutcome.alerts.length > 0
-          ? pageOutcome.alerts.join(' | ')
-          : `El formulario no avanzó para el ticket ${receipt.trackingNumber}.`;
-        Logger.warn('FacturasGas', `Submission did not complete: "${finalMessage}"`);
+        finalMessage =
+          pageOutcome.alerts.length > 0
+            ? pageOutcome.alerts.join(" | ")
+            : `El formulario no avanzó para el ticket ${receipt.trackingNumber}.`;
+        Logger.warn(
+          "FacturasGas",
+          `Submission did not complete: "${finalMessage}"`,
+        );
       } else {
         submitted = true;
         isSuccess = true;
         finalMessage =
           pageOutcome.alerts.length > 0
-            ? pageOutcome.alerts.join(' | ')
-            : `Factura solicitada con éxito para el ticket ${receipt.trackingNumber}.${evidenceScreenshot ? ` Evidencia capturada en ${path.basename(evidenceScreenshot)}.` : ''}`;
+            ? pageOutcome.alerts.join(" | ")
+            : `Factura solicitada con éxito para el ticket ${receipt.trackingNumber}.${evidenceScreenshot ? ` Evidencia capturada en ${path.basename(evidenceScreenshot)}.` : ""}`;
 
         // If portal provided a direct PDF download link, fetch and store it locally
         if (pageOutcome.pdfLink) {
@@ -370,10 +491,16 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
             if (pdfBuffer && pdfBuffer.length > 0) {
               fs.writeFileSync(targetPdfPath, Buffer.from(pdfBuffer));
               downloadedPdfPath = targetPdfPath;
-              Logger.info('FacturasGas', `PDF invoice downloaded to: ${targetPdfPath}`);
+              Logger.info(
+                "FacturasGas",
+                `PDF invoice downloaded to: ${targetPdfPath}`,
+              );
             }
           } catch (pdfErr: any) {
-            Logger.warn('FacturasGas', `Could not download PDF file directly: ${pdfErr.message}`);
+            Logger.warn(
+              "FacturasGas",
+              `Could not download PDF file directly: ${pdfErr.message}`,
+            );
           }
         }
       }
@@ -392,27 +519,44 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       extraData: {
         ...ticketStatus,
         rejected: !isSuccess,
-        rejectionReason: !isSuccess ? finalMessage : undefined,
+        rejectionReason: isSuccess ? undefined : finalMessage,
       },
     };
   }
 
-  private resolvePaymentMethodCode(receiptPaymentMethod: string, profilePaymentMethod?: string): string {
-    const normalized = (receiptPaymentMethod || '').toUpperCase();
-    if (normalized.includes('EFECTIVO')) return '1';
-    if (normalized.includes('DEBITO') || normalized.includes('DÉBITO')) return '3';
-    if (
-      normalized.includes('CREDITO') ||
-      normalized.includes('CRÉDITO') ||
-      normalized.includes('VISA') ||
-      normalized.includes('MC') ||
-      normalized.includes('MASTERCARD')
-    ) {
-      return '2';
-    }
-    if (normalized.includes('SERVICIO') || normalized.includes('VALE')) return '4';
-    if (normalized.includes('TRANSFERENCIA')) return '10';
-    if (normalized.includes('CHEQUE')) return '11';
-    return profilePaymentMethod || '2';
+  private resolvePaymentMethodCode(
+    receiptPaymentMethod: string,
+    profilePaymentMethod?: string,
+  ): string {
+    const normalized = this.normalizePaymentText(receiptPaymentMethod);
+    if (this.hasDebitCardSignal(normalized)) return "3";
+    if (this.hasCreditCardSignal(normalized)) return "2";
+    if (this.hasCashSignal(normalized)) return "1";
+    if (/\b(?:SERVICIO|VALE)\b/.test(normalized)) return "4";
+    if (/\bTRANSFERENCIA\b/.test(normalized)) return "10";
+    if (/\bCHEQUE\b/.test(normalized)) return "11";
+    return profilePaymentMethod || "2";
+  }
+
+  private normalizePaymentText(raw: string): string {
+    return (raw || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase();
+  }
+
+  private hasCreditCardSignal(text: string): boolean {
+    return (
+      /\b(?:VISA|MASTERCARD|MASTER\s*CARD|CREDITO|CREDIT)\b/.test(text) ||
+      /(?:^|[^A-Z0-9])MC(?:[^A-Z0-9]|$)/.test(text)
+    );
+  }
+
+  private hasDebitCardSignal(text: string): boolean {
+    return /\b(?:DEBITO|DEBIT|RED\s+COMPRA)\b/.test(text);
+  }
+
+  private hasCashSignal(text: string): boolean {
+    return /\b(?:EFECTIVO|CASH)\b/.test(text);
   }
 }

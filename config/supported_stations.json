@@ -274,5 +274,17 @@
     "statusText": "Próximamente",
     "description": "Estaciones de servicio Rendichicas con litros completos certificados.",
     "ticketExample": "Requiere código de facturación impreso en ticket."
+  },
+  {
+    "id": "repsol",
+    "name": "REPSOL",
+    "brandName": "REPSOL",
+    "logoEmoji": "⛽",
+    "domain": "factura.repsol.com.mx",
+    "portalUrl": "https://factura.repsol.com.mx/",
+    "status": "disabled",
+    "statusText": "Próximamente",
+    "description": "Facturación en línea para estaciones de servicio Repsol.",
+    "ticketExample": "Requiere código de facturación impreso en ticket."
   }
 ]

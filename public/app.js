@@ -3,240 +3,470 @@
  * Clean, modern, end-user friendly gas invoice automation
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   // Embedded SAT Catalogs Fallback (ensures local dev & offline never show empty dropdowns)
   const DEFAULT_SAT_REGIMENES = [
-    { code: '601', description: 'General de Ley Personas Morales', tipoPersona: 'MORAL' },
-    { code: '603', description: 'Personas Morales con Fines no Lucrativos', tipoPersona: 'MORAL' },
-    { code: '605', description: 'Sueldos y Salarios e Ingresos Asimilados a Salarios', tipoPersona: 'FISICA' },
-    { code: '606', description: 'Arrendamiento', tipoPersona: 'FISICA' },
-    { code: '607', description: 'Régimen de Enajenación o Adquisición de Bienes', tipoPersona: 'FISICA' },
-    { code: '608', description: 'Demás ingresos', tipoPersona: 'FISICA' },
-    { code: '610', description: 'Residentes en el Extranjero sin Establecimiento Permanente en México', tipoPersona: 'AMBAS' },
-    { code: '611', description: 'Ingresos por Dividendos (socios y accionistas)', tipoPersona: 'FISICA' },
-    { code: '612', description: 'Personas Físicas con Actividades Empresariales y Profesionales', tipoPersona: 'FISICA' },
-    { code: '614', description: 'Ingresos por intereses', tipoPersona: 'FISICA' },
-    { code: '615', description: 'Régimen de los ingresos por obtención de premios', tipoPersona: 'FISICA' },
-    { code: '616', description: 'Sin obligaciones fiscales', tipoPersona: 'FISICA' },
-    { code: '620', description: 'Sociedades Cooperativas de Producción que optan por diferir sus ingresos', tipoPersona: 'MORAL' },
-    { code: '621', description: 'Incorporación Fiscal', tipoPersona: 'FISICA' },
-    { code: '622', description: 'Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras', tipoPersona: 'AMBAS' },
-    { code: '623', description: 'Opcional para Grupos de Sociedades', tipoPersona: 'MORAL' },
-    { code: '624', description: 'Coordinados', tipoPersona: 'MORAL' },
-    { code: '625', description: 'Régimen de las Actividades Empresariales con ingresos a través de Plataformas Tecnológicas', tipoPersona: 'FISICA' },
-    { code: '626', description: 'Régimen Simplificado de Confianza', tipoPersona: 'AMBAS' }
+    {
+      code: "601",
+      description: "General de Ley Personas Morales",
+      tipoPersona: "MORAL",
+    },
+    {
+      code: "603",
+      description: "Personas Morales con Fines no Lucrativos",
+      tipoPersona: "MORAL",
+    },
+    {
+      code: "605",
+      description: "Sueldos y Salarios e Ingresos Asimilados a Salarios",
+      tipoPersona: "FISICA",
+    },
+    { code: "606", description: "Arrendamiento", tipoPersona: "FISICA" },
+    {
+      code: "607",
+      description: "Régimen de Enajenación o Adquisición de Bienes",
+      tipoPersona: "FISICA",
+    },
+    { code: "608", description: "Demás ingresos", tipoPersona: "FISICA" },
+    {
+      code: "610",
+      description:
+        "Residentes en el Extranjero sin Establecimiento Permanente en México",
+      tipoPersona: "AMBAS",
+    },
+    {
+      code: "611",
+      description: "Ingresos por Dividendos (socios y accionistas)",
+      tipoPersona: "FISICA",
+    },
+    {
+      code: "612",
+      description:
+        "Personas Físicas con Actividades Empresariales y Profesionales",
+      tipoPersona: "FISICA",
+    },
+    {
+      code: "614",
+      description: "Ingresos por intereses",
+      tipoPersona: "FISICA",
+    },
+    {
+      code: "615",
+      description: "Régimen de los ingresos por obtención de premios",
+      tipoPersona: "FISICA",
+    },
+    {
+      code: "616",
+      description: "Sin obligaciones fiscales",
+      tipoPersona: "FISICA",
+    },
+    {
+      code: "620",
+      description:
+        "Sociedades Cooperativas de Producción que optan por diferir sus ingresos",
+      tipoPersona: "MORAL",
+    },
+    { code: "621", description: "Incorporación Fiscal", tipoPersona: "FISICA" },
+    {
+      code: "622",
+      description: "Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras",
+      tipoPersona: "AMBAS",
+    },
+    {
+      code: "623",
+      description: "Opcional para Grupos de Sociedades",
+      tipoPersona: "MORAL",
+    },
+    { code: "624", description: "Coordinados", tipoPersona: "MORAL" },
+    {
+      code: "625",
+      description:
+        "Régimen de las Actividades Empresariales con ingresos a través de Plataformas Tecnológicas",
+      tipoPersona: "FISICA",
+    },
+    {
+      code: "626",
+      description: "Régimen Simplificado de Confianza",
+      tipoPersona: "AMBAS",
+    },
   ];
 
   const DEFAULT_SAT_USOS = [
-    { code: 'G03', description: 'Gastos en general', defaultGasolina: true },
-    { code: 'G01', description: 'Adquisición de mercancías', defaultGasolina: false },
-    { code: 'G02', description: 'Devoluciones, descuentos o bonificaciones', defaultGasolina: false },
-    { code: 'I03', description: 'Equipo de transporte', defaultGasolina: false },
-    { code: 'I01', description: 'Construcciones', defaultGasolina: false },
-    { code: 'I02', description: 'Mobiliario y equipo de oficina por inversiones', defaultGasolina: false },
-    { code: 'I04', description: 'Equipo de computo y accesorios', defaultGasolina: false },
-    { code: 'I05', description: 'Dados, troqueles, moldes, matrices y herramental', defaultGasolina: false },
-    { code: 'I06', description: 'Comunicaciones telefónicas', defaultGasolina: false },
-    { code: 'I07', description: 'Comunicaciones satelitales', defaultGasolina: false },
-    { code: 'I08', description: 'Otra maquinaria y equipo', defaultGasolina: false },
-    { code: 'D01', description: 'Honorarios médicos, dentales y gastos hospitalarios', defaultGasolina: false },
-    { code: 'D02', description: 'Gastos médicos por incapacidad o discapacidad', defaultGasolina: false },
-    { code: 'D03', description: 'Gastos funerales', defaultGasolina: false },
-    { code: 'D04', description: 'Donativos', defaultGasolina: false },
-    { code: 'D05', description: 'Intereses reales efectivamente pagados por créditos hipotecarios (casa habitación)', defaultGasolina: false },
-    { code: 'D06', description: 'Aportaciones voluntarias al SAR', defaultGasolina: false },
-    { code: 'D07', description: 'Primas por seguros de gastos médicos', defaultGasolina: false },
-    { code: 'D08', description: 'Gastos de transportación escolar obligatoria', defaultGasolina: false },
-    { code: 'D09', description: 'Depósitos en cuentas para el ahorro, primas con base en planes de pensiones', defaultGasolina: false },
-    { code: 'D10', description: 'Pagos por servicios educativos (colegiaturas)', defaultGasolina: false },
-    { code: 'S01', description: 'Sin efectos fiscales', defaultGasolina: false },
-    { code: 'CP01', description: 'Pagos', defaultGasolina: false },
-    { code: 'CN01', description: 'Nómina', defaultGasolina: false }
+    { code: "G03", description: "Gastos en general", defaultGasolina: true },
+    {
+      code: "G01",
+      description: "Adquisición de mercancías",
+      defaultGasolina: false,
+    },
+    {
+      code: "G02",
+      description: "Devoluciones, descuentos o bonificaciones",
+      defaultGasolina: false,
+    },
+    {
+      code: "I03",
+      description: "Equipo de transporte",
+      defaultGasolina: false,
+    },
+    { code: "I01", description: "Construcciones", defaultGasolina: false },
+    {
+      code: "I02",
+      description: "Mobiliario y equipo de oficina por inversiones",
+      defaultGasolina: false,
+    },
+    {
+      code: "I04",
+      description: "Equipo de computo y accesorios",
+      defaultGasolina: false,
+    },
+    {
+      code: "I05",
+      description: "Dados, troqueles, moldes, matrices y herramental",
+      defaultGasolina: false,
+    },
+    {
+      code: "I06",
+      description: "Comunicaciones telefónicas",
+      defaultGasolina: false,
+    },
+    {
+      code: "I07",
+      description: "Comunicaciones satelitales",
+      defaultGasolina: false,
+    },
+    {
+      code: "I08",
+      description: "Otra maquinaria y equipo",
+      defaultGasolina: false,
+    },
+    {
+      code: "D01",
+      description: "Honorarios médicos, dentales y gastos hospitalarios",
+      defaultGasolina: false,
+    },
+    {
+      code: "D02",
+      description: "Gastos médicos por incapacidad o discapacidad",
+      defaultGasolina: false,
+    },
+    { code: "D03", description: "Gastos funerales", defaultGasolina: false },
+    { code: "D04", description: "Donativos", defaultGasolina: false },
+    {
+      code: "D05",
+      description:
+        "Intereses reales efectivamente pagados por créditos hipotecarios (casa habitación)",
+      defaultGasolina: false,
+    },
+    {
+      code: "D06",
+      description: "Aportaciones voluntarias al SAR",
+      defaultGasolina: false,
+    },
+    {
+      code: "D07",
+      description: "Primas por seguros de gastos médicos",
+      defaultGasolina: false,
+    },
+    {
+      code: "D08",
+      description: "Gastos de transportación escolar obligatoria",
+      defaultGasolina: false,
+    },
+    {
+      code: "D09",
+      description:
+        "Depósitos en cuentas para el ahorro, primas con base en planes de pensiones",
+      defaultGasolina: false,
+    },
+    {
+      code: "D10",
+      description: "Pagos por servicios educativos (colegiaturas)",
+      defaultGasolina: false,
+    },
+    {
+      code: "S01",
+      description: "Sin efectos fiscales",
+      defaultGasolina: false,
+    },
+    { code: "CP01", description: "Pagos", defaultGasolina: false },
+    { code: "CN01", description: "Nómina", defaultGasolina: false },
   ];
 
   // State: Initialize catalogs with local cache or robust embedded fallbacks
   let cachedCatalogs = null;
   try {
-    cachedCatalogs = JSON.parse(localStorage.getItem('combusticket_catalogs') || 'null');
-  } catch {}
+    cachedCatalogs = JSON.parse(
+      localStorage.getItem("combusticket_catalogs") || "null",
+    );
+  } catch { }
 
   let catalogs = cachedCatalogs || {
     regimenes: { regimenes: DEFAULT_SAT_REGIMENES },
     usosCfdi: { usos: DEFAULT_SAT_USOS },
-    formasPago: null
+    formasPago: null,
   };
 
   let supportedStations = [];
   let currentScannedReceipts = []; // Array of ParsedReceiptData objects currently in review
-  let activeJobs = [];
+  const activeJobs = [];
   let redisHistoryItems = [];
   let historyPollingTimer = null;
-  let currentScreen = 'welcome';
+  let currentScreen = "welcome";
 
   // Elements
-  const brandLogo = document.getElementById('brand-logo');
-  const navTabs = document.getElementById('nav-tabs');
-  const navTabsButtons = document.querySelectorAll('.nav-tab');
-  const historyBadge = document.getElementById('history-badge');
+  const brandLogo = document.getElementById("brand-logo");
+  const navTabs = document.getElementById("nav-tabs");
+  const navTabsButtons = document.querySelectorAll(".nav-tab");
+  const historyBadge = document.getElementById("history-badge");
 
   // Profile Header Pill & Actions
-  const headerProfile = document.getElementById('header-profile');
-  const profilePill = document.getElementById('profile-pill');
-  const avatarInitials = document.getElementById('avatar-initials');
-  const pillRazonSocial = document.getElementById('pill-razon-social');
-  const pillRfc = document.getElementById('pill-rfc');
-  const btnEditProfile = document.getElementById('btn-edit-profile');
-  const btnHeaderOnboard = document.getElementById('btn-header-onboard');
+  const headerProfile = document.getElementById("header-profile");
+  const profilePill = document.getElementById("profile-pill");
+  const avatarInitials = document.getElementById("avatar-initials");
+  const pillRazonSocial = document.getElementById("pill-razon-social");
+  const pillRfc = document.getElementById("pill-rfc");
+  const btnEditProfile = document.getElementById("btn-edit-profile");
+  const btnHeaderOnboard = document.getElementById("btn-header-onboard");
 
   // Screens
-  const screenWelcome = document.getElementById('screen-welcome');
-  const screenProfile = document.getElementById('screen-profile');
-  const screenWorkbench = document.getElementById('screen-workbench');
-  const screenHistory = document.getElementById('screen-history');
-  const allScreens = [screenWelcome, screenProfile, screenWorkbench, screenHistory];
+  const screenWelcome = document.getElementById("screen-welcome");
+  const screenProfile = document.getElementById("screen-profile");
+  const screenWorkbench = document.getElementById("screen-workbench");
+  const screenHistory = document.getElementById("screen-history");
+  const allScreens = [
+    screenWelcome,
+    screenProfile,
+    screenWorkbench,
+    screenHistory,
+  ];
 
   // Welcome Screen
-  const btnWelcomeStart = document.getElementById('btn-welcome-start');
-  const btnMobileCameraFab = document.getElementById('btn-mobile-camera-fab');
-  const mobileCameraFabContainer = document.getElementById('mobile-camera-fab-container');
-  const stationsGrid = document.getElementById('stations-grid');
+  const btnWelcomeStart = document.getElementById("btn-welcome-start");
+  const btnMobileCameraFab = document.getElementById("btn-mobile-camera-fab");
+  const mobileCameraFabContainer = document.getElementById(
+    "mobile-camera-fab-container",
+  );
+  const stationsGrid = document.getElementById("stations-grid");
 
   // Profile Form Elements
-  const profileForm = document.getElementById('profile-form');
-  const profRfc = document.getElementById('prof-rfc');
-  const profRazon = document.getElementById('prof-razon');
-  const profEmail = document.getElementById('prof-email');
-  const profCp = document.getElementById('prof-cp');
-  const profRegimen = document.getElementById('prof-regimen');
-  const profUso = document.getElementById('prof-uso');
-  const btnCancelProfile = document.getElementById('btn-cancel-profile');
-  const btnSaveProfile = document.getElementById('btn-save-profile');
-  const profilePendingNotice = document.getElementById('profile-pending-notice');
-  const profileStepIndicator = document.getElementById('profile-step-indicator');
-  const profileCardTitle = document.getElementById('profile-card-title');
-  const profileCardSubtitle = document.getElementById('profile-card-subtitle');
-  const profileDangerZone = document.getElementById('profile-danger-zone');
-  const profileNotificationsZone = document.getElementById('profile-notifications-zone');
-  const btnDeleteProfile = document.getElementById('btn-delete-profile');
-  const deleteProfileModal = document.getElementById('delete-profile-modal');
-  const deleteProfileRfcBadge = document.getElementById('delete-profile-rfc-badge');
-  const btnCloseDeleteProfileModal = document.getElementById('btn-close-delete-profile-modal');
-  const btnCancelDeleteModal = document.getElementById('btn-cancel-delete-modal');
-  const btnConfirmDeleteModal = document.getElementById('btn-confirm-delete-modal');
+  const profileForm = document.getElementById("profile-form");
+  const profRfc = document.getElementById("prof-rfc");
+  const profRazon = document.getElementById("prof-razon");
+  const profEmail = document.getElementById("prof-email");
+  const profCp = document.getElementById("prof-cp");
+  const profRegimen = document.getElementById("prof-regimen");
+  const profUso = document.getElementById("prof-uso");
+  const btnCancelProfile = document.getElementById("btn-cancel-profile");
+  const btnSaveProfile = document.getElementById("btn-save-profile");
+  const profilePendingNotice = document.getElementById(
+    "profile-pending-notice",
+  );
+  const profileStepIndicator = document.getElementById(
+    "profile-step-indicator",
+  );
+  const profileCardTitle = document.getElementById("profile-card-title");
+  const profileCardSubtitle = document.getElementById("profile-card-subtitle");
+  const profileDangerZone = document.getElementById("profile-danger-zone");
+  const profileNotificationsZone = document.getElementById(
+    "profile-notifications-zone",
+  );
+  const btnDeleteProfile = document.getElementById("btn-delete-profile");
+  const deleteProfileModal = document.getElementById("delete-profile-modal");
+  const deleteProfileRfcBadge = document.getElementById(
+    "delete-profile-rfc-badge",
+  );
+  const btnCloseDeleteProfileModal = document.getElementById(
+    "btn-close-delete-profile-modal",
+  );
+  const btnCancelDeleteModal = document.getElementById(
+    "btn-cancel-delete-modal",
+  );
+  const btnConfirmDeleteModal = document.getElementById(
+    "btn-confirm-delete-modal",
+  );
   let isPendingInvoicing = false;
 
   // Profile Form Real-time Validation Feedback Nodes
-  const profRfcFeedback = document.getElementById('prof-rfc-feedback');
-  const profRazonFeedback = document.getElementById('prof-razon-feedback');
-  const profEmailFeedback = document.getElementById('prof-email-feedback');
-  const profCpFeedback = document.getElementById('prof-cp-feedback');
-  const profRegimenFeedback = document.getElementById('prof-regimen-feedback');
-  const profUsoFeedback = document.getElementById('prof-uso-feedback');
+  const profRfcFeedback = document.getElementById("prof-rfc-feedback");
+  const profRazonFeedback = document.getElementById("prof-razon-feedback");
+  const profEmailFeedback = document.getElementById("prof-email-feedback");
+  const profCpFeedback = document.getElementById("prof-cp-feedback");
+  const profRegimenFeedback = document.getElementById("prof-regimen-feedback");
+  const profUsoFeedback = document.getElementById("prof-uso-feedback");
 
   // Custom Searchable Régimen Fiscal Choice
-  const customRegimenContainer = document.getElementById('custom-regimen-container');
-  const regimenSelectTrigger = document.getElementById('regimen-select-trigger');
-  const regimenSelectPlaceholder = document.getElementById('regimen-select-placeholder');
-  const regimenSelectedValue = document.getElementById('regimen-selected-value');
-  const regimenSelectedCode = document.getElementById('regimen-selected-code');
-  const regimenSelectedDesc = document.getElementById('regimen-selected-desc');
-  const regimenSelectClear = document.getElementById('regimen-select-clear');
-  const regimenSelectDropdown = document.getElementById('regimen-select-dropdown');
-  const regimenSearchInput = document.getElementById('regimen-search-input');
-  const regimenSearchClear = document.getElementById('regimen-search-clear');
-  const chipFilterAll = document.getElementById('chip-filter-all');
-  const chipFilterFisica = document.getElementById('chip-filter-fisica');
-  const chipFilterMoral = document.getElementById('chip-filter-moral');
-  const regimenOptionsList = document.getElementById('regimen-options-list');
-  const regimenEmptyState = document.getElementById('regimen-empty-state');
+  const customRegimenContainer = document.getElementById(
+    "custom-regimen-container",
+  );
+  const regimenSelectTrigger = document.getElementById(
+    "regimen-select-trigger",
+  );
+  const regimenSelectPlaceholder = document.getElementById(
+    "regimen-select-placeholder",
+  );
+  const regimenSelectedValue = document.getElementById(
+    "regimen-selected-value",
+  );
+  const regimenSelectedCode = document.getElementById("regimen-selected-code");
+  const regimenSelectedDesc = document.getElementById("regimen-selected-desc");
+  const regimenSelectClear = document.getElementById("regimen-select-clear");
+  const regimenSelectDropdown = document.getElementById(
+    "regimen-select-dropdown",
+  );
+  const regimenSearchInput = document.getElementById("regimen-search-input");
+  const regimenSearchClear = document.getElementById("regimen-search-clear");
+  const chipFilterAll = document.getElementById("chip-filter-all");
+  const chipFilterFisica = document.getElementById("chip-filter-fisica");
+  const chipFilterMoral = document.getElementById("chip-filter-moral");
+  const regimenOptionsList = document.getElementById("regimen-options-list");
+  const regimenEmptyState = document.getElementById("regimen-empty-state");
 
   // Custom Searchable Uso de CFDI Choice
-  const customUsoContainer = document.getElementById('custom-uso-container');
-  const usoSelectTrigger = document.getElementById('uso-select-trigger');
-  const usoSelectPlaceholder = document.getElementById('uso-select-placeholder');
-  const usoSelectedValue = document.getElementById('uso-selected-value');
-  const usoSelectedCode = document.getElementById('uso-selected-code');
-  const usoSelectedDesc = document.getElementById('uso-selected-desc');
-  const usoSelectClear = document.getElementById('uso-select-clear');
-  const usoSelectDropdown = document.getElementById('uso-select-dropdown');
-  const usoSearchInput = document.getElementById('uso-search-input');
-  const usoSearchClear = document.getElementById('uso-search-clear');
-  const chipUsoAll = document.getElementById('chip-uso-all');
-  const chipUsoGastos = document.getElementById('chip-uso-gastos');
-  const chipUsoInversiones = document.getElementById('chip-uso-inversiones');
-  const chipUsoDeducciones = document.getElementById('chip-uso-deducciones');
-  const usoOptionsList = document.getElementById('uso-options-list');
-  const usoEmptyState = document.getElementById('uso-empty-state');
+  const customUsoContainer = document.getElementById("custom-uso-container");
+  const usoSelectTrigger = document.getElementById("uso-select-trigger");
+  const usoSelectPlaceholder = document.getElementById(
+    "uso-select-placeholder",
+  );
+  const usoSelectedValue = document.getElementById("uso-selected-value");
+  const usoSelectedCode = document.getElementById("uso-selected-code");
+  const usoSelectedDesc = document.getElementById("uso-selected-desc");
+  const usoSelectClear = document.getElementById("uso-select-clear");
+  const usoSelectDropdown = document.getElementById("uso-select-dropdown");
+  const usoSearchInput = document.getElementById("uso-search-input");
+  const usoSearchClear = document.getElementById("uso-search-clear");
+  const chipUsoAll = document.getElementById("chip-uso-all");
+  const chipUsoGastos = document.getElementById("chip-uso-gastos");
+  const chipUsoInversiones = document.getElementById("chip-uso-inversiones");
+  const chipUsoDeducciones = document.getElementById("chip-uso-deducciones");
+  const usoOptionsList = document.getElementById("uso-options-list");
+  const usoEmptyState = document.getElementById("uso-empty-state");
 
   // Workbench
-  const dropzone = document.getElementById('dropzone');
-  const fileInput = document.getElementById('file-input');
-  const dropzonePrompt = document.getElementById('dropzone-prompt');
-  const dropzoneScanning = document.getElementById('dropzone-scanning');
-  const btnLoadDemoReceipt = document.getElementById('btn-load-demo-receipt');
-  const uploadCard = document.getElementById('upload-card');
-  const reviewSection = document.getElementById('review-section');
-  const tabBtnData = document.getElementById('tab-btn-data');
-  const tabBtnImage = document.getElementById('tab-btn-image');
-  const paneData = document.getElementById('pane-data');
-  const paneImage = document.getElementById('pane-image');
-  const btnLoadAnotherReceipt = document.getElementById('btn-load-another-receipt');
-  const btnScannedClear = document.getElementById('btn-scanned-clear');
-  const btnScannedUploadAnother = document.getElementById('btn-scanned-upload-another');
-  const fullwidthScannedImg = document.getElementById('fullwidth-scanned-img');
-  const receiptsList = document.getElementById('receipts-list');
-  const btnAddManualReceipt = document.getElementById('btn-add-manual-receipt');
-  const btnClearReceipts = document.getElementById('btn-clear-receipts');
-  const totalTicketsCount = document.getElementById('total-tickets-count');
-  const totalAmountSum = document.getElementById('total-amount-sum');
-  const btnEnqueueInvoices = document.getElementById('btn-enqueue-invoices');
-  const btnCancelReview = document.getElementById('btn-cancel-review');
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("file-input");
+  const dropzonePrompt = document.getElementById("dropzone-prompt");
+  const dropzoneScanning = document.getElementById("dropzone-scanning");
+  const btnLoadDemoReceipt = document.getElementById("btn-load-demo-receipt");
+  const uploadCard = document.getElementById("upload-card");
+  const reviewSection = document.getElementById("review-section");
+  const tabBtnData = document.getElementById("tab-btn-data");
+  const tabBtnImage = document.getElementById("tab-btn-image");
+  const paneData = document.getElementById("pane-data");
+  const paneImage = document.getElementById("pane-image");
+  const btnLoadAnotherReceipt = document.getElementById(
+    "btn-load-another-receipt",
+  );
+  const btnScannedClear = document.getElementById("btn-scanned-clear");
+  const btnScannedUploadAnother = document.getElementById(
+    "btn-scanned-upload-another",
+  );
+  const fullwidthScannedImg = document.getElementById("fullwidth-scanned-img");
+  const receiptsList = document.getElementById("receipts-list");
+  const btnAddManualReceipt = document.getElementById("btn-add-manual-receipt");
+  const btnClearReceipts = document.getElementById("btn-clear-receipts");
+  const totalTicketsCount = document.getElementById("total-tickets-count");
+  const totalAmountSum = document.getElementById("total-amount-sum");
+  const btnEnqueueInvoices = document.getElementById("btn-enqueue-invoices");
+  const btnCancelReview = document.getElementById("btn-cancel-review");
 
   // Scanner Overlay
-  const scannerOverlay = document.getElementById('scanner-overlay');
-  const scannerReceiptImg = document.getElementById('scanner-receipt-img');
-  const scannerStatusText = document.getElementById('scanner-status-text');
+  const scannerOverlay = document.getElementById("scanner-overlay");
+  const scannerReceiptImg = document.getElementById("scanner-receipt-img");
+  const scannerStatusText = document.getElementById("scanner-status-text");
 
   // History & Active Jobs Screen
-  const activeJobsSection = document.getElementById('active-jobs-section');
-  const activeJobsCount = document.getElementById('active-jobs-count');
-  const queueJobsContainer = document.getElementById('queue-jobs-container');
-  const historySubtitle = document.getElementById('history-subtitle');
-  const historyContent = document.getElementById('history-content');
-  const btnRefreshHistory = document.getElementById('btn-refresh-history');
-  const btnNewFromHistory = document.getElementById('btn-new-from-history');
-  const mobileHistoryBar = document.getElementById('mobile-history-bar');
-  const btnMobileNewReceipt = document.getElementById('btn-mobile-new-receipt');
-  const btnBackToHistory = document.getElementById('btn-back-to-history');
+  const activeJobsSection = document.getElementById("active-jobs-section");
+  const activeJobsCount = document.getElementById("active-jobs-count");
+  const queueJobsContainer = document.getElementById("queue-jobs-container");
+  const historySubtitle = document.getElementById("history-subtitle");
+  const historyContent = document.getElementById("history-content");
+  const btnRefreshHistory = document.getElementById("btn-refresh-history");
+  const btnNewFromHistory = document.getElementById("btn-new-from-history");
+  const mobileHistoryBar = document.getElementById("mobile-history-bar");
+  const btnMobileNewReceipt = document.getElementById("btn-mobile-new-receipt");
+  const btnBackToHistory = document.getElementById("btn-back-to-history");
+
+  // History Tabs & Pagination Elements
+  const tabBtnReceipts = document.getElementById("tab-btn-receipts");
+  const tabBtnTrends = document.getElementById("tab-btn-trends");
+  const paneReceipts = document.getElementById("pane-receipts");
+  const paneTrends = document.getElementById("pane-trends");
+  const receiptsCountBadge = document.getElementById("receipts-count-badge");
+  const historyPagination = document.getElementById("history-pagination");
+  const paginationInfo = document.getElementById("pagination-info");
+  const btnPagePrev = document.getElementById("btn-page-prev");
+  const btnPageNext = document.getElementById("btn-page-next");
+  const paginationPages = document.getElementById("pagination-pages");
+
+  // Trends & Analytics Elements
+  const trendsRangePills = document.getElementById("trends-range-pills");
+  const pillCustomRange = document.getElementById("pill-custom-range");
+  const trendsActiveCustomRange = document.getElementById("trends-active-custom-range");
+  const activeRangeText = document.getElementById("active-range-text");
+  const btnClearRangeFilter = document.getElementById("btn-clear-range-filter");
+
+  // Custom Range Modal Elements
+  const customRangeModal = document.getElementById("custom-range-modal");
+  const btnCloseCustomRangeModal = document.getElementById("btn-close-custom-range-modal");
+  const btnCancelCustomRangeModal = document.getElementById("btn-cancel-custom-range-modal");
+  const btnApplyModalCustomRange = document.getElementById("btn-apply-modal-custom-range");
+  const modalTrendDateFrom = document.getElementById("modal-trend-date-from");
+  const modalTrendDateTo = document.getElementById("modal-trend-date-to");
+
+  const trendsLoading = document.getElementById("trends-loading");
+  const trendsEmpty = document.getElementById("trends-empty");
+  const trendsDataGrid = document.getElementById("trends-data-grid");
+
+  const kpiTotalAmount = document.getElementById("kpi-total-amount");
+  const kpiTotalLiters = document.getElementById("kpi-total-liters");
+  const kpiAverageTicket = document.getElementById("kpi-average-ticket");
+  const kpiTotalCount = document.getElementById("kpi-total-count");
+  const kpiPeriodLabel = document.getElementById("kpi-period-label");
+
+  const timelineChartContainer = document.getElementById("timeline-chart-container");
+  const stationsChartContainer = document.getElementById("stations-chart-container");
+  const paymentsChartContainer = document.getElementById("payments-chart-container");
+
+  let historyCurrentPage = 1;
+  const historyPageSize = 50;
+  let activeHistorySubTab = "receipts"; // "receipts" | "trends"
+  let trendsSelectedDays = 15;
+  let trendsCustomFrom = "";
+  let trendsCustomTo = "";
+  let trendsDataCache = null;
 
   // Modal
-  const mediaModal = document.getElementById('media-modal');
-  const modalTitle = document.getElementById('modal-title');
-  const modalBody = document.getElementById('modal-body');
-  const btnCloseModal = document.getElementById('btn-close-modal');
+  const mediaModal = document.getElementById("media-modal");
+  const modalTitle = document.getElementById("modal-title");
+  const modalBody = document.getElementById("modal-body");
+  const btnCloseModal = document.getElementById("btn-close-modal");
 
   // Legal Modal Elements
-  const legalModal = document.getElementById('legal-modal');
-  const legalModalTitle = document.getElementById('legal-modal-title');
-  const btnCloseLegalModal = document.getElementById('btn-close-legal-modal');
-  const btnAcceptLegalModal = document.getElementById('btn-accept-legal-modal');
-  const btnLegalTerms = document.getElementById('btn-legal-terms');
-  const btnLegalPrivacy = document.getElementById('btn-legal-privacy');
-  const btnLegalDisclaimer = document.getElementById('btn-legal-disclaimer');
+  const legalModal = document.getElementById("legal-modal");
+  const legalModalTitle = document.getElementById("legal-modal-title");
+  const btnCloseLegalModal = document.getElementById("btn-close-legal-modal");
+  const btnAcceptLegalModal = document.getElementById("btn-accept-legal-modal");
+  const btnLegalTerms = document.getElementById("btn-legal-terms");
+  const btnLegalPrivacy = document.getElementById("btn-legal-privacy");
+  const btnLegalDisclaimer = document.getElementById("btn-legal-disclaimer");
 
   // Fullscreen Receipt Viewer
-  const receiptViewerOverlay = document.getElementById('receipt-viewer-overlay');
-  const receiptViewerTitle = document.getElementById('receipt-viewer-title');
-  const receiptViewerSubtitle = document.getElementById('receipt-viewer-subtitle');
-  const receiptViewerCanvas = document.getElementById('receipt-viewer-canvas');
-  const receiptViewerStage = document.getElementById('receipt-viewer-stage');
-  const receiptViewerImg = document.getElementById('receipt-viewer-img');
-  const viewerZoomLevel = document.getElementById('viewer-zoom-level');
-  const btnViewerZoomIn = document.getElementById('viewer-zoom-in');
-  const btnViewerZoomOut = document.getElementById('viewer-zoom-out');
-  const btnViewerRotate = document.getElementById('viewer-rotate');
-  const btnViewerReset = document.getElementById('viewer-reset');
-  const btnViewerClose = document.getElementById('viewer-close');
+  const receiptViewerOverlay = document.getElementById(
+    "receipt-viewer-overlay",
+  );
+  const receiptViewerTitle = document.getElementById("receipt-viewer-title");
+  const receiptViewerSubtitle = document.getElementById(
+    "receipt-viewer-subtitle",
+  );
+  const receiptViewerCanvas = document.getElementById("receipt-viewer-canvas");
+  const receiptViewerStage = document.getElementById("receipt-viewer-stage");
+  const receiptViewerImg = document.getElementById("receipt-viewer-img");
+  const viewerZoomLevel = document.getElementById("viewer-zoom-level");
+  const btnViewerZoomIn = document.getElementById("viewer-zoom-in");
+  const btnViewerZoomOut = document.getElementById("viewer-zoom-out");
+  const btnViewerRotate = document.getElementById("viewer-rotate");
+  const btnViewerReset = document.getElementById("viewer-reset");
+  const btnViewerClose = document.getElementById("viewer-close");
 
   let viewerScale = 1.0;
   let viewerRotation = 0;
@@ -251,12 +481,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadServerConfig() {
     try {
-      const res = await fetch('/api/config');
+      const res = await fetch("/api/config");
       if (res.ok) {
         serverConfig = await res.json();
       }
     } catch (err) {
-      console.warn('Could not load server config:', err);
+      console.warn("Could not load server config:", err);
     }
   }
 
@@ -269,7 +499,9 @@ document.addEventListener('DOMContentLoaded', () => {
     checkExistingProfile();
 
     // 3. Clear legacy local active jobs cache if present
-    try { localStorage.removeItem('facturagas_active_jobs'); } catch {}
+    try {
+      localStorage.removeItem("facturagas_active_jobs");
+    } catch { }
 
     setupEventListeners();
     checkDevEnvironment();
@@ -277,7 +509,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Load server config and refresh history if active
     loadServerConfig().then(() => {
       const profile = getProfile();
-      if (profile && profile.rfc && (currentScreen === 'history' || screenHistory?.classList.contains('active'))) {
+      if (
+        profile &&
+        profile.rfc &&
+        (currentScreen === "history" ||
+          screenHistory?.classList.contains("active"))
+      ) {
         loadHistory();
       }
     });
@@ -290,27 +527,31 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- PROFILE MANAGEMENT ---
   function getProfile() {
     try {
-      const raw = localStorage.getItem('combusticket_profile') || localStorage.getItem('facturagas_profile');
+      const raw =
+        localStorage.getItem("combusticket_profile") ||
+        localStorage.getItem("facturagas_profile");
       if (raw) return JSON.parse(raw);
-    } catch {}
+    } catch { }
 
     // Cookie fallback
     try {
-      const match = document.cookie.match(/(?:combusticket_profile|facturagas_profile)=([^;]+)/);
+      const match = document.cookie.match(
+        /(?:combusticket_profile|facturagas_profile)=([^;]+)/,
+      );
       if (match) return JSON.parse(decodeURIComponent(match[1]));
-    } catch {}
+    } catch { }
 
     return null;
   }
 
   function saveProfile(profile) {
     try {
-      localStorage.setItem('combusticket_profile', JSON.stringify(profile));
-      localStorage.setItem('facturagas_profile', JSON.stringify(profile));
-    } catch {}
+      localStorage.setItem("combusticket_profile", JSON.stringify(profile));
+      localStorage.setItem("facturagas_profile", JSON.stringify(profile));
+    } catch { }
     try {
       document.cookie = `combusticket_profile=${encodeURIComponent(JSON.stringify(profile))};path=/;max-age=31536000;SameSite=Lax`;
-    } catch {}
+    } catch { }
     updateProfileUI();
   }
 
@@ -318,27 +559,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const profile = getProfile();
 
     if (profile && profile.rfc) {
-      document.documentElement.classList.add('has-profile');
-      document.documentElement.classList.remove('no-profile');
+      document.documentElement.classList.add("has-profile");
+      document.documentElement.classList.remove("no-profile");
       updateProfileUI();
       switchScreen(screenHistory);
       loadHistory();
     } else {
-      document.documentElement.classList.remove('has-profile');
-      document.documentElement.classList.add('no-profile');
-      profilePill?.classList.add('hidden');
-      btnHeaderOnboard?.classList.add('hidden');
+      document.documentElement.classList.remove("has-profile");
+      document.documentElement.classList.add("no-profile");
+      profilePill?.classList.add("hidden");
+      btnHeaderOnboard?.classList.add("hidden");
       switchScreen(screenWelcome);
 
       // Background pre-fill from server default if available
-      fetch('/api/profile')
-        .then(res => res.json())
-        .then(data => {
+      fetch("/api/profile")
+        .then((res) => res.json())
+        .then((data) => {
           if (data?.success && data?.profile && data?.profile.rfc) {
-            profRfc.value = data.profile.rfc || '';
-            profRazon.value = data.profile.razonSocial || '';
-            profEmail.value = data.profile.email || '';
-            profCp.value = data.profile.codigoPostal || '';
+            profRfc.value = data.profile.rfc || "";
+            profRazon.value = data.profile.razonSocial || "";
+            profEmail.value = data.profile.email || "";
+            profCp.value = data.profile.codigoPostal || "";
             if (data.profile.regimenFiscal) {
               profRegimen.value = data.profile.regimenFiscal;
               syncCustomRegimenFromValue(data.profile.regimenFiscal);
@@ -349,66 +590,76 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
     // Reveal header buttons once exact state is resolved
-    headerProfile?.classList.remove('is-loading');
-    document.documentElement.classList.add('app-initialized');
+    headerProfile?.classList.remove("is-loading");
+    document.documentElement.classList.add("app-initialized");
   }
 
   function getInitials(name, rfc) {
-    const raw = (name || '').trim();
+    const raw = (name || "").trim();
     if (raw) {
-      const cleaned = raw.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, ' ')
+      const cleaned = raw
+        .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, " ")
         .split(/\s+/)
-        .filter(w => w.length > 0 && !['SA', 'DE', 'CV', 'SAPI', 'SRL', 'SC', 'LLC'].includes(w.toUpperCase()));
-      
+        .filter(
+          (w) =>
+            w.length > 0 &&
+            !["SA", "DE", "CV", "SAPI", "SRL", "SC", "LLC"].includes(
+              w.toUpperCase(),
+            ),
+        );
+
       if (cleaned.length >= 2) {
         return (cleaned[0][0] + cleaned[1][0]).toUpperCase();
       } else if (cleaned.length === 1) {
         return cleaned[0].substring(0, 2).toUpperCase();
       }
     }
-    const cleanRfc = (rfc || '').trim().replace(/[^a-zA-Z0-9]/g, '');
+    const cleanRfc = (rfc || "").trim().replace(/[^a-zA-Z0-9]/g, "");
     if (cleanRfc.length >= 2) {
       return cleanRfc.substring(0, 2).toUpperCase();
     }
-    return '--';
+    return "--";
   }
 
   function updateProfileUI() {
     const profile = getProfile();
     if (profile && profile.rfc) {
-      const name = profile.razonSocial || profile.legalName || 'Mi Perfil';
+      const name = profile.razonSocial || profile.legalName || "Mi Perfil";
       pillRazonSocial.textContent = name;
       pillRfc.textContent = `RFC: ${profile.rfc}`;
       if (avatarInitials) {
         avatarInitials.textContent = getInitials(name, profile.rfc);
       }
-      profilePill?.classList.remove('hidden');
-      btnHeaderOnboard?.classList.add('hidden');
+      profilePill?.classList.remove("hidden");
+      btnHeaderOnboard?.classList.add("hidden");
     } else {
-      profilePill?.classList.add('hidden');
-      btnHeaderOnboard?.classList.add('hidden');
+      profilePill?.classList.add("hidden");
+      btnHeaderOnboard?.classList.add("hidden");
     }
-    headerProfile?.classList.remove('is-loading');
+    headerProfile?.classList.remove("is-loading");
   }
 
   // --- CATALOG & STATIONS LOADING ---
   async function loadCatalogs(retryCount = 0) {
     try {
-      const res = await fetch('/api/catalogs');
+      const res = await fetch("/api/catalogs");
       const data = await res.json();
       if (data && data.success && data.regimenes) {
         catalogs = data;
         try {
-          localStorage.setItem('combusticket_catalogs', JSON.stringify(data));
-        } catch {}
+          localStorage.setItem("combusticket_catalogs", JSON.stringify(data));
+        } catch { }
         populateSelectOptions();
       }
     } catch (err) {
-      console.warn('Error loading /api/catalogs (using embedded fallback):', err);
+      console.warn(
+        "Error loading /api/catalogs (using embedded fallback):",
+        err,
+      );
       if (retryCount < 2) {
         setTimeout(() => loadCatalogs(retryCount + 1), 2000);
       }
@@ -416,16 +667,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function populateSelectOptions() {
-    const savedRegimenVal = profRegimen ? profRegimen.value : '';
-    const savedUsoVal = profUso ? profUso.value : '';
+    const savedRegimenVal = profRegimen ? profRegimen.value : "";
+    const savedUsoVal = profUso ? profUso.value : "";
 
     // 1. Régimen Fiscal (Native select options)
     if (catalogs.regimenes?.regimenes && profRegimen) {
-      profRegimen.innerHTML = '<option value="">-- Selecciona tu Régimen Fiscal --</option>';
+      profRegimen.innerHTML =
+        '<option value="">-- Selecciona tu Régimen Fiscal --</option>';
       for (const item of catalogs.regimenes.regimenes) {
         const code = item.code || item.codigo;
         const desc = item.description || item.descripcion;
-        const opt = document.createElement('option');
+        const opt = document.createElement("option");
         opt.value = code;
         opt.textContent = `${code} - ${desc}`;
         profRegimen.appendChild(opt);
@@ -439,11 +691,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Uso de CFDI
     if (catalogs.usosCfdi?.usos && profUso) {
-      profUso.innerHTML = '<option value="">-- Selecciona el Uso de CFDI --</option>';
+      profUso.innerHTML =
+        '<option value="">-- Selecciona el Uso de CFDI --</option>';
       for (const item of catalogs.usosCfdi.usos) {
         const code = item.code || item.codigo;
         const desc = item.description || item.descripcion;
-        const opt = document.createElement('option');
+        const opt = document.createElement("option");
         opt.value = code;
         opt.textContent = `${code} - ${desc}`;
         profUso.appendChild(opt);
@@ -451,7 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (savedUsoVal) {
         profUso.value = savedUsoVal;
       } else if (profUso.querySelector('option[value="G03"]')) {
-        profUso.value = 'G03';
+        profUso.value = "G03";
       }
       syncCustomUsoFromValue(profUso.value);
       renderUsoOptions();
@@ -459,135 +712,141 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- CUSTOM ACCESSIBLE SEARCHABLE SELECT (COMBOBOX) FOR RÉGIMEN FISCAL ---
-  let activeRegimenFilter = 'ALL'; // 'ALL' | 'FISICA' | 'MORAL'
-  let activeRegimenSearch = '';
+  let activeRegimenFilter = "ALL"; // 'ALL' | 'FISICA' | 'MORAL'
+  let activeRegimenSearch = "";
   let activeHighlightedIndex = -1;
 
   function initCustomRegimenSelect() {
     if (!customRegimenContainer || !regimenSelectTrigger) return;
 
     // Trigger open/close
-    regimenSelectTrigger.addEventListener('click', (e) => {
+    regimenSelectTrigger.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleRegimenDropdown();
     });
 
     // Clear selection button
-    regimenSelectClear?.addEventListener('click', (e) => {
+    regimenSelectClear?.addEventListener("click", (e) => {
       e.stopPropagation();
       clearRegimenSelection();
     });
 
     // Live search input
-    regimenSearchInput?.addEventListener('input', (e) => {
+    regimenSearchInput?.addEventListener("input", (e) => {
       activeRegimenSearch = e.target.value;
       if (regimenSearchClear) {
-        regimenSearchClear.classList.toggle('hidden', !activeRegimenSearch);
+        regimenSearchClear.classList.toggle("hidden", !activeRegimenSearch);
       }
       renderRegimenOptions();
     });
 
     // Clear search query button
-    regimenSearchClear?.addEventListener('click', (e) => {
+    regimenSearchClear?.addEventListener("click", (e) => {
       e.stopPropagation();
-      regimenSearchInput.value = '';
-      activeRegimenSearch = '';
-      regimenSearchClear.classList.add('hidden');
+      regimenSearchInput.value = "";
+      activeRegimenSearch = "";
+      regimenSearchClear.classList.add("hidden");
       regimenSearchInput.focus();
       renderRegimenOptions();
     });
 
     // Persona filter chips (Todos / Físicas / Morales)
     const chips = [
-      { el: chipFilterAll, filter: 'ALL' },
-      { el: chipFilterFisica, filter: 'FISICA' },
-      { el: chipFilterMoral, filter: 'MORAL' },
+      { el: chipFilterAll, filter: "ALL" },
+      { el: chipFilterFisica, filter: "FISICA" },
+      { el: chipFilterMoral, filter: "MORAL" },
     ];
 
     chips.forEach(({ el, filter }) => {
       if (!el) return;
-      el.addEventListener('click', (e) => {
+      el.addEventListener("click", (e) => {
         e.stopPropagation();
-        chips.forEach(c => c.el?.classList.remove('active'));
-        el.classList.add('active');
+        chips.forEach((c) => c.el?.classList.remove("active"));
+        el.classList.add("active");
         activeRegimenFilter = filter;
         renderRegimenOptions();
       });
     });
 
     // Keyboard navigation
-    customRegimenContainer.addEventListener('keydown', handleRegimenKeydown);
+    customRegimenContainer.addEventListener("keydown", handleRegimenKeydown);
 
     // Close on click outside
-    document.addEventListener('click', (e) => {
+    document.addEventListener("click", (e) => {
       if (!customRegimenContainer.contains(e.target)) {
         closeRegimenDropdown();
       }
     });
 
     // Listen to changes on native select
-    profRegimen?.addEventListener('change', () => {
+    profRegimen?.addEventListener("change", () => {
       syncCustomRegimenFromValue(profRegimen.value);
       validateRegimenField(false);
     });
 
     // Initial setup
     renderRegimenOptions();
-    syncCustomRegimenFromValue(profRegimen ? profRegimen.value : '');
+    syncCustomRegimenFromValue(profRegimen ? profRegimen.value : "");
   }
 
   function renderRegimenOptions() {
     if (!regimenOptionsList) return;
     const items = catalogs.regimenes?.regimenes || DEFAULT_SAT_REGIMENES;
-    const query = (activeRegimenSearch || '').trim().toLowerCase();
+    const query = (activeRegimenSearch || "").trim().toLowerCase();
 
     // 1. Filter by Persona type
-    let filtered = items.filter(item => {
-      if (activeRegimenFilter === 'FISICA') {
-        return item.tipoPersona === 'FISICA' || item.tipoPersona === 'AMBAS';
+    let filtered = items.filter((item) => {
+      if (activeRegimenFilter === "FISICA") {
+        return item.tipoPersona === "FISICA" || item.tipoPersona === "AMBAS";
       }
-      if (activeRegimenFilter === 'MORAL') {
-        return item.tipoPersona === 'MORAL' || item.tipoPersona === 'AMBAS';
+      if (activeRegimenFilter === "MORAL") {
+        return item.tipoPersona === "MORAL" || item.tipoPersona === "AMBAS";
       }
       return true;
     });
 
     // 2. Filter by search query
     if (query) {
-      filtered = filtered.filter(item => {
-        const code = (item.code || item.codigo || '').toLowerCase();
-        const desc = (item.description || item.descripcion || '').toLowerCase();
+      filtered = filtered.filter((item) => {
+        const code = (item.code || item.codigo || "").toLowerCase();
+        const desc = (item.description || item.descripcion || "").toLowerCase();
         return code.includes(query) || desc.includes(query);
       });
     }
 
-    regimenOptionsList.innerHTML = '';
+    regimenOptionsList.innerHTML = "";
     activeHighlightedIndex = -1;
 
     if (filtered.length === 0) {
-      regimenEmptyState?.classList.remove('hidden');
+      regimenEmptyState?.classList.remove("hidden");
       return;
     }
 
-    regimenEmptyState?.classList.add('hidden');
+    regimenEmptyState?.classList.add("hidden");
 
     filtered.forEach((item, index) => {
       const code = item.code || item.codigo;
       const desc = item.description || item.descripcion;
-      const tipo = item.tipoPersona || 'AMBAS';
+      const tipo = item.tipoPersona || "AMBAS";
       const isSelected = profRegimen && profRegimen.value === code;
 
-      const li = document.createElement('li');
-      li.className = `custom-select-option ${isSelected ? 'is-selected' : ''}`;
-      li.setAttribute('role', 'option');
-      li.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      const li = document.createElement("li");
+      li.className = `custom-select-option ${isSelected ? "is-selected" : ""}`;
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", isSelected ? "true" : "false");
       li.dataset.code = code;
       li.dataset.index = index;
 
       const highlightedDesc = highlightText(desc, query);
       const highlightedCode = highlightText(code, query);
-      const personaLabel = tipo === 'FISICA' ? 'Física' : (tipo === 'MORAL' ? 'Moral' : 'Física / Moral');
-      const personaClass = tipo === 'FISICA' ? 'fisica' : (tipo === 'MORAL' ? 'moral' : 'ambas');
+      const personaLabel =
+        tipo === "FISICA"
+          ? "Física"
+          : tipo === "MORAL"
+            ? "Moral"
+            : "Física / Moral";
+      const personaClass =
+        tipo === "FISICA" ? "fisica" : tipo === "MORAL" ? "moral" : "ambas";
 
       li.innerHTML = `
         <div class="option-main">
@@ -596,11 +855,11 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="option-meta">
           <span class="persona-tag ${personaClass}">${personaLabel}</span>
-          ${isSelected ? '<span class="option-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>' : ''}
+          ${isSelected ? '<span class="option-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>' : ""}
         </div>
       `;
 
-      li.addEventListener('click', (e) => {
+      li.addEventListener("click", (e) => {
         e.stopPropagation();
         selectRegimen(code, desc);
         closeRegimenDropdown();
@@ -612,63 +871,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function highlightText(text, query) {
     if (!query) return escapeHtml(text);
-    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escapedQuery})`, 'gi');
-    return escapeHtml(text).replace(regex, '<mark>$1</mark>');
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escapedQuery})`, "gi");
+    return escapeHtml(text).replace(regex, "<mark>$1</mark>");
   }
 
   function selectRegimen(code, desc) {
     if (profRegimen) {
       profRegimen.value = code;
-      profRegimen.dispatchEvent(new Event('change'));
+      profRegimen.dispatchEvent(new Event("change"));
     }
     syncCustomRegimenFromValue(code, desc);
-    customRegimenContainer?.classList.remove('is-invalid');
+    customRegimenContainer?.classList.remove("is-invalid");
     validateRegimenField(true);
   }
 
   function clearRegimenSelection() {
     if (profRegimen) {
-      profRegimen.value = '';
-      profRegimen.dispatchEvent(new Event('change'));
+      profRegimen.value = "";
+      profRegimen.dispatchEvent(new Event("change"));
     }
-    document.getElementById('regimen-select-check')?.classList.add('hidden');
-    syncCustomRegimenFromValue('');
+    document.getElementById("regimen-select-check")?.classList.add("hidden");
+    syncCustomRegimenFromValue("");
   }
 
   function syncCustomRegimenFromValue(code, knownDesc) {
-    const checkEl = document.getElementById('regimen-select-check');
+    const checkEl = document.getElementById("regimen-select-check");
     if (!regimenSelectPlaceholder || !regimenSelectedValue) return;
 
     if (!code) {
-      regimenSelectPlaceholder.classList.remove('hidden');
-      regimenSelectedValue.classList.add('hidden');
-      regimenSelectClear?.classList.add('hidden');
-      if (checkEl) checkEl.classList.add('hidden');
+      regimenSelectPlaceholder.classList.remove("hidden");
+      regimenSelectedValue.classList.add("hidden");
+      regimenSelectClear?.classList.add("hidden");
+      if (checkEl) checkEl.classList.add("hidden");
       return;
     }
 
     let desc = knownDesc;
     if (!desc) {
       const items = catalogs.regimenes?.regimenes || DEFAULT_SAT_REGIMENES;
-      const found = items.find(i => (i.code || i.codigo) === code);
-      desc = found ? (found.description || found.descripcion) : `Régimen ${code}`;
+      const found = items.find((i) => (i.code || i.codigo) === code);
+      desc = found ? found.description || found.descripcion : `Régimen ${code}`;
     }
 
-    regimenSelectPlaceholder.classList.add('hidden');
-    regimenSelectedValue.classList.remove('hidden');
+    regimenSelectPlaceholder.classList.add("hidden");
+    regimenSelectedValue.classList.remove("hidden");
     if (regimenSelectedCode) regimenSelectedCode.textContent = code;
     if (regimenSelectedDesc) regimenSelectedDesc.textContent = desc;
-    regimenSelectClear?.classList.remove('hidden');
-    if (checkEl) checkEl.classList.remove('hidden');
+    regimenSelectClear?.classList.remove("hidden");
+    if (checkEl) checkEl.classList.remove("hidden");
   }
 
   function openRegimenDropdown() {
     if (!regimenSelectDropdown) return;
     closeUsoDropdown();
-    customRegimenContainer?.classList.add('open');
-    regimenSelectDropdown.classList.remove('hidden');
-    regimenSelectTrigger?.setAttribute('aria-expanded', 'true');
+    customRegimenContainer?.classList.add("open");
+    regimenSelectDropdown.classList.remove("hidden");
+    regimenSelectTrigger?.setAttribute("aria-expanded", "true");
     renderRegimenOptions();
     setTimeout(() => {
       regimenSearchInput?.focus();
@@ -677,14 +936,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function closeRegimenDropdown() {
     if (!regimenSelectDropdown) return;
-    customRegimenContainer?.classList.remove('open');
-    regimenSelectDropdown.classList.add('hidden');
-    regimenSelectTrigger?.setAttribute('aria-expanded', 'false');
+    customRegimenContainer?.classList.remove("open");
+    regimenSelectDropdown.classList.add("hidden");
+    regimenSelectTrigger?.setAttribute("aria-expanded", "false");
     activeHighlightedIndex = -1;
   }
 
   function toggleRegimenDropdown() {
-    if (regimenSelectDropdown?.classList.contains('hidden')) {
+    if (regimenSelectDropdown?.classList.contains("hidden")) {
       openRegimenDropdown();
     } else {
       closeRegimenDropdown();
@@ -692,9 +951,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleRegimenKeydown(e) {
-    const isDropdownOpen = !regimenSelectDropdown?.classList.contains('hidden');
+    const isDropdownOpen = !regimenSelectDropdown?.classList.contains("hidden");
 
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       if (isDropdownOpen) {
         e.preventDefault();
         closeRegimenDropdown();
@@ -704,27 +963,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!isDropdownOpen) {
-      if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(e.key)) {
         e.preventDefault();
         openRegimenDropdown();
       }
       return;
     }
 
-    const options = regimenOptionsList?.querySelectorAll('.custom-select-option') || [];
+    const options =
+      regimenOptionsList?.querySelectorAll(".custom-select-option") || [];
     if (options.length === 0) return;
 
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
       activeHighlightedIndex = (activeHighlightedIndex + 1) % options.length;
       updateHighlightedOption(options);
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      activeHighlightedIndex = (activeHighlightedIndex - 1 + options.length) % options.length;
+      activeHighlightedIndex =
+        (activeHighlightedIndex - 1 + options.length) % options.length;
       updateHighlightedOption(options);
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
-      if (activeHighlightedIndex >= 0 && activeHighlightedIndex < options.length) {
+      if (
+        activeHighlightedIndex >= 0 &&
+        activeHighlightedIndex < options.length
+      ) {
         options[activeHighlightedIndex].click();
       }
     }
@@ -733,98 +997,103 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateHighlightedOption(options) {
     options.forEach((opt, idx) => {
       if (idx === activeHighlightedIndex) {
-        opt.classList.add('is-focused');
-        opt.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        opt.classList.add("is-focused");
+        opt.scrollIntoView({ block: "nearest", behavior: "smooth" });
       } else {
-        opt.classList.remove('is-focused');
+        opt.classList.remove("is-focused");
       }
     });
   }
 
   function validateRegimenField(isTouched = false) {
-    const val = profRegimen ? profRegimen.value : '';
-    const checkEl = document.getElementById('regimen-select-check');
+    const val = profRegimen ? profRegimen.value : "";
+    const checkEl = document.getElementById("regimen-select-check");
     if (!val) {
-      if (checkEl) checkEl.classList.add('hidden');
+      if (checkEl) checkEl.classList.add("hidden");
       if (isTouched) {
-        customRegimenContainer?.classList.add('is-invalid');
-        regimenSelectTrigger?.classList.add('is-invalid');
+        customRegimenContainer?.classList.add("is-invalid");
+        regimenSelectTrigger?.classList.add("is-invalid");
         if (profRegimenFeedback) {
-          profRegimenFeedback.className = 'validation-feedback is-invalid';
+          profRegimenFeedback.className = "validation-feedback is-invalid";
           profRegimenFeedback.innerHTML = `<span>Selecciona tu Régimen Fiscal del SAT.</span>`;
         }
       }
       return false;
     }
-    customRegimenContainer?.classList.remove('is-invalid');
-    regimenSelectTrigger?.classList.remove('is-invalid');
-    if (checkEl) checkEl.classList.remove('hidden');
+    customRegimenContainer?.classList.remove("is-invalid");
+    regimenSelectTrigger?.classList.remove("is-invalid");
+    if (checkEl) checkEl.classList.remove("hidden");
     if (profRegimenFeedback) {
-      profRegimenFeedback.className = 'validation-feedback';
-      profRegimenFeedback.innerHTML = '';
+      profRegimenFeedback.className = "validation-feedback";
+      profRegimenFeedback.innerHTML = "";
     }
     return true;
   }
 
   // --- CUSTOM ACCESSIBLE SEARCHABLE SELECT (COMBOBOX) FOR USO DE CFDI ---
-  let activeUsoFilter = 'ALL'; // 'ALL' | 'GASTOS' | 'INVERSIONES' | 'DEDUCCIONES'
-  let activeUsoSearch = '';
+  let activeUsoFilter = "ALL"; // 'ALL' | 'GASTOS' | 'INVERSIONES' | 'DEDUCCIONES'
+  let activeUsoSearch = "";
   let activeUsoHighlightedIndex = -1;
 
   function initCustomUsoSelect() {
     if (!customUsoContainer || !usoSelectTrigger) return;
 
     // Trigger open/close
-    usoSelectTrigger.addEventListener('click', (e) => {
+    usoSelectTrigger.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleUsoDropdown();
     });
 
-    usoSelectTrigger.addEventListener('keydown', handleUsoKeydown);
+    usoSelectTrigger.addEventListener("keydown", handleUsoKeydown);
 
     // Search input typing
-    usoSearchInput?.addEventListener('input', (e) => {
+    usoSearchInput?.addEventListener("input", (e) => {
       activeUsoSearch = e.target.value;
       if (usoSearchClear) {
         if (activeUsoSearch.length > 0) {
-          usoSearchClear.classList.remove('hidden');
+          usoSearchClear.classList.remove("hidden");
         } else {
-          usoSearchClear.classList.add('hidden');
+          usoSearchClear.classList.add("hidden");
         }
       }
       renderUsoOptions();
     });
 
-    usoSearchClear?.addEventListener('click', (e) => {
+    usoSearchClear?.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (usoSearchInput) usoSearchInput.value = '';
-      activeUsoSearch = '';
-      usoSearchClear.classList.add('hidden');
+      if (usoSearchInput) usoSearchInput.value = "";
+      activeUsoSearch = "";
+      usoSearchClear.classList.add("hidden");
       renderUsoOptions();
       usoSearchInput?.focus();
     });
 
     // Filter chips
-    const usoFilterChips = [chipUsoAll, chipUsoGastos, chipUsoInversiones, chipUsoDeducciones];
+    const usoFilterChips = [
+      chipUsoAll,
+      chipUsoGastos,
+      chipUsoInversiones,
+      chipUsoDeducciones,
+    ];
     usoFilterChips.forEach((chip) => {
-      chip?.addEventListener('click', (e) => {
+      chip?.addEventListener("click", (e) => {
         e.stopPropagation();
-        usoFilterChips.forEach((c) => c?.classList.remove('active'));
-        chip.classList.add('active');
-        activeUsoFilter = chip.dataset.filter || 'ALL';
+        usoFilterChips.forEach((c) => c?.classList.remove("active"));
+        chip.classList.add("active");
+        activeUsoFilter = chip.dataset.filter || "ALL";
         renderUsoOptions();
       });
     });
 
     // Clear selection
-    usoSelectClear?.addEventListener('click', (e) => {
+    usoSelectClear?.addEventListener("click", (e) => {
       e.stopPropagation();
       clearUsoSelection();
       validateUsoField(true);
     });
 
     // Close on click outside
-    document.addEventListener('click', (e) => {
+    document.addEventListener("click", (e) => {
       if (!customUsoContainer.contains(e.target)) {
         closeUsoDropdown();
       }
@@ -840,19 +1109,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!usoOptionsList) return;
 
     const items = catalogs.usosCfdi?.usos || DEFAULT_SAT_USOS;
-    const query = (activeUsoSearch || '').trim().toLowerCase();
+    const query = (activeUsoSearch || "").trim().toLowerCase();
 
     // 1. Filter by category
     let filtered = items.filter((item) => {
-      const code = (item.code || item.codigo || '').toUpperCase();
-      if (activeUsoFilter === 'GASTOS') {
-        return code.startsWith('G');
+      const code = (item.code || item.codigo || "").toUpperCase();
+      if (activeUsoFilter === "GASTOS") {
+        return code.startsWith("G");
       }
-      if (activeUsoFilter === 'INVERSIONES') {
-        return code.startsWith('I');
+      if (activeUsoFilter === "INVERSIONES") {
+        return code.startsWith("I");
       }
-      if (activeUsoFilter === 'DEDUCCIONES') {
-        return code.startsWith('D');
+      if (activeUsoFilter === "DEDUCCIONES") {
+        return code.startsWith("D");
       }
       return true;
     });
@@ -860,32 +1129,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Filter by search query
     if (query) {
       filtered = filtered.filter((item) => {
-        const code = (item.code || item.codigo || '').toLowerCase();
-        const desc = (item.description || item.descripcion || '').toLowerCase();
+        const code = (item.code || item.codigo || "").toLowerCase();
+        const desc = (item.description || item.descripcion || "").toLowerCase();
         return code.includes(query) || desc.includes(query);
       });
     }
 
-    usoOptionsList.innerHTML = '';
+    usoOptionsList.innerHTML = "";
     activeUsoHighlightedIndex = -1;
 
     if (filtered.length === 0) {
-      usoEmptyState?.classList.remove('hidden');
+      usoEmptyState?.classList.remove("hidden");
       return;
     }
 
-    usoEmptyState?.classList.add('hidden');
+    usoEmptyState?.classList.add("hidden");
 
     filtered.forEach((item, index) => {
       const code = item.code || item.codigo;
       const desc = item.description || item.descripcion;
       const isSelected = profUso && profUso.value === code;
-      const isGasolina = item.defaultGasolina || code === 'G03';
+      const isGasolina = item.defaultGasolina || code === "G03";
 
-      const li = document.createElement('li');
-      li.className = `custom-select-option ${isSelected ? 'is-selected' : ''}`;
-      li.setAttribute('role', 'option');
-      li.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      const li = document.createElement("li");
+      li.className = `custom-select-option ${isSelected ? "is-selected" : ""}`;
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", isSelected ? "true" : "false");
       li.dataset.code = code;
       li.dataset.index = index;
 
@@ -898,12 +1167,12 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="option-desc">${highlightedDesc}</span>
         </div>
         <div class="option-meta">
-          ${isGasolina ? '<span class="uso-recommended-badge">Recomendado Gasolina</span>' : ''}
-          ${isSelected ? '<span class="option-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>' : ''}
+          ${isGasolina ? '<span class="uso-recommended-badge">Recomendado Gasolina</span>' : ""}
+          ${isSelected ? '<span class="option-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>' : ""}
         </div>
       `;
 
-      li.addEventListener('click', (e) => {
+      li.addEventListener("click", (e) => {
         e.stopPropagation();
         selectUso(code, desc);
         closeUsoDropdown();
@@ -916,31 +1185,31 @@ document.addEventListener('DOMContentLoaded', () => {
   function selectUso(code, desc) {
     if (profUso) {
       profUso.value = code;
-      profUso.dispatchEvent(new Event('change'));
+      profUso.dispatchEvent(new Event("change"));
     }
     syncCustomUsoFromValue(code, desc);
-    customUsoContainer?.classList.remove('is-invalid');
+    customUsoContainer?.classList.remove("is-invalid");
     validateUsoField(true);
   }
 
   function clearUsoSelection() {
     if (profUso) {
-      profUso.value = '';
-      profUso.dispatchEvent(new Event('change'));
+      profUso.value = "";
+      profUso.dispatchEvent(new Event("change"));
     }
-    document.getElementById('uso-select-check')?.classList.add('hidden');
-    syncCustomUsoFromValue('');
+    document.getElementById("uso-select-check")?.classList.add("hidden");
+    syncCustomUsoFromValue("");
   }
 
   function syncCustomUsoFromValue(code, knownDesc) {
-    const checkEl = document.getElementById('uso-select-check');
+    const checkEl = document.getElementById("uso-select-check");
     if (!usoSelectPlaceholder || !usoSelectedValue) return;
 
     if (!code) {
-      usoSelectPlaceholder.classList.remove('hidden');
-      usoSelectedValue.classList.add('hidden');
-      usoSelectClear?.classList.add('hidden');
-      if (checkEl) checkEl.classList.add('hidden');
+      usoSelectPlaceholder.classList.remove("hidden");
+      usoSelectedValue.classList.add("hidden");
+      usoSelectClear?.classList.add("hidden");
+      if (checkEl) checkEl.classList.add("hidden");
       return;
     }
 
@@ -948,24 +1217,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!desc) {
       const items = catalogs.usosCfdi?.usos || DEFAULT_SAT_USOS;
       const found = items.find((i) => (i.code || i.codigo) === code);
-      desc = found ? (found.description || found.descripcion) : `Uso ${code}`;
+      desc = found ? found.description || found.descripcion : `Uso ${code}`;
     }
 
-    usoSelectPlaceholder.classList.add('hidden');
-    usoSelectedValue.classList.remove('hidden');
+    usoSelectPlaceholder.classList.add("hidden");
+    usoSelectedValue.classList.remove("hidden");
     if (usoSelectedCode) usoSelectedCode.textContent = code;
     if (usoSelectedDesc) usoSelectedDesc.textContent = desc;
-    usoSelectClear?.classList.remove('hidden');
-    if (checkEl) checkEl.classList.remove('hidden');
+    usoSelectClear?.classList.remove("hidden");
+    if (checkEl) checkEl.classList.remove("hidden");
   }
 
   function openUsoDropdown() {
     if (!usoSelectDropdown) return;
     // Close regimen dropdown if open to avoid overlap
     closeRegimenDropdown();
-    customUsoContainer?.classList.add('open');
-    usoSelectDropdown.classList.remove('hidden');
-    usoSelectTrigger?.setAttribute('aria-expanded', 'true');
+    customUsoContainer?.classList.add("open");
+    usoSelectDropdown.classList.remove("hidden");
+    usoSelectTrigger?.setAttribute("aria-expanded", "true");
     renderUsoOptions();
     setTimeout(() => {
       usoSearchInput?.focus();
@@ -974,14 +1243,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function closeUsoDropdown() {
     if (!usoSelectDropdown) return;
-    customUsoContainer?.classList.remove('open');
-    usoSelectDropdown.classList.add('hidden');
-    usoSelectTrigger?.setAttribute('aria-expanded', 'false');
+    customUsoContainer?.classList.remove("open");
+    usoSelectDropdown.classList.add("hidden");
+    usoSelectTrigger?.setAttribute("aria-expanded", "false");
     activeUsoHighlightedIndex = -1;
   }
 
   function toggleUsoDropdown() {
-    if (usoSelectDropdown?.classList.contains('hidden')) {
+    if (usoSelectDropdown?.classList.contains("hidden")) {
       openUsoDropdown();
     } else {
       closeUsoDropdown();
@@ -989,9 +1258,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleUsoKeydown(e) {
-    const isDropdownOpen = !usoSelectDropdown?.classList.contains('hidden');
+    const isDropdownOpen = !usoSelectDropdown?.classList.contains("hidden");
 
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       if (isDropdownOpen) {
         e.preventDefault();
         closeUsoDropdown();
@@ -1001,27 +1270,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!isDropdownOpen) {
-      if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(e.key)) {
         e.preventDefault();
         openUsoDropdown();
       }
       return;
     }
 
-    const options = usoOptionsList?.querySelectorAll('.custom-select-option') || [];
+    const options =
+      usoOptionsList?.querySelectorAll(".custom-select-option") || [];
     if (options.length === 0) return;
 
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      activeUsoHighlightedIndex = (activeUsoHighlightedIndex + 1) % options.length;
+      activeUsoHighlightedIndex =
+        (activeUsoHighlightedIndex + 1) % options.length;
       updateUsoHighlightedOption(options);
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      activeUsoHighlightedIndex = (activeUsoHighlightedIndex - 1 + options.length) % options.length;
+      activeUsoHighlightedIndex =
+        (activeUsoHighlightedIndex - 1 + options.length) % options.length;
       updateUsoHighlightedOption(options);
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
-      if (activeUsoHighlightedIndex >= 0 && activeUsoHighlightedIndex < options.length) {
+      if (
+        activeUsoHighlightedIndex >= 0 &&
+        activeUsoHighlightedIndex < options.length
+      ) {
         options[activeUsoHighlightedIndex].click();
       }
     }
@@ -1030,43 +1305,43 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateUsoHighlightedOption(options) {
     options.forEach((opt, idx) => {
       if (idx === activeUsoHighlightedIndex) {
-        opt.classList.add('is-focused');
-        opt.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        opt.classList.add("is-focused");
+        opt.scrollIntoView({ block: "nearest", behavior: "smooth" });
       } else {
-        opt.classList.remove('is-focused');
+        opt.classList.remove("is-focused");
       }
     });
   }
 
   function validateUsoField(isTouched = false) {
-    const val = profUso ? profUso.value : '';
-    const checkEl = document.getElementById('uso-select-check');
+    const val = profUso ? profUso.value : "";
+    const checkEl = document.getElementById("uso-select-check");
     if (!val) {
-      if (checkEl) checkEl.classList.add('hidden');
+      if (checkEl) checkEl.classList.add("hidden");
       if (isTouched) {
-        customUsoContainer?.classList.add('is-invalid');
-        usoSelectTrigger?.classList.add('is-invalid');
+        customUsoContainer?.classList.add("is-invalid");
+        usoSelectTrigger?.classList.add("is-invalid");
         if (profUsoFeedback) {
-          profUsoFeedback.className = 'validation-feedback is-invalid';
+          profUsoFeedback.className = "validation-feedback is-invalid";
           profUsoFeedback.innerHTML = `<span>Selecciona el Uso de CFDI para tus facturas.</span>`;
         }
       }
       return false;
     }
-    customUsoContainer?.classList.remove('is-invalid');
-    usoSelectTrigger?.classList.remove('is-invalid');
-    if (checkEl) checkEl.classList.remove('hidden');
+    customUsoContainer?.classList.remove("is-invalid");
+    usoSelectTrigger?.classList.remove("is-invalid");
+    if (checkEl) checkEl.classList.remove("hidden");
     if (profUsoFeedback) {
-      profUsoFeedback.className = 'validation-feedback';
-      profUsoFeedback.innerHTML = '';
+      profUsoFeedback.className = "validation-feedback";
+      profUsoFeedback.innerHTML = "";
     }
     return true;
   }
 
   // --- 3D FLOATING RECEIPT INTERACTIONS (HOVER TILT & SCROLL PERSPECTIVE) ---
   function initReceipt3DInteractions() {
-    const scene = document.getElementById('receipt-3d-scene');
-    const card = document.getElementById('receipt-3d-card');
+    const scene = document.getElementById("receipt-3d-scene");
+    const card = document.getElementById("receipt-3d-card");
     if (!scene || !card) return;
 
     let targetRotateX = 8;
@@ -1075,7 +1350,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRotateY = -11;
 
     // Hover 3D tilt tracking
-    scene.addEventListener('pointermove', (e) => {
+    scene.addEventListener("pointermove", (e) => {
       const rect = scene.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
 
@@ -1086,32 +1361,37 @@ document.addEventListener('DOMContentLoaded', () => {
       targetRotateX = 8 - normY * 24;
     });
 
-    scene.addEventListener('pointerleave', () => {
+    scene.addEventListener("pointerleave", () => {
       targetRotateX = 8;
       targetRotateY = -11;
     });
 
     // Scroll perspective effect: tilts card as user scrolls through landing page
     function handleReceiptScrollPerspective() {
-      if (screenWelcome && screenWelcome.classList.contains('hidden')) return;
+      if (screenWelcome && screenWelcome.classList.contains("hidden")) return;
 
       const rect = scene.getBoundingClientRect();
       const windowHeight = window.innerHeight;
 
       if (rect.top < windowHeight && rect.bottom > 0) {
-        const progress = (windowHeight - rect.top) / (windowHeight + rect.height);
+        const progress =
+          (windowHeight - rect.top) / (windowHeight + rect.height);
         const clampedProgress = Math.min(Math.max(progress, 0), 1);
 
         const scrollDeltaRx = (clampedProgress - 0.5) * 22;
         const scrollDeltaRy = (clampedProgress - 0.5) * -16;
 
-        card.style.setProperty('--scroll-rx', `${scrollDeltaRx.toFixed(2)}deg`);
-        card.style.setProperty('--scroll-ry', `${scrollDeltaRy.toFixed(2)}deg`);
+        card.style.setProperty("--scroll-rx", `${scrollDeltaRx.toFixed(2)}deg`);
+        card.style.setProperty("--scroll-ry", `${scrollDeltaRy.toFixed(2)}deg`);
       }
     }
 
-    window.addEventListener('scroll', handleReceiptScrollPerspective, { passive: true });
-    window.addEventListener('resize', handleReceiptScrollPerspective, { passive: true });
+    window.addEventListener("scroll", handleReceiptScrollPerspective, {
+      passive: true,
+    });
+    window.addEventListener("resize", handleReceiptScrollPerspective, {
+      passive: true,
+    });
     handleReceiptScrollPerspective();
 
     // Smooth lerp loop for interactive mouse movement
@@ -1119,8 +1399,8 @@ document.addEventListener('DOMContentLoaded', () => {
       currentRotateX += (targetRotateX - currentRotateX) * 0.12;
       currentRotateY += (targetRotateY - currentRotateY) * 0.12;
 
-      card.style.setProperty('--hover-rx', `${currentRotateX.toFixed(2)}deg`);
-      card.style.setProperty('--hover-ry', `${currentRotateY.toFixed(2)}deg`);
+      card.style.setProperty("--hover-rx", `${currentRotateX.toFixed(2)}deg`);
+      card.style.setProperty("--hover-ry", `${currentRotateY.toFixed(2)}deg`);
 
       requestAnimationFrame(animateTilt);
     }
@@ -1129,348 +1409,418 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- REAL-TIME FORM VALIDATION ENGINES (RFC, EMAIL, CÓDIGO POSTAL) ---
   function validateRFC(rfc) {
-    const clean = (rfc || '').trim().toUpperCase();
+    const clean = (rfc || "").trim().toUpperCase();
     if (!clean) {
-      return { valid: false, message: 'El RFC es obligatorio para emitir tus facturas.' };
+      return {
+        valid: false,
+        message: "El RFC es obligatorio para emitir tus facturas.",
+      };
     }
     // Generic SAT RFCs
-    if (clean === 'XAXX010101000' || clean === 'XEXX010101000') {
-      return { valid: true, type: 'GENERICO', message: 'RFC Genérico del SAT reconocido.' };
+    if (clean === "XAXX010101000" || clean === "XEXX010101000") {
+      return {
+        valid: true,
+        type: "GENERICO",
+        message: "RFC Genérico del SAT reconocido.",
+      };
     }
     // Persona Moral: 12 caracteres (3 letras + 6 números de fecha + 3 homoclave)
     if (clean.length === 12) {
-      const moralRegex = /^[A-Z&Ñ]{3}(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[A-Z0-9]{3}$/;
+      const moralRegex =
+        /^[A-Z&Ñ]{3}(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[A-Z0-9]{3}$/;
       if (moralRegex.test(clean)) {
-        return { valid: true, type: 'MORAL', message: '✓ Persona Moral válida ante el SAT (12 caracteres).' };
+        return {
+          valid: true,
+          type: "MORAL",
+          message: "✓ Persona Moral válida ante el SAT (12 caracteres).",
+        };
       }
-      return { valid: false, message: 'Estructura inválida de Persona Moral (3 letras + fecha AAMMDD + 3 homoclave).' };
+      return {
+        valid: false,
+        message:
+          "Estructura inválida de Persona Moral (3 letras + fecha AAMMDD + 3 homoclave).",
+      };
     }
     // Persona Física: 13 caracteres (4 letras + 6 números de fecha + 3 homoclave)
     if (clean.length === 13) {
-      const fisicaRegex = /^[A-Z&Ñ]{4}(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[A-Z0-9]{3}$/;
+      const fisicaRegex =
+        /^[A-Z&Ñ]{4}(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[A-Z0-9]{3}$/;
       if (fisicaRegex.test(clean)) {
-        return { valid: true, type: 'FISICA', message: '✓ Persona Física válida ante el SAT (13 caracteres).' };
+        return {
+          valid: true,
+          type: "FISICA",
+          message: "✓ Persona Física válida ante el SAT (13 caracteres).",
+        };
       }
-      return { valid: false, message: 'Estructura inválida de Persona Física (4 letras + fecha AAMMDD + 3 homoclave).' };
+      return {
+        valid: false,
+        message:
+          "Estructura inválida de Persona Física (4 letras + fecha AAMMDD + 3 homoclave).",
+      };
     }
     return {
       valid: false,
-      message: `Longitud actual: ${clean.length} car. Debe tener 12 (moral) o 13 caracteres (física).`
+      message: `Longitud actual: ${clean.length} car. Debe tener 12 (moral) o 13 caracteres (física).`,
     };
   }
 
   function validateEmail(email) {
-    const clean = (email || '').trim();
+    const clean = (email || "").trim();
     if (!clean) {
-      return { valid: false, message: 'El correo electrónico es obligatorio para recibir tus facturas.' };
+      return {
+        valid: false,
+        message:
+          "El correo electrónico es obligatorio para recibir tus facturas.",
+      };
     }
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(clean)) {
-      return { valid: false, message: 'Ingresa un correo electrónico válido (ej. usuario@dominio.com).' };
+      return {
+        valid: false,
+        message:
+          "Ingresa un correo electrónico válido (ej. usuario@dominio.com).",
+      };
     }
-    return { valid: true, message: '✓ Correo electrónico válido.' };
+    return { valid: true, message: "✓ Correo electrónico válido." };
   }
 
   function validatePostalCode(cp) {
-    const clean = (cp || '').trim();
+    const clean = (cp || "").trim();
     if (!clean) {
-      return { valid: false, message: 'El código postal fiscal es obligatorio.' };
+      return {
+        valid: false,
+        message: "El código postal fiscal es obligatorio.",
+      };
     }
     if (!/^\d{5}$/.test(clean)) {
-      return { valid: false, message: `Código postal incompleto (${clean.length}/5). Debe tener 5 dígitos.` };
+      return {
+        valid: false,
+        message: `Código postal incompleto (${clean.length}/5). Debe tener 5 dígitos.`,
+      };
     }
-    return { valid: true, message: '✓ Código postal fiscal válido (5 dígitos).' };
+    return {
+      valid: true,
+      message: "✓ Código postal fiscal válido (5 dígitos).",
+    };
   }
 
   function setFieldValidationUI(inputEl, feedbackEl, result, isTouched) {
     if (!inputEl) return;
-    const iconEl = document.getElementById(inputEl.id + '-icon') || 
-                   inputEl.parentElement?.querySelector('.field-status-icon');
+    const iconEl =
+      document.getElementById(inputEl.id + "-icon") ||
+      inputEl.parentElement?.querySelector(".field-status-icon");
 
     if (!isTouched && (!inputEl.value || !inputEl.value.trim())) {
-      inputEl.classList.remove('is-valid', 'is-invalid');
+      inputEl.classList.remove("is-valid", "is-invalid");
       if (iconEl) {
-        iconEl.className = 'field-status-icon hidden';
-        iconEl.innerHTML = '';
+        iconEl.className = "field-status-icon hidden";
+        iconEl.innerHTML = "";
       }
       if (feedbackEl) {
-        feedbackEl.className = 'validation-feedback';
-        feedbackEl.innerHTML = '';
+        feedbackEl.className = "validation-feedback";
+        feedbackEl.innerHTML = "";
       }
       return;
     }
 
     if (result.valid) {
-      inputEl.classList.remove('is-invalid');
-      inputEl.classList.add('is-valid');
+      inputEl.classList.remove("is-invalid");
+      inputEl.classList.add("is-valid");
       if (iconEl) {
-        iconEl.className = 'field-status-icon is-valid';
+        iconEl.className = "field-status-icon is-valid";
         iconEl.innerHTML = `
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         `;
-        iconEl.classList.remove('hidden');
+        iconEl.classList.remove("hidden");
       }
       // Never show check below, only inside on the right
       if (feedbackEl) {
-        feedbackEl.className = 'validation-feedback';
-        feedbackEl.innerHTML = '';
+        feedbackEl.className = "validation-feedback";
+        feedbackEl.innerHTML = "";
       }
     } else {
-      inputEl.classList.remove('is-valid');
-      inputEl.classList.add('is-invalid');
+      inputEl.classList.remove("is-valid");
+      inputEl.classList.add("is-invalid");
       if (iconEl) {
-        iconEl.className = 'field-status-icon is-invalid';
+        iconEl.className = "field-status-icon is-invalid";
         iconEl.innerHTML = `
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         `;
-        iconEl.classList.remove('hidden');
+        iconEl.classList.remove("hidden");
       }
       if (feedbackEl) {
-        feedbackEl.className = 'validation-feedback is-invalid';
-        feedbackEl.innerHTML = `<span>${escapeHtml(result.message || 'Campo no válido.')}</span>`;
+        feedbackEl.className = "validation-feedback is-invalid";
+        feedbackEl.innerHTML = `<span>${escapeHtml(result.message || "Campo no válido.")}</span>`;
       }
     }
   }
 
   const DEFAULT_FALLBACK_STATIONS = [
     {
-      id: 'gogas',
-      name: 'GoGas',
-      brandName: 'GoGas / FacturasGas',
-      domain: 'facturasgas.com',
-      portalUrl: 'https://www.facturasgas.com/facturacion/autofactura.php',
-      status: 'active',
-      statusText: 'Disponible',
-      description: 'Estaciones de servicio GoGas y Red FacturasGas a nivel nacional.',
+      id: "gogas",
+      name: "GoGas",
+      brandName: "GoGas / FacturasGas",
+      domain: "facturasgas.com",
+      portalUrl: "https://www.facturasgas.com/facturacion/autofactura.php",
+      status: "active",
+      statusText: "Disponible",
+      description:
+        "Estaciones de servicio GoGas y Red FacturasGas a nivel nacional.",
     },
     {
-      id: 'pemex',
-      name: 'PEMEX',
-      brandName: 'Petróleos Mexicanos',
-      domain: 'portaldecombustibles.pemex.com',
-      portalUrl: 'https://portaldecombustibles.pemex.com/business-clients/sporadic-invoices',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Franquicia PEMEX y estaciones de servicio afiliadas a nivel nacional.',
+      id: "pemex",
+      name: "PEMEX",
+      brandName: "Petróleos Mexicanos",
+      domain: "portaldecombustibles.pemex.com",
+      portalUrl:
+        "https://portaldecombustibles.pemex.com/business-clients/sporadic-invoices",
+      status: "disabled",
+      statusText: "Próximamente",
+      description:
+        "Franquicia PEMEX y estaciones de servicio afiliadas a nivel nacional.",
     },
     {
-      id: 'bp',
-      name: 'British Petroleum',
-      brandName: 'BP México',
-      domain: 'gasolineriabp.com.mx',
-      portalUrl: 'https://gasolineriabp.com.mx/facturagasbpme',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Red de gasolineras BP con tecnología ACTIVE a nivel nacional.',
+      id: "bp",
+      name: "British Petroleum",
+      brandName: "BP México",
+      domain: "gasolineriabp.com.mx",
+      portalUrl: "https://gasolineriabp.com.mx/facturagasbpme",
+      status: "disabled",
+      statusText: "Próximamente",
+      description:
+        "Red de gasolineras BP con tecnología ACTIVE a nivel nacional.",
     },
     {
-      id: 'shell',
-      name: 'Royal Dutch Shell',
-      brandName: 'Shell México',
-      domain: 'facturacion.shell.com.mx',
-      portalUrl: 'https://facturacion.shell.com.mx/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Estaciones de servicio Shell con combustibles V-Power.',
+      id: "shell",
+      name: "Royal Dutch Shell",
+      brandName: "Shell México",
+      domain: "facturacion.shell.com.mx",
+      portalUrl: "https://facturacion.shell.com.mx/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Estaciones de servicio Shell con combustibles V-Power.",
     },
     {
-      id: 'everilion',
-      name: 'Everilion (Shell)',
-      brandName: 'Portal Everilion Shell',
-      domain: 'shellmx.everilion.com',
-      portalUrl: 'https://shellmx.everilion.com/ILIONX45/custom/ShellMexico/Portal_Facturacion/Views/Facturacion.aspx?c=icn',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Portal corporativo de facturación para estaciones Shell en Everilion.',
+      id: "everilion",
+      name: "Everilion (Shell)",
+      brandName: "Portal Everilion Shell",
+      domain: "shellmx.everilion.com",
+      portalUrl:
+        "https://shellmx.everilion.com/ILIONX45/custom/ShellMexico/Portal_Facturacion/Views/Facturacion.aspx?c=icn",
+      status: "disabled",
+      statusText: "Próximamente",
+      description:
+        "Portal corporativo de facturación para estaciones Shell en Everilion.",
     },
     {
-      id: 'chevron',
-      name: 'Chevron',
-      brandName: 'Chevron con Techron',
-      domain: 'chevroncontechron.com',
-      portalUrl: 'https://www.chevroncontechron.com/es_mx/home/Facturacion.html',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Estaciones de servicio Chevron con aditivo Techron.',
+      id: "chevron",
+      name: "Chevron",
+      brandName: "Chevron con Techron",
+      domain: "chevroncontechron.com",
+      portalUrl:
+        "https://www.chevroncontechron.com/es_mx/home/Facturacion.html",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Estaciones de servicio Chevron con aditivo Techron.",
     },
     {
-      id: 'totalenergies',
-      name: 'TotalEnergies',
-      brandName: 'TotalEnergies México',
-      domain: 'totalenergies.mx',
-      portalUrl: 'https://totalenergies.mx/nosotros/estaciones-de-servicio/facturacion',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Red de estaciones de servicio TotalEnergies en México.',
+      id: "totalenergies",
+      name: "TotalEnergies",
+      brandName: "TotalEnergies México",
+      domain: "totalenergies.mx",
+      portalUrl:
+        "https://totalenergies.mx/nosotros/estaciones-de-servicio/facturacion",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Red de estaciones de servicio TotalEnergies en México.",
     },
     {
-      id: 'exxonmobil',
-      name: 'ExxonMobil',
-      brandName: 'Mobil Synergy',
-      domain: 'mobil.com.mx',
-      portalUrl: 'https://www.mobil.com.mx/es-mx/gasolina/facturacion',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Combustibles Mobil Synergy a nivel nacional.',
+      id: "exxonmobil",
+      name: "ExxonMobil",
+      brandName: "Mobil Synergy",
+      domain: "mobil.com.mx",
+      portalUrl: "https://www.mobil.com.mx/es-mx/gasolina/facturacion",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Combustibles Mobil Synergy a nivel nacional.",
     },
     {
-      id: 'petromax',
-      name: 'PETROMAX',
-      brandName: 'Petromax / FacturaMobil',
-      domain: 'facturamobil.petromax.com.mx',
-      portalUrl: 'https://facturamobil.petromax.com.mx:8081/KPortalExterno/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Portal de facturación Petromax para estaciones Mobil.',
+      id: "petromax",
+      name: "PETROMAX",
+      brandName: "Petromax / FacturaMobil",
+      domain: "facturamobil.petromax.com.mx",
+      portalUrl: "https://facturamobil.petromax.com.mx:8081/KPortalExterno/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Portal de facturación Petromax para estaciones Mobil.",
     },
     {
-      id: 'gasislo',
-      name: 'GasIslo',
-      brandName: 'GasIslo Estaciones',
-      domain: 'gasislo.com',
-      portalUrl: 'http://gasislo.com/facturacion-electronica/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Facturación electrónica para estaciones GasIslo.',
+      id: "gasislo",
+      name: "GasIslo",
+      brandName: "GasIslo Estaciones",
+      domain: "gasislo.com",
+      portalUrl: "http://gasislo.com/facturacion-electronica/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Facturación electrónica para estaciones GasIslo.",
     },
     {
-      id: 'policon',
-      name: 'Policon',
-      brandName: 'Policon / Efectifactura',
-      domain: 'efectifactura.com.mx',
-      portalUrl: 'https://efectifactura.com.mx/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Sistema Efectifactura para estaciones afiliadas Policon.',
+      id: "policon",
+      name: "Policon",
+      brandName: "Policon / Efectifactura",
+      domain: "efectifactura.com.mx",
+      portalUrl: "https://efectifactura.com.mx/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Sistema Efectifactura para estaciones afiliadas Policon.",
     },
     {
-      id: 'mobilgolfo',
-      name: 'MobilTM Golfo',
-      brandName: 'Mobil Golfo México',
-      domain: 'mobil.com.mx',
-      portalUrl: 'https://www.mobil.com.mx/es-mx/gasolina/facturacion',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Red de estaciones Mobil en la región Golfo.',
+      id: "mobilgolfo",
+      name: "MobilTM Golfo",
+      brandName: "Mobil Golfo México",
+      domain: "mobil.com.mx",
+      portalUrl: "https://www.mobil.com.mx/es-mx/gasolina/facturacion",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Red de estaciones Mobil en la región Golfo.",
     },
     {
-      id: 'topgas',
-      name: 'TopGas',
-      brandName: 'TopGas México',
-      domain: 'topgasmexico.com',
-      portalUrl: 'https://topgasmexico.com/facturacion/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Estaciones de servicio TopGas en el norte del país.',
+      id: "topgas",
+      name: "TopGas",
+      brandName: "TopGas México",
+      domain: "topgasmexico.com",
+      portalUrl: "https://topgasmexico.com/facturacion/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Estaciones de servicio TopGas en el norte del país.",
     },
     {
-      id: 'orsan',
-      name: 'ORSAN',
-      brandName: 'Grupo ORSAN',
-      domain: 'facturacionmobil.orsan.com.mx',
-      portalUrl: 'http://facturacionmobil.orsan.com.mx/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Red nacional de gasolineras y estaciones de servicio ORSAN.',
+      id: "orsan",
+      name: "ORSAN",
+      brandName: "Grupo ORSAN",
+      domain: "facturacionmobil.orsan.com.mx",
+      portalUrl: "http://facturacionmobil.orsan.com.mx/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description:
+        "Red nacional de gasolineras y estaciones de servicio ORSAN.",
     },
     {
-      id: 'combured',
-      name: 'Combured',
-      brandName: 'Grupo Combured',
-      domain: 'combured.com.mx',
-      portalUrl: 'https://arc.net/l/quote/zenmitco',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Estaciones de servicio y facturación Red Combured.',
+      id: "combured",
+      name: "Combured",
+      brandName: "Grupo Combured",
+      domain: "combured.com.mx",
+      portalUrl: "https://arc.net/l/quote/zenmitco",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Estaciones de servicio y facturación Red Combured.",
     },
     {
-      id: 'redgasolin',
-      name: 'Red Gasolin',
-      brandName: 'Red Gasolin México',
-      domain: 'redgasolin.com.mx',
-      portalUrl: 'http://www.redgasolin.com.mx/Facturacion.html',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Portal de auto-facturación para estaciones Red Gasolin.',
+      id: "redgasolin",
+      name: "Red Gasolin",
+      brandName: "Red Gasolin México",
+      domain: "redgasolin.com.mx",
+      portalUrl: "http://www.redgasolin.com.mx/Facturacion.html",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Portal de auto-facturación para estaciones Red Gasolin.",
     },
     {
-      id: 'oxxogas',
-      name: 'OXXO Gas',
-      brandName: 'OXXO Gas México',
-      domain: 'facturacion.oxxogas.com',
-      portalUrl: 'https://facturacion.oxxogas.com/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Red nacional de estaciones de servicio OXXO Gas.',
+      id: "oxxogas",
+      name: "OXXO Gas",
+      brandName: "OXXO Gas México",
+      domain: "facturacion.oxxogas.com",
+      portalUrl: "https://facturacion.oxxogas.com/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Red nacional de estaciones de servicio OXXO Gas.",
     },
     {
-      id: 'g500',
-      name: 'G500',
-      brandName: 'G500 Network',
-      domain: 'g500network.com',
-      portalUrl: 'https://g500network.com/facturacion-en-linea/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Red G500 Network con tecnología aditivada G-Premium.',
+      id: "g500",
+      name: "G500",
+      brandName: "G500 Network",
+      domain: "g500network.com",
+      portalUrl: "https://g500network.com/facturacion-en-linea/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Red G500 Network con tecnología aditivada G-Premium.",
     },
     {
-      id: 'gulfoil',
-      name: 'Gulf Oil',
-      brandName: 'Gulf México Sureste',
-      domain: 'facturacion.gulfsureste.com.mx',
-      portalUrl: 'https://facturacion.gulfsureste.com.mx/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Estaciones de combustible y servicio Gulf México.',
+      id: "gulfoil",
+      name: "Gulf Oil",
+      brandName: "Gulf México Sureste",
+      domain: "facturacion.gulfsureste.com.mx",
+      portalUrl: "https://facturacion.gulfsureste.com.mx/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Estaciones de combustible y servicio Gulf México.",
     },
     {
-      id: 'redco',
-      name: 'Redco',
-      brandName: 'Grupo Redco',
-      domain: 'gruporedco.com',
-      portalUrl: 'https://www.gruporedco.com/acceso-facturacion.html',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Acceso a facturación de estaciones de servicio Grupo Redco.',
+      id: "redco",
+      name: "Redco",
+      brandName: "Grupo Redco",
+      domain: "gruporedco.com",
+      portalUrl: "https://www.gruporedco.com/acceso-facturacion.html",
+      status: "disabled",
+      statusText: "Próximamente",
+      description:
+        "Acceso a facturación de estaciones de servicio Grupo Redco.",
     },
     {
-      id: 'hidrosina',
-      name: 'Hidrosina',
-      brandName: 'Grupo Hidrosina',
-      domain: 'hidrosina.com.mx',
-      portalUrl: 'https://www.hidrosina.com.mx/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Grupo Hidrosina, red líder en estaciones de servicio urbanas.',
+      id: "hidrosina",
+      name: "Hidrosina",
+      brandName: "Grupo Hidrosina",
+      domain: "hidrosina.com.mx",
+      portalUrl: "https://www.hidrosina.com.mx/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description:
+        "Grupo Hidrosina, red líder en estaciones de servicio urbanas.",
     },
     {
-      id: 'petro7',
-      name: 'Petro-7',
-      brandName: 'Petro-7 / 7-Eleven México',
-      domain: 'petro-7.com.mx',
-      portalUrl: 'https://petro-7.com.mx/facturacion/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Facturación en línea para estaciones de servicio Petro-7.',
+      id: "petro7",
+      name: "Petro-7",
+      brandName: "Petro-7 / 7-Eleven México",
+      domain: "petro-7.com.mx",
+      portalUrl: "https://petro-7.com.mx/facturacion/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description: "Facturación en línea para estaciones de servicio Petro-7.",
     },
     {
-      id: 'rendichicas',
-      name: 'Rendichicas',
-      brandName: 'Rendichicas / Rendilitros',
-      domain: 'facturacion.rendilitros.com',
-      portalUrl: 'https://facturacion.rendilitros.com/',
-      status: 'disabled',
-      statusText: 'Próximamente',
-      description: 'Estaciones de servicio Rendichicas con litros completos certificados.',
+      id: "rendichicas",
+      name: "Rendichicas",
+      brandName: "Rendichicas / Rendilitros",
+      domain: "facturacion.rendilitros.com",
+      portalUrl: "https://facturacion.rendilitros.com/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description:
+        "Estaciones de servicio Rendichicas con litros completos certificados.",
     },
+    {
+      id: "repsol",
+      name: "REPSOL",
+      brandName: "REPSOL",
+      domain: "factura.repsol.com.mx",
+      portalUrl: "https://factura.repsol.com.mx/",
+      status: "disabled",
+      statusText: "Próximamente",
+      description:
+        "Facturación en línea para estaciones de servicio Repsol.",
+    }
   ];
 
   async function loadSupportedStations() {
     try {
-      const res = await fetch('/api/stations');
+      const res = await fetch("/api/stations");
       if (res.ok) {
         const data = await res.json();
-        if (data.success && Array.isArray(data.stations) && data.stations.length > 0) {
+        if (
+          data.success &&
+          Array.isArray(data.stations) &&
+          data.stations.length > 0
+        ) {
           supportedStations = data.stations;
           renderStations(supportedStations);
           return;
@@ -1479,18 +1829,20 @@ document.addEventListener('DOMContentLoaded', () => {
       supportedStations = DEFAULT_FALLBACK_STATIONS;
       renderStations(supportedStations);
     } catch (err) {
-      console.warn('Error loading stations, using default fallback:', err);
+      console.warn("Error loading stations, using default fallback:", err);
       supportedStations = DEFAULT_FALLBACK_STATIONS;
       renderStations(supportedStations);
     }
   }
 
   function getStationLogoSvg(stationId, stationName) {
-    const id = String(stationId || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const name = String(stationName || '').toLowerCase();
+    const id = String(stationId || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const name = String(stationName || "").toLowerCase();
 
     // 1. GoGas
-    if (id === 'gogas' || name.includes('gogas')) {
+    if (id === "gogas" || name.includes("gogas")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#032B25"/>
         <circle cx="24" cy="24" r="22.5" stroke="#10B981" stroke-width="1.5"/>
@@ -1501,7 +1853,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. PEMEX
-    if (id === 'pemex' || name.includes('pemex')) {
+    if (id === "pemex" || name.includes("pemex")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#006847"/>
         <circle cx="24" cy="24" r="22.5" stroke="#008a5e" stroke-width="1.5"/>
@@ -1513,7 +1865,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 3. British Petroleum (BP)
-    if (id === 'bp' || name.includes('petroleum') || name.includes('bp')) {
+    if (id === "bp" || name.includes("petroleum") || name.includes("bp")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
         <circle cx="24" cy="24" r="23" stroke="#E2E8F0" stroke-width="1.5"/>
@@ -1537,7 +1889,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 4. Shell
-    if (id === 'shell' || name.includes('shell')) {
+    if (id === "shell" || name.includes("shell")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
         <circle cx="24" cy="24" r="23" stroke="#FEE2E2" stroke-width="1.5"/>
@@ -1553,7 +1905,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 5. Everilion (Shell)
-    if (id === 'everilion' || name.includes('everilion')) {
+    if (id === "everilion" || name.includes("everilion")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#0A192F"/>
         <circle cx="24" cy="24" r="22.5" stroke="#1E3A8A" stroke-width="1.5"/>
@@ -1571,7 +1923,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 6. Chevron
-    if (id === 'chevron' || name.includes('chevron')) {
+    if (id === "chevron" || name.includes("chevron")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
         <circle cx="24" cy="24" r="23" stroke="#E2E8F0" stroke-width="1.5"/>
@@ -1582,7 +1934,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 7. TotalEnergies
-    if (id === 'totalenergies' || id === 'total' || name.includes('total')) {
+    if (id === "totalenergies" || id === "total" || name.includes("total")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
         <circle cx="24" cy="24" r="23" stroke="#F1F5F9" stroke-width="1.5"/>
@@ -1601,7 +1953,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 8. ExxonMobil / Mobil
-    if (id === 'exxonmobil' || id === 'mobil' || name.includes('exxon') || name.includes('mobil')) {
+    if (
+      id === "exxonmobil" ||
+      id === "mobil" ||
+      name.includes("exxon") ||
+      name.includes("mobil")
+    ) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
         <circle cx="24" cy="24" r="23" stroke="#E2E8F0" stroke-width="1.5"/>
@@ -1615,7 +1972,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 9. PETROMAX
-    if (id === 'petromax' || name.includes('petromax')) {
+    if (id === "petromax" || name.includes("petromax")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#0B1D3A"/>
         <circle cx="24" cy="24" r="22.5" stroke="#DC2626" stroke-width="1.5"/>
@@ -1627,7 +1984,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 10. GasIslo
-    if (id === 'gasislo' || name.includes('islo')) {
+    if (id === "gasislo" || name.includes("islo")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
         <circle cx="24" cy="24" r="23" stroke="#004B87" stroke-width="1.5"/>
@@ -1639,7 +1996,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 11. Policon
-    if (id === 'policon' || name.includes('policon') || name.includes('efectifactura')) {
+    if (
+      id === "policon" ||
+      name.includes("policon") ||
+      name.includes("efectifactura")
+    ) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#06283D"/>
         <circle cx="24" cy="24" r="22.5" stroke="#0EA5E9" stroke-width="1.5"/>
@@ -1650,7 +2011,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 12. MobilTM Golfo
-    if (id === 'mobilgolfo' || (name.includes('mobil') && name.includes('golfo'))) {
+    if (
+      id === "mobilgolfo" ||
+      (name.includes("mobil") && name.includes("golfo"))
+    ) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#0C2340"/>
         <circle cx="24" cy="24" r="22.5" stroke="#3B82F6" stroke-width="1.5"/>
@@ -1660,7 +2024,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 13. TopGas
-    if (id === 'topgas' || name.includes('topgas')) {
+    if (id === "topgas" || name.includes("topgas")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#0F172A"/>
         <circle cx="24" cy="24" r="22.5" stroke="#F97316" stroke-width="1.5"/>
@@ -1672,7 +2036,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 14. ORSAN
-    if (id === 'orsan' || name.includes('orsan')) {
+    if (id === "orsan" || name.includes("orsan")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
         <circle cx="24" cy="24" r="23" stroke="#B91C1C" stroke-width="1.5"/>
@@ -1684,7 +2048,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 15. Combured
-    if (id === 'combured' || name.includes('combured')) {
+    if (id === "combured" || name.includes("combured")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#111827"/>
         <circle cx="24" cy="24" r="22.5" stroke="#EF4444" stroke-width="1.5"/>
@@ -1695,7 +2059,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 16. Red Gasolin
-    if (id === 'redgasolin' || name.includes('red gasolin')) {
+    if (id === "redgasolin" || name.includes("red gasolin")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#DC2626"/>
         <circle cx="24" cy="24" r="22.5" stroke="#FFFFFF" stroke-width="1.5"/>
@@ -1706,7 +2070,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 17. OXXO Gas
-    if (id === 'oxxogas' || id === 'oxxo' || name.includes('oxxo')) {
+    if (id === "oxxogas" || id === "oxxo" || name.includes("oxxo")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#D0021B"/>
         <circle cx="24" cy="24" r="22.5" stroke="#FFCC00" stroke-width="1.5"/>
@@ -1724,7 +2088,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 18. G500
-    if (id === 'g500' || name.includes('g500')) {
+    if (id === "g500" || name.includes("g500")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#0A192F"/>
         <circle cx="24" cy="24" r="22.5" stroke="#00D2D3" stroke-width="1.5"/>
@@ -1735,7 +2099,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 19. Gulf Oil
-    if (id === 'gulfoil' || id === 'gulf' || name.includes('gulf')) {
+    if (id === "gulfoil" || id === "gulf" || name.includes("gulf")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#FF6600"/>
         <circle cx="24" cy="24" r="22.5" stroke="#FFFFFF" stroke-width="1.5"/>
@@ -1747,7 +2111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 20. Redco
-    if (id === 'redco' || name.includes('redco')) {
+    if (id === "redco" || name.includes("redco")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
         <circle cx="24" cy="24" r="23" stroke="#DC2626" stroke-width="1.5"/>
@@ -1759,7 +2123,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 21. Hidrosina
-    if (id === 'hidrosina' || name.includes('hidrosina')) {
+    if (id === "hidrosina" || name.includes("hidrosina")) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#047857"/>
         <circle cx="24" cy="24" r="22.5" stroke="#10B981" stroke-width="1.5"/>
@@ -1771,7 +2135,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 22. Petro-7
-    if (id === 'petro7' || id === 'petro' || name.includes('petro-7') || name.includes('petro 7')) {
+    if (
+      id === "petro7" ||
+      id === "petro" ||
+      name.includes("petro-7") ||
+      name.includes("petro 7")
+    ) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#FFFFFF"/>
         <circle cx="24" cy="24" r="23" stroke="#E2E8F0" stroke-width="1.5"/>
@@ -1783,7 +2152,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 23. Rendichicas
-    if (id === 'rendichicas' || name.includes('rendichicas') || name.includes('rendilitros')) {
+    if (
+      id === "rendichicas" ||
+      name.includes("rendichicas") ||
+      name.includes("rendilitros")
+    ) {
       return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="24" r="24" fill="#BE185D"/>
         <circle cx="24" cy="24" r="22.5" stroke="#F472B6" stroke-width="1.5"/>
@@ -1792,6 +2165,24 @@ document.addEventListener('DOMContentLoaded', () => {
         <circle cx="31" cy="21" r="1.5" fill="#FDE047"/>
         <circle cx="33" cy="17" r="1" fill="#FDE047"/>
         <text x="24" y="42" text-anchor="middle" fill="#FFFFFF" font-size="4.8" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.3">RENDICHICAS</text>
+      </svg>`;
+    }
+
+    // 24. Repsol
+    if (
+      id === "repsol" ||
+      id === "pepsol" ||
+      name.includes("repsol") ||
+      name.includes("pepsol")
+    ) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#002855"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#F57F2F" stroke-width="1.2" stroke-opacity="0.8"/>
+        <g transform="translate(2.04, -1.16) scale(0.057)">
+          <path fill="#F57F2F" d="M222.091,356.518c0,0,34.49-53.062,90.205-84.014c0,0,55.715-32.721,115.851-32.721c0,0,83.13,0,129.116,58.368c0,0,45.987,58.368,27.415,141.497H85.9v-83.13H222.091"/>
+          <path fill="#ED1B33" d="M185.832,519.24c0,0,57.483-68.98,179.525-68.096c0,0,155.647,1.769,189.253,63.674c0,0-34.49,55.715-91.089,89.32c0,0-58.368,34.49-120.273,34.49c0,0-61.021,0-103.47-33.606C239.778,605.023,197.329,572.301,185.832,519.24"/>
+          <path fill="#FFFFFF" d="M200.867,520.124l-15.034-0.884c0,0-8.844-32.721,0-79.592h498.778v76.939l-14.15,0.884l-18.572-1.769l-10.612-0.884l-16.803,4.422l-15.034-2.653l-7.959-2.653l-10.612-1.769l-21.225,3.537h-11.497l-3.537-0.884l-15.034,0.884l-17.687,3.537l-8.844-0.884l-7.075-1.769l-8.844,1.769l-15.034,4.422h-15.034l-58.368-10.612l-21.225,5.306l-15.034-0.884l-22.109,3.537l-23.878-4.422l-8.844,0.884l-7.959-0.884l-15.918-1.769l-18.572-1.769l-20.34,0.884l-15.034,3.537L200.867,520.124"/>
+        </g>
       </svg>`;
     }
 
@@ -1808,14 +2199,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderStations(stations) {
     if (!stationsGrid) return;
-    stationsGrid.innerHTML = '';
+    stationsGrid.innerHTML = "";
     for (const st of stations) {
-      const card = document.createElement('div');
-      const isActive = st.status === 'active';
-      card.className = `station-card ${!isActive ? 'station-card-disabled' : ''}`;
-      const domainDisplay = st.domain || (st.portalUrl ? new URL(st.portalUrl).hostname : '');
-      const portalTarget = st.portalUrl || (st.domain ? `https://${st.domain}` : '#');
-      const badgeText = st.statusText || (isActive ? 'Disponible' : 'Próximamente');
+      const card = document.createElement("div");
+      const isActive = st.status === "active";
+      card.className = `station-card ${isActive ? "" : "station-card-disabled"}`;
+      const domainDisplay =
+        st.domain || (st.portalUrl ? new URL(st.portalUrl).hostname : "");
+      const portalTarget =
+        st.portalUrl || (st.domain ? `https://${st.domain}` : "#");
+      const badgeText =
+        st.statusText || (isActive ? "Disponible" : "Próximamente");
       card.innerHTML = `
         <div class="station-logo" aria-hidden="true">
           ${getStationLogoSvg(st.id, st.name)}
@@ -1823,17 +2217,21 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="station-details">
           <div class="station-header-row">
             <h4>${escapeHtml(st.name)}</h4>
-            <span class="station-badge ${isActive ? 'active' : 'disabled'}">
-              ${isActive ? `
+            <span class="station-badge ${isActive ? "active" : "disabled"}">
+              ${isActive
+          ? `
                 <span class="station-live-dot" aria-hidden="true">
                   <span class="station-live-ping"></span>
                   <span class="station-live-core"></span>
                 </span>
-              ` : ''}
+              `
+          : ""
+        }
               <span>${escapeHtml(badgeText)}</span>
             </span>
           </div>
-          ${domainDisplay ? `
+          ${domainDisplay
+          ? `
             <div class="station-website-row">
               <span class="station-website-text">
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1844,8 +2242,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span>${escapeHtml(domainDisplay)}</span>
               </span>
             </div>
-          ` : ''}
-          <p>${escapeHtml(st.description || '')}</p>
+          `
+          : ""
+        }
+          <p>${escapeHtml(st.description || "")}</p>
         </div>
       `;
       stationsGrid.appendChild(card);
@@ -1855,42 +2255,42 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- NAVIGATION & SCREEN ROUTING ---
   function switchScreen(targetScreen) {
     for (const sc of allScreens) {
-      sc.classList.add('hidden');
-      sc.classList.remove('active');
+      sc.classList.add("hidden");
+      sc.classList.remove("active");
     }
-    targetScreen.classList.remove('hidden');
-    targetScreen.classList.add('active');
-    if (targetScreen === screenHistory) currentScreen = 'history';
-    else if (targetScreen === screenWelcome) currentScreen = 'welcome';
-    else if (targetScreen === screenProfile) currentScreen = 'profile';
-    else if (targetScreen === screenWorkbench) currentScreen = 'workbench';
+    targetScreen.classList.remove("hidden");
+    targetScreen.classList.add("active");
+    if (targetScreen === screenHistory) currentScreen = "history";
+    else if (targetScreen === screenWelcome) currentScreen = "welcome";
+    else if (targetScreen === screenProfile) currentScreen = "profile";
+    else if (targetScreen === screenWorkbench) currentScreen = "workbench";
 
     if (mobileCameraFabContainer) {
       if (targetScreen === screenWelcome) {
-        mobileCameraFabContainer.classList.remove('hidden');
+        mobileCameraFabContainer.classList.remove("hidden");
       } else {
-        mobileCameraFabContainer.classList.add('hidden');
+        mobileCameraFabContainer.classList.add("hidden");
       }
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function setNavTabActive(tabId) {
     navTabsButtons.forEach((btn) => {
-      if (btn.getAttribute('data-tab') === tabId) {
-        btn.classList.add('active');
+      if (btn.getAttribute("data-tab") === tabId) {
+        btn.classList.add("active");
       } else {
-        btn.classList.remove('active');
+        btn.classList.remove("active");
       }
     });
-    if (tabId === 'tab-history') {
+    if (tabId === "tab-history") {
       loadHistory();
     }
   }
 
   // --- EVENT LISTENERS ---
   function setupEventListeners() {
-    brandLogo?.addEventListener('click', () => {
+    brandLogo?.addEventListener("click", () => {
       const profile = getProfile();
       if (profile && profile.rfc) {
         switchScreen(screenHistory);
@@ -1909,30 +2309,34 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    btnWelcomeStart?.addEventListener('click', handleWelcomeStart);
-    btnMobileCameraFab?.addEventListener('click', handleWelcomeStart);
+    btnWelcomeStart?.addEventListener("click", handleWelcomeStart);
+    btnMobileCameraFab?.addEventListener("click", handleWelcomeStart);
 
-    btnHeaderOnboard?.addEventListener('click', () => openProfileScreen(false));
-    profilePill?.addEventListener('click', () => openProfileScreen(true));
-    profilePill?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
+    btnHeaderOnboard?.addEventListener("click", () => openProfileScreen(false));
+    profilePill?.addEventListener("click", () => openProfileScreen(true));
+    profilePill?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         openProfileScreen(true);
       }
     });
-    btnEditProfile?.addEventListener('click', (e) => {
+    btnEditProfile?.addEventListener("click", (e) => {
       e.stopPropagation();
       openProfileScreen(true);
     });
-    btnDeleteProfile?.addEventListener('click', openDeleteProfileModal);
-    btnCloseDeleteProfileModal?.addEventListener('click', () => closeDeleteProfileModal());
-    btnCancelDeleteModal?.addEventListener('click', () => closeDeleteProfileModal());
-    btnConfirmDeleteModal?.addEventListener('click', confirmDeleteProfile);
-    deleteProfileModal?.addEventListener('click', (e) => {
+    btnDeleteProfile?.addEventListener("click", openDeleteProfileModal);
+    btnCloseDeleteProfileModal?.addEventListener("click", () =>
+      closeDeleteProfileModal(),
+    );
+    btnCancelDeleteModal?.addEventListener("click", () =>
+      closeDeleteProfileModal(),
+    );
+    btnConfirmDeleteModal?.addEventListener("click", confirmDeleteProfile);
+    deleteProfileModal?.addEventListener("click", (e) => {
       if (e.target === deleteProfileModal) closeDeleteProfileModal();
     });
 
-    btnCancelProfile?.addEventListener('click', () => {
+    btnCancelProfile?.addEventListener("click", () => {
       if (currentScannedReceipts && currentScannedReceipts.length > 0) {
         isPendingInvoicing = false;
         switchScreen(screenWorkbench);
@@ -1953,35 +2357,38 @@ document.addEventListener('DOMContentLoaded', () => {
     initReceipt3DInteractions();
 
     // Real-time RFC input sanitization & validation
-    profRfc?.addEventListener('input', () => {
-      profRfc.value = profRfc.value.toUpperCase().replace(/[^A-Z0-9&Ñ]/g, '').slice(0, 13);
+    profRfc?.addEventListener("input", () => {
+      profRfc.value = profRfc.value
+        .toUpperCase()
+        .replace(/[^A-Z0-9&Ñ]/g, "")
+        .slice(0, 13);
       const res = validateRFC(profRfc.value);
       setFieldValidationUI(profRfc, profRfcFeedback, res, true);
 
       // Intelligent filter suggestion based on RFC type
       if (res.valid) {
-        if (res.type === 'MORAL' && activeRegimenFilter !== 'MORAL') {
+        if (res.type === "MORAL" && activeRegimenFilter !== "MORAL") {
           chipFilterMoral?.click();
-        } else if (res.type === 'FISICA' && activeRegimenFilter !== 'FISICA') {
+        } else if (res.type === "FISICA" && activeRegimenFilter !== "FISICA") {
           chipFilterFisica?.click();
         }
       }
     });
 
-    profRfc?.addEventListener('blur', () => {
+    profRfc?.addEventListener("blur", () => {
       const res = validateRFC(profRfc.value);
       setFieldValidationUI(profRfc, profRfcFeedback, res, true);
     });
 
     // Real-time Email validation
     let emailTouched = false;
-    profEmail?.addEventListener('input', () => {
+    profEmail?.addEventListener("input", () => {
       if (emailTouched) {
         const res = validateEmail(profEmail.value);
         setFieldValidationUI(profEmail, profEmailFeedback, res, true);
       }
     });
-    profEmail?.addEventListener('blur', () => {
+    profEmail?.addEventListener("blur", () => {
       emailTouched = true;
       const res = validateEmail(profEmail.value);
       setFieldValidationUI(profEmail, profEmailFeedback, res, true);
@@ -1989,56 +2396,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Real-time Código Postal validation
     let cpTouched = false;
-    profCp?.addEventListener('input', () => {
-      profCp.value = profCp.value.replace(/\D/g, '').slice(0, 5);
+    profCp?.addEventListener("input", () => {
+      profCp.value = profCp.value.replace(/\D/g, "").slice(0, 5);
       if (cpTouched || profCp.value.length === 5) {
         const res = validatePostalCode(profCp.value);
         setFieldValidationUI(profCp, profCpFeedback, res, true);
       }
     });
-    profCp?.addEventListener('blur', () => {
+    profCp?.addEventListener("blur", () => {
       cpTouched = true;
       const res = validatePostalCode(profCp.value);
       setFieldValidationUI(profCp, profCpFeedback, res, true);
     });
 
     // Razón Social validation on input & blur
-    profRazon?.addEventListener('input', () => {
+    profRazon?.addEventListener("input", () => {
       const isValid = !!profRazon.value.trim();
-      setFieldValidationUI(profRazon, profRazonFeedback, { valid: isValid, message: 'Ingresa tu Razón Social o Nombre Completo.' }, true);
+      setFieldValidationUI(
+        profRazon,
+        profRazonFeedback,
+        {
+          valid: isValid,
+          message: "Ingresa tu Razón Social o Nombre Completo.",
+        },
+        true,
+      );
     });
 
-    profRazon?.addEventListener('blur', () => {
+    profRazon?.addEventListener("blur", () => {
       const isValid = !!profRazon.value.trim();
-      setFieldValidationUI(profRazon, profRazonFeedback, { valid: isValid, message: 'Ingresa tu Razón Social o Nombre Completo.' }, true);
+      setFieldValidationUI(
+        profRazon,
+        profRazonFeedback,
+        {
+          valid: isValid,
+          message: "Ingresa tu Razón Social o Nombre Completo.",
+        },
+        true,
+      );
     });
 
     // Profile form submission
-    profileForm?.addEventListener('submit', (e) => {
+    profileForm?.addEventListener("submit", (e) => {
       e.preventDefault();
       handleProfileSubmit();
     });
 
-    btnSaveProfile?.addEventListener('click', (e) => {
+    btnSaveProfile?.addEventListener("click", (e) => {
       e.preventDefault();
       handleProfileSubmit();
     });
 
     // Dropzone events
-    fileInput?.addEventListener('change', handleFileSelect);
+    fileInput?.addEventListener("change", handleFileSelect);
 
-    dropzone?.addEventListener('dragover', (e) => {
+    dropzone?.addEventListener("dragover", (e) => {
       e.preventDefault();
-      dropzone.classList.add('dragover');
+      dropzone.classList.add("dragover");
     });
 
-    dropzone?.addEventListener('dragleave', () => {
-      dropzone.classList.remove('dragover');
+    dropzone?.addEventListener("dragleave", () => {
+      dropzone.classList.remove("dragover");
     });
 
-    dropzone?.addEventListener('drop', (e) => {
+    dropzone?.addEventListener("drop", (e) => {
       e.preventDefault();
-      dropzone.classList.remove('dragover');
+      dropzone.classList.remove("dragover");
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         uploadFilesForScan(e.dataTransfer.files);
       }
@@ -2046,57 +2469,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Demo receipt button
     if (btnLoadDemoReceipt) {
-      btnLoadDemoReceipt.addEventListener('click', loadDemoReceipt);
+      btnLoadDemoReceipt.addEventListener("click", loadDemoReceipt);
     }
 
     // Workbench actions
     if (btnAddManualReceipt) {
-      btnAddManualReceipt.addEventListener('click', addManualReceiptCard);
+      btnAddManualReceipt.addEventListener("click", addManualReceiptCard);
     }
     if (btnClearReceipts) {
-      btnClearReceipts.addEventListener('click', clearAllReceipts);
+      btnClearReceipts.addEventListener("click", clearAllReceipts);
     }
     if (btnEnqueueInvoices) {
-      btnEnqueueInvoices.addEventListener('click', handleEnqueueInvoices);
+      btnEnqueueInvoices.addEventListener("click", handleEnqueueInvoices);
     }
     if (btnCancelReview) {
-      btnCancelReview.addEventListener('click', clearAllReceipts);
+      btnCancelReview.addEventListener("click", clearAllReceipts);
     }
 
     if (tabBtnData) {
-      tabBtnData.addEventListener('click', () => switchReviewTab('pane-data'));
+      tabBtnData.addEventListener("click", () => switchReviewTab("pane-data"));
     }
     if (tabBtnImage) {
-      tabBtnImage.addEventListener('click', () => switchReviewTab('pane-image'));
+      tabBtnImage.addEventListener("click", () =>
+        switchReviewTab("pane-image"),
+      );
     }
     if (btnLoadAnotherReceipt) {
-      btnLoadAnotherReceipt.addEventListener('click', triggerLoadAnother);
+      btnLoadAnotherReceipt.addEventListener("click", triggerLoadAnother);
     }
     if (btnScannedUploadAnother) {
-      btnScannedUploadAnother.addEventListener('click', triggerLoadAnother);
+      btnScannedUploadAnother.addEventListener("click", triggerLoadAnother);
     }
     if (btnScannedClear) {
-      btnScannedClear.addEventListener('click', clearAllReceipts);
+      btnScannedClear.addEventListener("click", clearAllReceipts);
     }
 
     // History actions & New Ticket workbench
     function openUploadWorkbench() {
       if (uploadCard) {
-        const workbenchLayout = document.querySelector('.workbench-layout');
+        const workbenchLayout = document.querySelector(".workbench-layout");
         if (workbenchLayout && uploadCard.parentElement !== workbenchLayout) {
           workbenchLayout.prepend(uploadCard);
         }
-        uploadCard.classList.remove('hidden');
+        uploadCard.classList.remove("hidden");
       }
       if (btnBackToHistory) {
         const profile = getProfile();
-        btnBackToHistory.classList.remove('hidden');
-        const textSpan = btnBackToHistory.querySelector('span');
+        btnBackToHistory.classList.remove("hidden");
+        const textSpan = btnBackToHistory.querySelector("span");
         if (textSpan) {
-          textSpan.textContent = (profile && profile.rfc) ? 'Volver al Historial' : 'Volver al Inicio';
+          textSpan.textContent =
+            profile && profile.rfc ? "Volver al Historial" : "Volver al Inicio";
         }
       }
-      reviewSection?.classList.add('hidden');
+      reviewSection?.classList.add("hidden");
       switchScreen(screenWorkbench);
     }
 
@@ -2108,10 +2534,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    btnNewFromHistory?.addEventListener('click', handleNewReceiptTrigger);
-    btnMobileNewReceipt?.addEventListener('click', handleNewReceiptTrigger);
+    btnNewFromHistory?.addEventListener("click", handleNewReceiptTrigger);
+    btnMobileNewReceipt?.addEventListener("click", handleNewReceiptTrigger);
 
-    btnBackToHistory?.addEventListener('click', () => {
+    btnBackToHistory?.addEventListener("click", () => {
       const profile = getProfile();
       if (profile && profile.rfc) {
         switchScreen(screenHistory);
@@ -2122,124 +2548,146 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (btnRefreshHistory) {
-      btnRefreshHistory.addEventListener('click', () => {
+      btnRefreshHistory.addEventListener("click", () => {
         loadHistory();
       });
     }
 
     // Modal & Drawer Interactions
     if (btnCloseModal) {
-      btnCloseModal.addEventListener('click', () => closeModal());
+      btnCloseModal.addEventListener("click", () => closeModal());
     }
-    mediaModal?.addEventListener('click', (e) => {
+    mediaModal?.addEventListener("click", (e) => {
       if (e.target === mediaModal) closeModal();
     });
 
     // Legal Modal & Footer Links Interactions
-    btnLegalTerms?.addEventListener('click', () => openLegalModal('legal-pane-terms'));
-    btnLegalPrivacy?.addEventListener('click', () => openLegalModal('legal-pane-privacy'));
-    btnLegalDisclaimer?.addEventListener('click', () => openLegalModal('legal-pane-disclaimer'));
-    btnCloseLegalModal?.addEventListener('click', closeLegalModal);
-    btnAcceptLegalModal?.addEventListener('click', closeLegalModal);
-    legalModal?.addEventListener('click', (e) => {
+    btnLegalTerms?.addEventListener("click", () =>
+      openLegalModal("legal-pane-terms"),
+    );
+    btnLegalPrivacy?.addEventListener("click", () =>
+      openLegalModal("legal-pane-privacy"),
+    );
+    btnLegalDisclaimer?.addEventListener("click", () =>
+      openLegalModal("legal-pane-disclaimer"),
+    );
+    btnCloseLegalModal?.addEventListener("click", closeLegalModal);
+    btnAcceptLegalModal?.addEventListener("click", closeLegalModal);
+    legalModal?.addEventListener("click", (e) => {
       if (e.target === legalModal) closeLegalModal();
     });
 
-    const legalTabBtns = document.querySelectorAll('.legal-tab-btn');
+    const legalTabBtns = document.querySelectorAll(".legal-tab-btn");
     legalTabBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const tab = btn.getAttribute('data-tab');
+      btn.addEventListener("click", () => {
+        const tab = btn.getAttribute("data-tab");
         if (tab) openLegalModal(tab);
       });
     });
 
     // Fullscreen Receipt Viewer Toolbar & Canvas Controls
-    btnViewerClose?.addEventListener('click', (e) => {
+    btnViewerClose?.addEventListener("click", (e) => {
       e.stopPropagation();
       closeReceiptViewer();
     });
 
-    btnViewerZoomIn?.addEventListener('click', (e) => {
+    btnViewerZoomIn?.addEventListener("click", (e) => {
       e.stopPropagation();
       zoomViewer(0.25);
     });
 
-    btnViewerZoomOut?.addEventListener('click', (e) => {
+    btnViewerZoomOut?.addEventListener("click", (e) => {
       e.stopPropagation();
       zoomViewer(-0.25);
     });
 
-    btnViewerRotate?.addEventListener('click', (e) => {
+    btnViewerRotate?.addEventListener("click", (e) => {
       e.stopPropagation();
       rotateViewer();
     });
 
-    btnViewerReset?.addEventListener('click', (e) => {
+    btnViewerReset?.addEventListener("click", (e) => {
       e.stopPropagation();
       resetViewerTransform();
     });
 
     // Panning with Mouse Drag
     if (receiptViewerCanvas) {
-      receiptViewerCanvas.addEventListener('mousedown', (e) => {
+      receiptViewerCanvas.addEventListener("mousedown", (e) => {
         if (e.button !== 0) return;
         isViewerDragging = true;
         viewerDragStartX = e.clientX - viewerPanX;
         viewerDragStartY = e.clientY - viewerPanY;
-        receiptViewerCanvas.classList.add('is-dragging');
-        receiptViewerStage?.classList.add('no-transition');
+        receiptViewerCanvas.classList.add("is-dragging");
+        receiptViewerStage?.classList.add("no-transition");
       });
 
-      window.addEventListener('mousemove', (e) => {
+      window.addEventListener("mousemove", (e) => {
         if (!isViewerDragging) return;
         viewerPanX = e.clientX - viewerDragStartX;
         viewerPanY = e.clientY - viewerDragStartY;
         updateViewerTransform(false);
       });
 
-      window.addEventListener('mouseup', () => {
+      window.addEventListener("mouseup", () => {
         if (isViewerDragging) {
           isViewerDragging = false;
-          receiptViewerCanvas.classList.remove('is-dragging');
-          receiptViewerStage?.classList.remove('no-transition');
+          receiptViewerCanvas.classList.remove("is-dragging");
+          receiptViewerStage?.classList.remove("no-transition");
         }
       });
 
       // Mouse Wheel Zoom
-      receiptViewerCanvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const delta = e.deltaY < 0 ? 0.2 : -0.2;
-        zoomViewer(delta, true);
-      }, { passive: false });
+      receiptViewerCanvas.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          const delta = e.deltaY < 0 ? 0.2 : -0.2;
+          zoomViewer(delta, true);
+        },
+        { passive: false },
+      );
 
       // Touch Drag for Mobile
       let touchStartX = 0;
       let touchStartY = 0;
-      receiptViewerCanvas.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-          isViewerDragging = true;
-          touchStartX = e.touches[0].clientX - viewerPanX;
-          touchStartY = e.touches[0].clientY - viewerPanY;
-          receiptViewerStage?.classList.add('no-transition');
-        }
-      }, { passive: true });
+      receiptViewerCanvas.addEventListener(
+        "touchstart",
+        (e) => {
+          if (e.touches.length === 1) {
+            isViewerDragging = true;
+            touchStartX = e.touches[0].clientX - viewerPanX;
+            touchStartY = e.touches[0].clientY - viewerPanY;
+            receiptViewerStage?.classList.add("no-transition");
+          }
+        },
+        { passive: true },
+      );
 
-      receiptViewerCanvas.addEventListener('touchmove', (e) => {
-        if (isViewerDragging && e.touches.length === 1) {
-          viewerPanX = e.touches[0].clientX - touchStartX;
-          viewerPanY = e.touches[0].clientY - touchStartY;
-          updateViewerTransform(false);
-        }
-      }, { passive: true });
+      receiptViewerCanvas.addEventListener(
+        "touchmove",
+        (e) => {
+          if (isViewerDragging && e.touches.length === 1) {
+            viewerPanX = e.touches[0].clientX - touchStartX;
+            viewerPanY = e.touches[0].clientY - touchStartY;
+            updateViewerTransform(false);
+          }
+        },
+        { passive: true },
+      );
 
-      receiptViewerCanvas.addEventListener('touchend', () => {
+      receiptViewerCanvas.addEventListener("touchend", () => {
         isViewerDragging = false;
-        receiptViewerStage?.classList.remove('no-transition');
+        receiptViewerStage?.classList.remove("no-transition");
       });
 
       // Double Click / Double Tap to toggle zoom
-      receiptViewerCanvas.addEventListener('dblclick', (e) => {
-        if (e.target.closest('.viewer-toolbar') || e.target.closest('.receipt-viewer-topbar')) return;
+      receiptViewerCanvas.addEventListener("dblclick", (e) => {
+        if (
+          e.target.closest(".viewer-toolbar") ||
+          e.target.closest(".receipt-viewer-topbar")
+        )
+          return;
         if (viewerScale > 1.2) {
           resetViewerTransform();
         } else {
@@ -2250,35 +2698,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Keyboard & Back Button handlers
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        if (deleteProfileModal && !deleteProfileModal.classList.contains('hidden')) {
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (
+          deleteProfileModal &&
+          !deleteProfileModal.classList.contains("hidden")
+        ) {
           closeDeleteProfileModal();
-        } else if (legalModal && !legalModal.classList.contains('hidden')) {
+        } else if (legalModal && !legalModal.classList.contains("hidden")) {
           closeLegalModal();
-        } else if (receiptViewerOverlay && !receiptViewerOverlay.classList.contains('hidden')) {
+        } else if (
+          receiptViewerOverlay &&
+          !receiptViewerOverlay.classList.contains("hidden")
+        ) {
           closeReceiptViewer();
-        } else if (mediaModal && !mediaModal.classList.contains('hidden')) {
+        } else if (
+          customRangeModal &&
+          !customRangeModal.classList.contains("hidden")
+        ) {
+          customRangeModal.classList.add("hidden");
+        } else if (mediaModal && !mediaModal.classList.contains("hidden")) {
           closeModal();
         }
       }
     });
 
-    window.addEventListener('popstate', () => {
-      if (deleteProfileModal && !deleteProfileModal.classList.contains('hidden')) {
+    window.addEventListener("popstate", () => {
+      if (
+        deleteProfileModal &&
+        !deleteProfileModal.classList.contains("hidden")
+      ) {
         closeDeleteProfileModal(false);
-      } else if (legalModal && !legalModal.classList.contains('hidden')) {
+      } else if (legalModal && !legalModal.classList.contains("hidden")) {
         closeLegalModal(false);
-      } else if (receiptViewerOverlay && !receiptViewerOverlay.classList.contains('hidden')) {
+      } else if (
+        receiptViewerOverlay &&
+        !receiptViewerOverlay.classList.contains("hidden")
+      ) {
         closeReceiptViewer(false);
-      } else if (mediaModal && !mediaModal.classList.contains('hidden')) {
+      } else if (mediaModal && !mediaModal.classList.contains("hidden")) {
         closeModal(false);
       }
     });
 
     // Mobile pull-down to dismiss drawer
-    const drawerHandleBar = document.getElementById('drawer-handle-bar');
-    const modalCard = document.getElementById('modal-card');
+    const drawerHandleBar = document.getElementById("drawer-handle-bar");
+    const modalCard = document.getElementById("modal-card");
     let touchStartY = 0;
     let touchCurrentY = 0;
     let isDraggingDrawer = false;
@@ -2288,7 +2753,7 @@ document.addEventListener('DOMContentLoaded', () => {
       touchStartY = e.touches[0].clientY;
       touchCurrentY = touchStartY;
       isDraggingDrawer = true;
-      if (modalCard) modalCard.style.transition = 'none';
+      if (modalCard) modalCard.style.transition = "none";
     }
 
     function onTouchMove(e) {
@@ -2304,73 +2769,106 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!isDraggingDrawer || !modalCard) return;
       isDraggingDrawer = false;
       const diffY = touchCurrentY - touchStartY;
-      modalCard.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+      modalCard.style.transition =
+        "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)";
       if (diffY > 85) {
-        modalCard.style.transform = 'translateY(100%)';
+        modalCard.style.transform = "translateY(100%)";
         setTimeout(() => {
           closeModal();
-          modalCard.style.transform = '';
+          modalCard.style.transform = "";
         }, 220);
       } else {
-        modalCard.style.transform = 'translateY(0)';
+        modalCard.style.transform = "translateY(0)";
       }
     }
 
     if (drawerHandleBar) {
-      drawerHandleBar.addEventListener('touchstart', onTouchStart, { passive: true });
-      drawerHandleBar.addEventListener('touchmove', onTouchMove, { passive: true });
-      drawerHandleBar.addEventListener('touchend', onTouchEnd);
+      drawerHandleBar.addEventListener("touchstart", onTouchStart, {
+        passive: true,
+      });
+      drawerHandleBar.addEventListener("touchmove", onTouchMove, {
+        passive: true,
+      });
+      drawerHandleBar.addEventListener("touchend", onTouchEnd);
     }
     if (modalCard) {
-      modalCard.addEventListener('touchstart', (e) => {
-        const rect = modalCard.getBoundingClientRect();
-        if (e.touches[0].clientY - rect.top < 65) {
-          onTouchStart(e);
-        }
-      }, { passive: true });
-      modalCard.addEventListener('touchmove', onTouchMove, { passive: true });
-      modalCard.addEventListener('touchend', onTouchEnd);
+      modalCard.addEventListener(
+        "touchstart",
+        (e) => {
+          const rect = modalCard.getBoundingClientRect();
+          if (e.touches[0].clientY - rect.top < 65) {
+            onTouchStart(e);
+          }
+        },
+        { passive: true },
+      );
+      modalCard.addEventListener("touchmove", onTouchMove, { passive: true });
+      modalCard.addEventListener("touchend", onTouchEnd);
     }
 
     // Localhost test profile loader
-    const btnLoadTestProfile = document.getElementById('btn-load-test-profile');
+    const btnLoadTestProfile = document.getElementById("btn-load-test-profile");
     if (btnLoadTestProfile) {
-      btnLoadTestProfile.addEventListener('click', () => {
-        profRfc.value = 'MADR600405BK1';
-        profRazon.value = 'REYNOL MARTINEZ DIAZ';
-        profEmail.value = 'martinezdiazreynol@gmail.com';
-        profCp.value = '77536';
+      btnLoadTestProfile.addEventListener("click", () => {
+        profRfc.value = "MADR600405BK1";
+        profRazon.value = "REYNOL MARTINEZ DIAZ";
+        profEmail.value = "martinezdiazreynol@gmail.com";
+        profCp.value = "77536";
         if (profRegimen) {
-          profRegimen.value = '625';
-          profRegimen.dispatchEvent(new Event('change'));
+          profRegimen.value = "625";
+          profRegimen.dispatchEvent(new Event("change"));
         }
-        syncCustomRegimenFromValue('625');
+        syncCustomRegimenFromValue("625");
         if (profUso) {
-          profUso.value = 'G03';
-          profUso.dispatchEvent(new Event('change'));
+          profUso.value = "G03";
+          profUso.dispatchEvent(new Event("change"));
         }
-        syncCustomUsoFromValue('G03');
+        syncCustomUsoFromValue("G03");
 
         // Trigger real-time visual validation states
-        setFieldValidationUI(profRfc, profRfcFeedback, validateRFC(profRfc.value), true);
-        setFieldValidationUI(profRazon, profRazonFeedback, { valid: true }, true);
-        setFieldValidationUI(profEmail, profEmailFeedback, validateEmail(profEmail.value), true);
-        setFieldValidationUI(profCp, profCpFeedback, validatePostalCode(profCp.value), true);
-        customRegimenContainer?.classList.remove('is-invalid');
+        setFieldValidationUI(
+          profRfc,
+          profRfcFeedback,
+          validateRFC(profRfc.value),
+          true,
+        );
+        setFieldValidationUI(
+          profRazon,
+          profRazonFeedback,
+          { valid: true },
+          true,
+        );
+        setFieldValidationUI(
+          profEmail,
+          profEmailFeedback,
+          validateEmail(profEmail.value),
+          true,
+        );
+        setFieldValidationUI(
+          profCp,
+          profCpFeedback,
+          validatePostalCode(profCp.value),
+          true,
+        );
+        customRegimenContainer?.classList.remove("is-invalid");
         validateRegimenField(true);
-        customUsoContainer?.classList.remove('is-invalid');
+        customUsoContainer?.classList.remove("is-invalid");
         validateUsoField(true);
-        showToast('Datos de prueba de REYNOL cargados correctamente.', 'info');
+        showToast("Datos de prueba de REYNOL cargados correctamente.", "info");
       });
     }
+
+    initHistoryTabsAndTrends();
   }
 
   function checkDevEnvironment() {
-    const isLocal = ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname) ||
-                    window.location.hostname.endsWith('.local');
-    const devContainer = document.getElementById('dev-profile-container');
+    const isLocal =
+      ["localhost", "127.0.0.1", "0.0.0.0"].includes(
+        window.location.hostname,
+      ) || window.location.hostname.endsWith(".local");
+    const devContainer = document.getElementById("dev-profile-container");
     if (isLocal && devContainer) {
-      devContainer.classList.remove('hidden');
+      devContainer.classList.remove("hidden");
     }
   }
 
@@ -2380,76 +2878,94 @@ document.addEventListener('DOMContentLoaded', () => {
     switchScreen(screenProfile);
 
     // Reset validation feedback states, inner icons, and error borders
-    [profRfc, profRazon, profEmail, profCp].forEach(el => {
-      el?.classList.remove('is-valid', 'is-invalid');
+    [profRfc, profRazon, profEmail, profCp].forEach((el) => {
+      el?.classList.remove("is-valid", "is-invalid");
     });
-    document.querySelectorAll('.field-status-icon').forEach(icon => {
-      icon.className = 'field-status-icon hidden';
-      icon.innerHTML = '';
+    document.querySelectorAll(".field-status-icon").forEach((icon) => {
+      icon.className = "field-status-icon hidden";
+      icon.innerHTML = "";
     });
-    document.getElementById('regimen-select-check')?.classList.add('hidden');
-    document.getElementById('uso-select-check')?.classList.add('hidden');
-    [profRfcFeedback, profRazonFeedback, profEmailFeedback, profCpFeedback, profRegimenFeedback, profUsoFeedback].forEach(el => {
-      if (el) { el.className = 'validation-feedback'; el.innerHTML = ''; }
+    document.getElementById("regimen-select-check")?.classList.add("hidden");
+    document.getElementById("uso-select-check")?.classList.add("hidden");
+    [
+      profRfcFeedback,
+      profRazonFeedback,
+      profEmailFeedback,
+      profCpFeedback,
+      profRegimenFeedback,
+      profUsoFeedback,
+    ].forEach((el) => {
+      if (el) {
+        el.className = "validation-feedback";
+        el.innerHTML = "";
+      }
     });
-    customRegimenContainer?.classList.remove('is-invalid');
-    customUsoContainer?.classList.remove('is-invalid');
-    regimenSelectTrigger?.classList.remove('is-invalid');
-    usoSelectTrigger?.classList.remove('is-invalid');
+    customRegimenContainer?.classList.remove("is-invalid");
+    customUsoContainer?.classList.remove("is-invalid");
+    regimenSelectTrigger?.classList.remove("is-invalid");
+    usoSelectTrigger?.classList.remove("is-invalid");
 
     if (isPendingInvoicing) {
-      profileDangerZone?.classList.add('hidden');
-      profileNotificationsZone?.classList.add('hidden');
+      profileDangerZone?.classList.add("hidden");
+      profileNotificationsZone?.classList.add("hidden");
       // User came directly from reviewing a scanned ticket!
-      profilePendingNotice?.classList.remove('hidden');
-      if (profileStepIndicator) profileStepIndicator.textContent = 'Paso Final: Datos Fiscales';
-      if (profileCardTitle) profileCardTitle.textContent = '¿A quién facturamos este ticket?';
-      if (profileCardSubtitle) profileCardSubtitle.textContent = 'Configura tus datos fiscales ante el SAT para emitir tu factura de inmediato.';
+      profilePendingNotice?.classList.remove("hidden");
+      if (profileStepIndicator)
+        profileStepIndicator.textContent = "Paso Final: Datos Fiscales";
+      if (profileCardTitle)
+        profileCardTitle.textContent = "¿A quién facturamos este ticket?";
+      if (profileCardSubtitle)
+        profileCardSubtitle.textContent =
+          "Configura tus datos fiscales ante el SAT para emitir tu factura de inmediato.";
       if (btnSaveProfile) {
-        const desktopText = btnSaveProfile.querySelector('.btn-text-desktop');
-        const mobileText = btnSaveProfile.querySelector('.btn-text-mobile');
-        if (desktopText) desktopText.textContent = 'Guardar y Facturar Ticket';
-        if (mobileText) mobileText.textContent = 'Facturar';
+        const desktopText = btnSaveProfile.querySelector(".btn-text-desktop");
+        const mobileText = btnSaveProfile.querySelector(".btn-text-mobile");
+        if (desktopText) desktopText.textContent = "Guardar y Facturar Ticket";
+        if (mobileText) mobileText.textContent = "Facturar";
       }
-      btnCancelProfile.style.display = 'inline-flex';
-      btnCancelProfile.textContent = 'Volver al Ticket';
+      btnCancelProfile.style.display = "inline-flex";
+      btnCancelProfile.textContent = "Volver al Ticket";
 
       const profile = getProfile() || {};
       if (profile.rfc) {
         profRfc.value = profile.rfc;
-        profRazon.value = profile.razonSocial || '';
-        profEmail.value = profile.email || '';
-        profCp.value = profile.codigoPostal || '';
-        if (profile.regimenFiscal) syncCustomRegimenFromValue(profile.regimenFiscal);
+        profRazon.value = profile.razonSocial || "";
+        profEmail.value = profile.email || "";
+        profCp.value = profile.codigoPostal || "";
+        if (profile.regimenFiscal)
+          syncCustomRegimenFromValue(profile.regimenFiscal);
         if (profile.usoCfdi) syncCustomUsoFromValue(profile.usoCfdi);
       }
     } else if (isEditing) {
-      profilePendingNotice?.classList.add('hidden');
+      profilePendingNotice?.classList.add("hidden");
       const profile = getProfile() || {};
       if (profile && profile.rfc) {
-        profileDangerZone?.classList.remove('hidden');
-        profileNotificationsZone?.classList.remove('hidden');
+        profileDangerZone?.classList.remove("hidden");
+        profileNotificationsZone?.classList.remove("hidden");
         updatePushStatusUI();
       } else {
-        profileDangerZone?.classList.add('hidden');
-        profileNotificationsZone?.classList.add('hidden');
+        profileDangerZone?.classList.add("hidden");
+        profileNotificationsZone?.classList.add("hidden");
       }
-      if (profileStepIndicator) profileStepIndicator.textContent = 'Mi Perfil';
-      if (profileCardTitle) profileCardTitle.textContent = 'Editar Datos Fiscales';
-      if (profileCardSubtitle) profileCardSubtitle.textContent = 'Actualiza los datos con los que se emitirán tus facturas ante el SAT.';
+      if (profileStepIndicator) profileStepIndicator.textContent = "Mi Perfil";
+      if (profileCardTitle)
+        profileCardTitle.textContent = "Editar Datos Fiscales";
+      if (profileCardSubtitle)
+        profileCardSubtitle.textContent =
+          "Actualiza los datos con los que se emitirán tus facturas ante el SAT.";
       if (btnSaveProfile) {
-        const desktopText = btnSaveProfile.querySelector('.btn-text-desktop');
-        const mobileText = btnSaveProfile.querySelector('.btn-text-mobile');
-        if (desktopText) desktopText.textContent = 'Guardar Cambios';
-        if (mobileText) mobileText.textContent = 'Guardar';
+        const desktopText = btnSaveProfile.querySelector(".btn-text-desktop");
+        const mobileText = btnSaveProfile.querySelector(".btn-text-mobile");
+        if (desktopText) desktopText.textContent = "Guardar Cambios";
+        if (mobileText) mobileText.textContent = "Guardar";
       }
-      btnCancelProfile.style.display = 'inline-flex';
-      btnCancelProfile.textContent = 'Cancelar';
+      btnCancelProfile.style.display = "inline-flex";
+      btnCancelProfile.textContent = "Cancelar";
 
-      profRfc.value = profile.rfc || '';
-      profRazon.value = profile.razonSocial || '';
-      profEmail.value = profile.email || '';
-      profCp.value = profile.codigoPostal || '';
+      profRfc.value = profile.rfc || "";
+      profRazon.value = profile.razonSocial || "";
+      profEmail.value = profile.email || "";
+      profCp.value = profile.codigoPostal || "";
       if (profile.regimenFiscal && profRegimen) {
         profRegimen.value = profile.regimenFiscal;
         syncCustomRegimenFromValue(profile.regimenFiscal);
@@ -2460,38 +2976,66 @@ document.addEventListener('DOMContentLoaded', () => {
         profUso.value = profile.usoCfdi;
         syncCustomUsoFromValue(profile.usoCfdi);
       } else {
-        syncCustomUsoFromValue('G03');
+        syncCustomUsoFromValue("G03");
       }
 
       // Pre-evaluate visual validation for existing fields
-      if (profRfc.value) setFieldValidationUI(profRfc, profRfcFeedback, validateRFC(profRfc.value), true);
-      if (profRazon.value) setFieldValidationUI(profRazon, profRazonFeedback, { valid: true }, true);
-      if (profEmail.value) setFieldValidationUI(profEmail, profEmailFeedback, validateEmail(profEmail.value), true);
-      if (profCp.value) setFieldValidationUI(profCp, profCpFeedback, validatePostalCode(profCp.value), true);
+      if (profRfc.value)
+        setFieldValidationUI(
+          profRfc,
+          profRfcFeedback,
+          validateRFC(profRfc.value),
+          true,
+        );
+      if (profRazon.value)
+        setFieldValidationUI(
+          profRazon,
+          profRazonFeedback,
+          { valid: true },
+          true,
+        );
+      if (profEmail.value)
+        setFieldValidationUI(
+          profEmail,
+          profEmailFeedback,
+          validateEmail(profEmail.value),
+          true,
+        );
+      if (profCp.value)
+        setFieldValidationUI(
+          profCp,
+          profCpFeedback,
+          validatePostalCode(profCp.value),
+          true,
+        );
       if (profRegimen?.value) validateRegimenField(false);
       if (profUso?.value) validateUsoField(false);
     } else {
-      profileDangerZone?.classList.add('hidden');
-      profileNotificationsZone?.classList.add('hidden');
-      profilePendingNotice?.classList.add('hidden');
-      if (profileStepIndicator) profileStepIndicator.textContent = 'Paso 1 de 2';
-      if (profileCardTitle) profileCardTitle.textContent = 'Configura tus Datos Fiscales';
-      if (profileCardSubtitle) profileCardSubtitle.textContent = 'Para poder rellenar automáticamente los portales de facturación, necesitamos saber a nombre de quién se expedirán tus comprobantes fiscales.';
+      profileDangerZone?.classList.add("hidden");
+      profileNotificationsZone?.classList.add("hidden");
+      profilePendingNotice?.classList.add("hidden");
+      if (profileStepIndicator)
+        profileStepIndicator.textContent = "Paso 1 de 2";
+      if (profileCardTitle)
+        profileCardTitle.textContent = "Configura tus Datos Fiscales";
+      if (profileCardSubtitle)
+        profileCardSubtitle.textContent =
+          "Para poder rellenar automáticamente los portales de facturación, necesitamos saber a nombre de quién se expedirán tus comprobantes fiscales.";
       if (btnSaveProfile) {
-        const desktopText = btnSaveProfile.querySelector('.btn-text-desktop');
-        const mobileText = btnSaveProfile.querySelector('.btn-text-mobile');
-        if (desktopText) desktopText.textContent = 'Guardar Perfil y Continuar';
-        if (mobileText) mobileText.textContent = 'Guardar';
+        const desktopText = btnSaveProfile.querySelector(".btn-text-desktop");
+        const mobileText = btnSaveProfile.querySelector(".btn-text-mobile");
+        if (desktopText) desktopText.textContent = "Guardar Perfil y Continuar";
+        if (mobileText) mobileText.textContent = "Guardar";
       }
-      btnCancelProfile.style.display = 'none';
-      btnCancelProfile.textContent = 'Cancelar';
+      btnCancelProfile.style.display = "none";
+      btnCancelProfile.textContent = "Cancelar";
       profileForm.reset();
       clearRegimenSelection();
       // Default to common values
       if (profUso) {
-        profUso.value = 'G03';
+        profUso.value = "G03";
       }
-      syncCustomUsoFromValue('G03');
+      syncCustomUsoFromValue("G03");
     }
   }
 
@@ -2500,33 +3044,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const razonSocial = profRazon.value.trim().toUpperCase();
     const email = profEmail.value.trim();
     const codigoPostal = profCp.value.trim();
-    const regimenFiscal = profRegimen ? profRegimen.value : '';
-    const usoCfdi = profUso ? profUso.value : '';
+    const regimenFiscal = profRegimen ? profRegimen.value : "";
+    const usoCfdi = profUso ? profUso.value : "";
 
     // 1. Strict RFC Validation
     const rfcResult = validateRFC(rfc);
     setFieldValidationUI(profRfc, profRfcFeedback, rfcResult, true);
     if (!rfcResult.valid) {
-      showToast(rfcResult.message, 'error');
+      showToast(rfcResult.message, "error");
       profRfc.focus();
       return;
     }
 
     // 2. Razón Social Validation
-    if (!razonSocial) {
-      setFieldValidationUI(profRazon, profRazonFeedback, { valid: false, message: 'Ingresa tu Razón Social o Nombre Completo.' }, true);
-      showToast('Ingresa tu Razón Social o Nombre Completo tal como aparece en tu Constancia Fiscal.', 'error');
+    if (razonSocial) {
+      setFieldValidationUI(profRazon, profRazonFeedback, { valid: true }, true);
+    } else {
+      setFieldValidationUI(
+        profRazon,
+        profRazonFeedback,
+        { valid: false, message: "Ingresa tu Razón Social o Nombre Completo." },
+        true,
+      );
+      showToast(
+        "Ingresa tu Razón Social o Nombre Completo tal como aparece en tu Constancia Fiscal.",
+        "error",
+      );
       profRazon?.focus();
       return;
-    } else {
-      setFieldValidationUI(profRazon, profRazonFeedback, { valid: true }, true);
     }
 
     // 3. Strict Email Validation
     const emailResult = validateEmail(email);
     setFieldValidationUI(profEmail, profEmailFeedback, emailResult, true);
     if (!emailResult.valid) {
-      showToast(emailResult.message, 'error');
+      showToast(emailResult.message, "error");
       profEmail.focus();
       return;
     }
@@ -2535,31 +3087,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const cpResult = validatePostalCode(codigoPostal);
     setFieldValidationUI(profCp, profCpFeedback, cpResult, true);
     if (!cpResult.valid) {
-      showToast(cpResult.message, 'error');
+      showToast(cpResult.message, "error");
       profCp.focus();
       return;
     }
 
     // 5. Régimen Fiscal Selection
-    if (!regimenFiscal) {
-      customRegimenContainer?.classList.add('is-invalid');
+    if (regimenFiscal) {
+      customRegimenContainer?.classList.remove("is-invalid");
+    } else {
+      customRegimenContainer?.classList.add("is-invalid");
       validateRegimenField(true);
-      showToast('Por favor selecciona tu Régimen Fiscal del SAT utilizando el buscador.', 'error');
+      showToast(
+        "Por favor selecciona tu Régimen Fiscal del SAT utilizando el buscador.",
+        "error",
+      );
       openRegimenDropdown();
       return;
-    } else {
-      customRegimenContainer?.classList.remove('is-invalid');
     }
 
     // 6. Uso de CFDI Selection
-    if (!usoCfdi) {
-      customUsoContainer?.classList.add('is-invalid');
+    if (usoCfdi) {
+      customUsoContainer?.classList.remove("is-invalid");
+    } else {
+      customUsoContainer?.classList.add("is-invalid");
       validateUsoField(true);
-      showToast('Por favor selecciona el Uso de CFDI preferente para tus comprobantes.', 'error');
+      showToast(
+        "Por favor selecciona el Uso de CFDI preferente para tus comprobantes.",
+        "error",
+      );
       openUsoDropdown();
       return;
-    } else {
-      customUsoContainer?.classList.remove('is-invalid');
     }
 
     const profileData = {
@@ -2570,7 +3128,7 @@ document.addEventListener('DOMContentLoaded', () => {
       codigoPostal,
       regimenFiscal,
       usoCfdi,
-      formaPago: '2', // Default: Tarjeta
+      formaPago: "2", // Default: Tarjeta
     };
 
     saveProfile(profileData);
@@ -2590,24 +3148,30 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!deleteProfileModal) return;
     const profile = getProfile();
     if (deleteProfileRfcBadge) {
-      deleteProfileRfcBadge.textContent = profile?.rfc ? `RFC: ${profile.rfc}` : 'Sin RFC';
+      deleteProfileRfcBadge.textContent = profile?.rfc
+        ? `RFC: ${profile.rfc}`
+        : "Sin RFC";
     }
-    deleteProfileModal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+    deleteProfileModal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
     btnCancelDeleteModal?.focus();
     try {
-      window.history.pushState({ deleteProfileModalOpen: true }, '');
-    } catch {}
+      window.history.pushState({ deleteProfileModalOpen: true }, "");
+    } catch { }
   }
 
   function closeDeleteProfileModal(shouldGoBack = true) {
     if (!deleteProfileModal) return;
-    deleteProfileModal.classList.add('hidden');
-    document.body.style.overflow = '';
-    if (shouldGoBack && window.history.state && window.history.state.deleteProfileModalOpen) {
+    deleteProfileModal.classList.add("hidden");
+    document.body.style.overflow = "";
+    if (
+      shouldGoBack &&
+      window.history.state &&
+      window.history.state.deleteProfileModalOpen
+    ) {
       try {
         window.history.back();
-      } catch {}
+      } catch { }
     }
   }
 
@@ -2616,14 +3180,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Purge client-side persistence
     try {
-      localStorage.removeItem('combusticket_profile');
-      localStorage.removeItem('facturagas_profile');
-    } catch {}
+      localStorage.removeItem("combusticket_profile");
+      localStorage.removeItem("facturagas_profile");
+    } catch { }
 
     try {
-      document.cookie = 'combusticket_profile=;path=/;max-age=0;SameSite=Lax';
-      document.cookie = 'facturagas_profile=;path=/;max-age=0;SameSite=Lax';
-    } catch {}
+      document.cookie = "combusticket_profile=;path=/;max-age=0;SameSite=Lax";
+      document.cookie = "facturagas_profile=;path=/;max-age=0;SameSite=Lax";
+    } catch { }
 
     // 2. Stop history polling and reset in-memory history state
     if (historyPollingTimer) {
@@ -2638,38 +3202,45 @@ document.addEventListener('DOMContentLoaded', () => {
       profileForm.reset();
     }
     clearRegimenSelection();
-    if (profUso) profUso.value = 'G03';
-    syncCustomUsoFromValue('G03');
+    if (profUso) profUso.value = "G03";
+    syncCustomUsoFromValue("G03");
 
     // 4. Reset validation styles
     [profRfc, profRazon, profEmail, profCp].forEach((el) => {
-      el?.classList.remove('is-valid', 'is-invalid');
+      el?.classList.remove("is-valid", "is-invalid");
     });
-    document.querySelectorAll('.field-status-icon').forEach((icon) => {
-      icon.className = 'field-status-icon hidden';
-      icon.innerHTML = '';
+    document.querySelectorAll(".field-status-icon").forEach((icon) => {
+      icon.className = "field-status-icon hidden";
+      icon.innerHTML = "";
     });
-    document.getElementById('regimen-select-check')?.classList.add('hidden');
-    document.getElementById('uso-select-check')?.classList.add('hidden');
-    [profRfcFeedback, profRazonFeedback, profEmailFeedback, profCpFeedback, profRegimenFeedback, profUsoFeedback].forEach((el) => {
+    document.getElementById("regimen-select-check")?.classList.add("hidden");
+    document.getElementById("uso-select-check")?.classList.add("hidden");
+    [
+      profRfcFeedback,
+      profRazonFeedback,
+      profEmailFeedback,
+      profCpFeedback,
+      profRegimenFeedback,
+      profUsoFeedback,
+    ].forEach((el) => {
       if (el) {
-        el.className = 'validation-feedback';
-        el.innerHTML = '';
+        el.className = "validation-feedback";
+        el.innerHTML = "";
       }
     });
-    customRegimenContainer?.classList.remove('is-invalid');
-    customUsoContainer?.classList.remove('is-invalid');
+    customRegimenContainer?.classList.remove("is-invalid");
+    customUsoContainer?.classList.remove("is-invalid");
 
     // 5. Update UI state
-    document.documentElement.classList.remove('has-profile');
-    document.documentElement.classList.add('no-profile');
-    profileDangerZone?.classList.add('hidden');
-    profileNotificationsZone?.classList.add('hidden');
+    document.documentElement.classList.remove("has-profile");
+    document.documentElement.classList.add("no-profile");
+    profileDangerZone?.classList.add("hidden");
+    profileNotificationsZone?.classList.add("hidden");
     updateProfileUI();
 
     // 6. Navigate back to Welcome screen and notify user
     switchScreen(screenWelcome);
-    showToast('Perfil fiscal eliminado de este dispositivo.', 'info');
+    showToast("Perfil fiscal eliminado de este dispositivo.", "info");
   }
 
   async function uploadAndProcessPendingInvoices(profileData) {
@@ -2680,16 +3251,16 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSaveProfile.innerHTML = `<div class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block;"></div><span>Almacenando ticket en tu RFC...</span>`;
 
     try {
-      showToast('Guardando ticket bajo tu RFC...', 'info');
+      showToast("Guardando ticket bajo tu RFC...", "info");
 
       const formData = new FormData();
-      formData.append('rfc', profileData.rfc);
+      formData.append("rfc", profileData.rfc);
 
       let filesAttached = 0;
       for (let i = 0; i < currentScannedReceipts.length; i++) {
         const r = currentScannedReceipts[i];
         if (r._file) {
-          formData.append('receipts', r._file);
+          formData.append("receipts", r._file);
           filesAttached++;
         }
       }
@@ -2697,14 +3268,38 @@ document.addEventListener('DOMContentLoaded', () => {
       const existingUrls = currentScannedReceipts
         .map((r) => r.receiptImageUrl || r.previewUrl)
         .filter(Boolean);
-      formData.append('existingUrls', JSON.stringify(existingUrls));
+      formData.append("existingUrls", JSON.stringify(existingUrls));
 
-      const res = await fetch('/api/receipts/upload', {
-        method: 'POST',
+      const res = await fetch("/api/receipts/upload", {
+        method: "POST",
         body: formData,
       });
 
       const data = await res.json();
+      if (
+        res.status === 409 ||
+        (data && !data.success && data.duplicateHashes)
+      ) {
+        // Receipt file is already registered in storage for this RFC!
+        isPendingInvoicing = false;
+        btnSaveProfile.disabled = false;
+        btnSaveProfile.innerHTML = origBtnHtml;
+        closeProfileScreen();
+
+        currentScannedReceipts = [];
+        renderReviewCards();
+
+        showToast(
+          "Este recibo ya se encuentra registrado en tu historial. Te redirigimos a tu lista.",
+          "info",
+        );
+
+        switchScreen(screenHistory);
+        setNavTabActive("tab-history");
+        await loadHistory();
+        return;
+      }
+
       if (data.success) {
         if (Array.isArray(data.files) && data.files.length > 0) {
           data.files.forEach((f, idx) => {
@@ -2717,7 +3312,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Array.isArray(data.migrated) && data.migrated.length > 0) {
           data.migrated.forEach((m) => {
             currentScannedReceipts.forEach((r) => {
-              if (r.receiptImageUrl === m.originalUrl || r.previewUrl === m.originalUrl) {
+              if (
+                r.receiptImageUrl === m.originalUrl ||
+                r.previewUrl === m.originalUrl
+              ) {
                 r.receiptImageUrl = m.receiptImageUrl;
                 r.previewUrl = m.receiptImageUrl;
               }
@@ -2733,7 +3331,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Automatically advance to invoicing without re-uploading!
       await handleEnqueueInvoices();
     } catch (err) {
-      console.error('Error uploading receipt under RFC:', err);
+      console.error("Error uploading receipt under RFC:", err);
       btnSaveProfile.disabled = false;
       btnSaveProfile.innerHTML = origBtnHtml;
       isPendingInvoicing = false;
@@ -2745,12 +3343,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleFileSelect(e) {
     if (e.target.files && e.target.files.length > 0) {
       uploadFilesForScan(e.target.files);
-      fileInput.value = ''; // Reset input
+      fileInput.value = ""; // Reset input
     }
   }
 
   // --- FULLSCREEN SCANNER OVERLAY ---
-  function showScanner(imageSrc, statusMsg = 'Escaneando ticket con IA...') {
+  function showScanner(imageSrc, statusMsg = "Escaneando ticket con IA...") {
     if (scannerReceiptImg && imageSrc) {
       scannerReceiptImg.src = imageSrc;
     }
@@ -2758,37 +3356,38 @@ document.addEventListener('DOMContentLoaded', () => {
       scannerStatusText.textContent = statusMsg;
     }
     if (scannerOverlay) {
-      scannerOverlay.classList.remove('hidden');
+      scannerOverlay.classList.remove("hidden");
     }
   }
 
   function hideScanner() {
     if (scannerOverlay) {
-      scannerOverlay.classList.add('hidden');
+      scannerOverlay.classList.add("hidden");
     }
   }
 
   // --- REVIEW TABS SWITCHER ---
   function switchReviewTab(targetPaneId) {
-    if (targetPaneId === 'pane-data') {
-      tabBtnData?.classList.add('active');
-      tabBtnImage?.classList.remove('active');
-      paneData?.classList.remove('hidden');
-      paneImage?.classList.add('hidden');
+    if (targetPaneId === "pane-data") {
+      tabBtnData?.classList.add("active");
+      tabBtnImage?.classList.remove("active");
+      paneData?.classList.remove("hidden");
+      paneImage?.classList.add("hidden");
     } else {
-      tabBtnData?.classList.remove('active');
-      tabBtnImage?.classList.add('active');
-      paneData?.classList.add('hidden');
-      paneImage?.classList.remove('hidden');
+      tabBtnData?.classList.remove("active");
+      tabBtnImage?.classList.add("active");
+      paneData?.classList.add("hidden");
+      paneImage?.classList.remove("hidden");
 
       // Update fullwidth scanned image
       const firstReceipt = currentScannedReceipts[0];
       if (fullwidthScannedImg && firstReceipt) {
         if (firstReceipt.previewUrl) {
           fullwidthScannedImg.src = firstReceipt.previewUrl;
-          fullwidthScannedImg.onclick = () => window.viewMedia(firstReceipt.previewUrl, 'Recibo Escaneado');
+          fullwidthScannedImg.onclick = () =>
+            window.viewMedia(firstReceipt.previewUrl, "Recibo Escaneado");
         } else {
-          fullwidthScannedImg.src = '';
+          fullwidthScannedImg.src = "";
         }
       }
     }
@@ -2802,7 +3401,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleFileSelect(e) {
     if (e.target.files && e.target.files.length > 0) {
       uploadFilesForScan(e.target.files);
-      fileInput.value = ''; // Reset input
+      fileInput.value = ""; // Reset input
     }
   }
 
@@ -2812,24 +3411,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let initialPreviewUrl = null;
     try {
       initialPreviewUrl = URL.createObjectURL(fileList[0]);
-    } catch {}
+    } catch { }
 
     // Show fullscreen scanner overlay with sweeping laser bar
-    navTabs?.classList.add('hidden');
-    showScanner(initialPreviewUrl, 'Escaneando ticket con Inteligencia Artificial...');
+    navTabs?.classList.add("hidden");
+    showScanner(
+      initialPreviewUrl,
+      "Escaneando ticket con Inteligencia Artificial...",
+    );
 
     const formData = new FormData();
     for (let i = 0; i < fileList.length; i++) {
-      formData.append('receipts', fileList[i]);
+      formData.append("receipts", fileList[i]);
     }
     const currentProfile = getProfile();
     if (currentProfile && currentProfile.rfc) {
-      formData.append('rfc', currentProfile.rfc);
+      formData.append("rfc", currentProfile.rfc);
     }
 
     try {
-      const res = await fetch('/api/receipts/scan', {
-        method: 'POST',
+      const res = await fetch("/api/receipts/scan", {
+        method: "POST",
         body: formData,
       });
       const data = await res.json();
@@ -2845,10 +3447,11 @@ document.addEventListener('DOMContentLoaded', () => {
           if (fileObj && !pUrl) {
             try {
               pUrl = URL.createObjectURL(fileObj);
-            } catch {}
+            } catch { }
           }
 
-          const serverReceiptImg = item.receipt?.receiptImageUrl || item.receiptImageUrl;
+          const serverReceiptImg =
+            item.receipt?.receiptImageUrl || item.receiptImageUrl;
           if (item.success && item.receipt) {
             currentScannedReceipts.push({
               ...item.receipt,
@@ -2858,14 +3461,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           } else {
             currentScannedReceipts.push({
-              gasStation: 'GOGAS',
-              stationNumber: '',
-              cashier: '',
-              trackingNumber: '',
+              gasStation: "GOGAS",
+              stationNumber: "",
+              cashier: "",
+              trackingNumber: "",
               amount: 0,
-              date: new Date().toISOString().split('T')[0],
-              paymentMethod: 'TARJETA DE CRÉDITO',
-              billingUrl: 'https://www.facturasgas.com',
+              date: new Date().toISOString().split("T")[0],
+              paymentMethod: "TARJETA DE CRÉDITO",
+              billingUrl: "https://www.facturasgas.com",
               previewUrl: serverReceiptImg || pUrl,
               receiptImageUrl: serverReceiptImg || pUrl,
               _file: fileObj,
@@ -2874,52 +3477,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Default to Tab 1 (Datos Extraídos)
-        switchReviewTab('pane-data');
+        switchReviewTab("pane-data");
         await ensureUserHistoryTickets();
         renderReviewCards();
-        const hasDups = currentScannedReceipts.some((r) => isTicketDuplicate(r.trackingNumber));
+        const hasDups = currentScannedReceipts.some((r) =>
+          isTicketDuplicate(r.trackingNumber),
+        );
         if (hasDups) {
-          showToast('Atención: Uno o más tickets ya se encuentran en tu historial.', 'error');
+          showToast(
+            "Atención: Uno o más tickets ya se encuentran en tu historial.",
+            "error",
+          );
         } else {
-          showToast('Datos fiscales extraídos listos para revisión.', 'success');
+          showToast(
+            "Datos fiscales extraídos listos para revisión.",
+            "success",
+          );
         }
       } else {
         if (currentScannedReceipts.length === 0) {
           const profile = getProfile();
-          if (profile && profile.rfc) navTabs?.classList.remove('hidden');
+          if (profile && profile.rfc) navTabs?.classList.remove("hidden");
         }
-        showToast(data.error || 'No se pudieron analizar los tickets seleccionados.', 'error');
+        showToast(
+          data.error || "No se pudieron analizar los tickets seleccionados.",
+          "error",
+        );
       }
     } catch (err) {
       hideScanner();
       if (currentScannedReceipts.length === 0) {
         const profile = getProfile();
-        if (profile && profile.rfc) navTabs?.classList.remove('hidden');
+        if (profile && profile.rfc) navTabs?.classList.remove("hidden");
       }
-      showToast(`Error al escanear los tickets: ${err.message}`, 'error');
+      showToast(`Error al escanear los tickets: ${err.message}`, "error");
     }
   }
 
   async function loadDemoReceipt() {
-    const demoImgUrl = '/fixtures/receipt_sample.png';
-    navTabs?.classList.add('hidden');
-    showScanner(demoImgUrl, 'Analizando ticket de muestra con IA...');
+    const demoImgUrl = "/fixtures/receipt_sample.png";
+    navTabs?.classList.add("hidden");
+    showScanner(demoImgUrl, "Analizando ticket de muestra con IA...");
 
     try {
       const blobRes = await fetch(demoImgUrl);
       const blob = await blobRes.blob();
-      const file = new File([blob], 'receipt_sample.png', { type: 'image/png' });
+      const file = new File([blob], "receipt_sample.png", {
+        type: "image/png",
+      });
 
       // Pass along blob
       const formData = new FormData();
-      formData.append('receipts', file);
+      formData.append("receipts", file);
       const currentProfile = getProfile();
       if (currentProfile && currentProfile.rfc) {
-        formData.append('rfc', currentProfile.rfc);
+        formData.append("rfc", currentProfile.rfc);
       }
 
-      const res = await fetch('/api/receipts/scan', {
-        method: 'POST',
+      const res = await fetch("/api/receipts/scan", {
+        method: "POST",
         body: formData,
       });
       const data = await res.json();
@@ -2930,7 +3546,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentScannedReceipts = [];
         for (let i = 0; i < data.results.length; i++) {
           const item = data.results[i];
-          const demoReceiptImg = item.receipt?.receiptImageUrl || item.receiptImageUrl || demoImgUrl;
+          const demoReceiptImg =
+            item.receipt?.receiptImageUrl || item.receiptImageUrl || demoImgUrl;
           if (item.success && item.receipt) {
             currentScannedReceipts.push({
               ...item.receipt,
@@ -2940,59 +3557,67 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           } else {
             currentScannedReceipts.push({
-              gasStation: 'GOGAS',
-              stationNumber: '12009',
-              cashier: 'ANGEL IVAN CLAU MAY',
-              trackingNumber: '12009037449671666',
-              amount: 1090.40,
-              date: '21/08/2026 14:57',
-              paymentMethod: 'TARJETA DE CRÉDITO',
-              billingUrl: 'https://www.facturasgas.com',
+              gasStation: "GOGAS",
+              stationNumber: "12009",
+              cashier: "ANGEL IVAN CLAU MAY",
+              trackingNumber: "12009037449671666",
+              amount: 1090.4,
+              date: "21/08/2026 14:57",
+              paymentMethod: "TARJETA DE CRÉDITO",
+              billingUrl: "https://www.facturasgas.com",
               previewUrl: demoReceiptImg,
               receiptImageUrl: demoReceiptImg,
               _file: file,
             });
           }
         }
-        switchReviewTab('pane-data');
+        switchReviewTab("pane-data");
         await ensureUserHistoryTickets();
         renderReviewCards();
-        const hasDups = currentScannedReceipts.some((r) => isTicketDuplicate(r.trackingNumber));
+        const hasDups = currentScannedReceipts.some((r) =>
+          isTicketDuplicate(r.trackingNumber),
+        );
         if (hasDups) {
-          showToast('Atención: Este ticket ya se encuentra en tu historial.', 'error');
+          showToast(
+            "Atención: Este ticket ya se encuentra en tu historial.",
+            "error",
+          );
         } else {
-          showToast('Ticket de muestra cargado.', 'success');
+          showToast("Ticket de muestra cargado.", "success");
         }
       } else {
         if (currentScannedReceipts.length === 0) {
           const profile = getProfile();
-          if (profile && profile.rfc) navTabs?.classList.remove('hidden');
+          if (profile && profile.rfc) navTabs?.classList.remove("hidden");
         }
-        showToast(data.error || 'Error al procesar ticket de muestra.', 'error');
+        showToast(
+          data.error || "Error al procesar ticket de muestra.",
+          "error",
+        );
       }
     } catch (err) {
       hideScanner();
       if (currentScannedReceipts.length === 0) {
         const profile = getProfile();
-        if (profile && profile.rfc) navTabs?.classList.remove('hidden');
+        if (profile && profile.rfc) navTabs?.classList.remove("hidden");
       }
-      showToast('Error cargando el ticket de muestra: ' + err.message, 'error');
+      showToast("Error cargando el ticket de muestra: " + err.message, "error");
     }
   }
 
   function addManualReceiptCard() {
     currentScannedReceipts.push({
-      gasStation: 'GOGAS',
-      stationNumber: '',
-      cashier: '',
-      trackingNumber: '',
+      gasStation: "GOGAS",
+      stationNumber: "",
+      cashier: "",
+      trackingNumber: "",
       amount: 0,
-      date: new Date().toISOString().split('T')[0],
-      paymentMethod: 'TARJETA DE CRÉDITO',
-      billingUrl: 'https://www.facturasgas.com',
+      date: new Date().toISOString().split("T")[0],
+      paymentMethod: "TARJETA DE CRÉDITO",
+      billingUrl: "https://www.facturasgas.com",
       previewUrl: null,
     });
-    switchReviewTab('pane-data');
+    switchReviewTab("pane-data");
     renderReviewCards();
   }
 
@@ -3006,76 +3631,88 @@ document.addEventListener('DOMContentLoaded', () => {
       switchScreen(screenWorkbench);
     }
     renderReviewCards();
-    showToast('Recibo limpiado.', 'info');
+    showToast("Recibo limpiado.", "info");
   }
 
   function getBillingDomain(item) {
-    if (!item) return 'facturasgas.com';
-    let urlStr = (item.billingUrl || item.portalUrl || '').trim();
-    if (!urlStr && item.gasStation && item.gasStation.includes('.')) {
+    if (!item) return "facturasgas.com";
+    let urlStr = (item.billingUrl || item.portalUrl || "").trim();
+    if (!urlStr && item.gasStation && item.gasStation.includes(".")) {
       urlStr = item.gasStation;
     }
     if (urlStr) {
       try {
-        if (!urlStr.startsWith('http://') && !urlStr.startsWith('https://')) {
-          urlStr = 'https://' + urlStr;
+        if (!urlStr.startsWith("http://") && !urlStr.startsWith("https://")) {
+          urlStr = "https://" + urlStr;
         }
         const parsed = new URL(urlStr);
         let hostname = parsed.hostname.toLowerCase();
-        if (hostname.startsWith('www.')) {
+        if (hostname.startsWith("www.")) {
           hostname = hostname.substring(4);
         }
         if (hostname) return hostname;
       } catch {
-        const match = urlStr.match(/(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+        const match = urlStr.match(
+          /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/,
+        );
         if (match && match[1]) return match[1].toLowerCase();
       }
     }
-    const station = (item.gasStation || '').toLowerCase();
-    if (station.includes('iga') || station.includes('gogas') || station.includes('facturasgas')) {
-      return 'facturasgas.com';
+    const station = (item.gasStation || "").toLowerCase();
+    if (
+      station.includes("iga") ||
+      station.includes("gogas") ||
+      station.includes("facturasgas")
+    ) {
+      return "facturasgas.com";
     }
-    if (station.includes('oxxo')) {
-      return 'oxxogas.com';
+    if (station.includes("oxxo")) {
+      return "oxxogas.com";
     }
-    if (station.includes('petro')) {
-      return 'petro-7.com.mx';
+    if (station.includes("petro")) {
+      return "petro-7.com.mx";
     }
-    if (station.includes('hidrosina')) {
-      return 'hidrosina.com.mx';
+    if (station.includes("hidrosina")) {
+      return "hidrosina.com.mx";
     }
-    return item.gasStation || 'facturasgas.com';
+    return item.gasStation || "facturasgas.com";
   }
 
   function isTicketDuplicate(trackingNumber) {
     if (!trackingNumber) return false;
     const clean = String(trackingNumber).trim().toUpperCase();
     if (!clean) return false;
-    return Boolean(window.userHistoryTickets && window.userHistoryTickets.has(clean));
+    return Boolean(
+      window.userHistoryTickets && window.userHistoryTickets.has(clean),
+    );
   }
 
   async function ensureUserHistoryTickets() {
     const profile = getProfile();
     if (!profile || !profile.rfc) return window.userHistoryTickets || new Set();
     try {
-      const res = await fetch(`/api/history/${encodeURIComponent(profile.rfc)}`);
+      const res = await fetch(
+        `/api/history/${encodeURIComponent(profile.rfc)}`,
+      );
       const data = await res.json();
       if (data.success && Array.isArray(data.history)) {
         window.userHistoryTickets = new Set(
           data.history
-            .map((item) => (item.trackingNumber || '').trim().toUpperCase())
-            .filter((t) => t.length > 0)
+            .map((item) => (item.trackingNumber || "").trim().toUpperCase())
+            .filter((t) => t.length > 0),
         );
       }
     } catch (e) {
-      console.warn('Could not fetch history for duplicate check:', e);
+      console.warn("Could not fetch history for duplicate check:", e);
     }
     return window.userHistoryTickets || new Set();
   }
 
   function updateDuplicateValidation() {
     let hasAnyDuplicates = false;
-    const cards = receiptsList ? receiptsList.querySelectorAll('.receipt-card') : [];
+    const cards = receiptsList
+      ? receiptsList.querySelectorAll(".receipt-card")
+      : [];
 
     currentScannedReceipts.forEach((receipt, index) => {
       const isDup = isTicketDuplicate(receipt.trackingNumber);
@@ -3083,22 +3720,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const card = cards[index];
       if (card) {
-        card.classList.toggle('card-duplicate', isDup);
+        card.classList.toggle("card-duplicate", isDup);
         const trkInput = card.querySelector('[data-field="trackingNumber"]');
         if (trkInput) {
-          trkInput.classList.toggle('input-duplicate', isDup);
+          trkInput.classList.toggle("input-duplicate", isDup);
         }
-        let banner = card.querySelector('.duplicate-warning-banner');
+        let banner = card.querySelector(".duplicate-warning-banner");
         if (isDup && !banner) {
-          banner = document.createElement('div');
-          banner.className = 'duplicate-warning-banner';
+          banner = document.createElement("div");
+          banner.className = "duplicate-warning-banner";
           banner.innerHTML = `
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span><strong>Ticket ya registrado:</strong> Este número de rastreo ya existe en tu historial. Elimínalo para continuar.</span>
+            <span><strong>Ticket ya registrado:</strong> Este número de rastreo ya existe en tu historial. Puedes verlo en tu lista de facturas.</span>
           `;
-          const header = card.querySelector('.receipt-card-header');
+          const header = card.querySelector(".receipt-card-header");
           if (header) {
-            header.insertAdjacentElement('afterend', banner);
+            header.insertAdjacentElement("afterend", banner);
           } else {
             card.prepend(banner);
           }
@@ -3109,67 +3746,111 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (btnEnqueueInvoices) {
-      if (hasAnyDuplicates) {
-        btnEnqueueInvoices.disabled = true;
-        btnEnqueueInvoices.setAttribute('disabled', 'true');
-        btnEnqueueInvoices.title = 'No puedes avanzar: contiene tickets que ya están en tu historial.';
+      const allDuplicates =
+        currentScannedReceipts.length > 0 &&
+        currentScannedReceipts.every((r) => isTicketDuplicate(r.trackingNumber));
+
+      if (allDuplicates) {
+        btnEnqueueInvoices.disabled = false;
+        btnEnqueueInvoices.removeAttribute("disabled");
+        btnEnqueueInvoices.title = "Este recibo ya existe en tu historial. Clic para ver tu lista.";
+        btnEnqueueInvoices.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Ver en mi Historial</span>`;
       } else {
         btnEnqueueInvoices.disabled = false;
-        btnEnqueueInvoices.removeAttribute('disabled');
-        btnEnqueueInvoices.title = '';
+        btnEnqueueInvoices.removeAttribute("disabled");
+        btnEnqueueInvoices.title = "";
+        btnEnqueueInvoices.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span>Avanzar y Facturar</span>`;
       }
     }
   }
 
   const PAYMENT_METHODS = [
-    'Efectivo',
-    'Tarjeta de Crédito',
-    'Tarjeta de Débito',
-    'Tarjeta de Servicios',
-    'Cheque',
-    'Transferencia Electrónica de Fondos',
+    "Efectivo",
+    "Tarjeta de Crédito",
+    "Tarjeta de Débito",
+    "Tarjeta de Servicios",
+    "Cheque",
+    "Transferencia Electrónica de Fondos",
   ];
 
   function normalizePaymentMethod(raw) {
-    if (!raw) return 'Tarjeta de Crédito';
-    const s = String(raw).toUpperCase().trim();
-    if (s.includes('EFECTIVO') || s.includes('CASH')) return 'Efectivo';
-    if (s.includes('DEBITO') || s.includes('DÉBITO')) return 'Tarjeta de Débito';
-    if (s.includes('SERVICIO') || s.includes('VALE') || s.includes('MONEDERO') || s.includes('FLOTILLA')) return 'Tarjeta de Servicios';
-    if (s.includes('CHEQUE')) return 'Cheque';
-    if (s.includes('TRANSFERENCIA') || s.includes('SPEI') || s.includes('FONDOS') || s.includes('ELECTRONICA')) return 'Transferencia Electrónica de Fondos';
-    if (s.includes('CREDITO') || s.includes('CRÉDITO') || s.includes('VISA') || s.includes('MC') || s.includes('MASTER') || s.includes('AMEX') || s.includes('AMERICAN')) return 'Tarjeta de Crédito';
-    const found = PAYMENT_METHODS.find((m) => m.toLowerCase() === s.toLowerCase());
-    return found || 'Tarjeta de Crédito';
+    const s = normalizePaymentText(raw);
+    if (!s) return "Tarjeta de Crédito";
+    if (hasDebitCardSignal(s)) return "Tarjeta de Débito";
+    if (hasCreditCardSignal(s) || /\b(?:AMEX|AMERICAN)\b/.test(s))
+      return "Tarjeta de Crédito";
+    if (hasCashSignal(s)) return "Efectivo";
+    if (/\b(?:SERVICIO|VALE|MONEDERO|FLOTILLA)\b/.test(s))
+      return "Tarjeta de Servicios";
+    if (/\bCHEQUE\b/.test(s)) return "Cheque";
+    if (/\b(?:TRANSFERENCIA|SPEI|FONDOS|ELECTRONICA)\b/.test(s))
+      return "Transferencia Electrónica de Fondos";
+    const found = PAYMENT_METHODS.find((m) => normalizePaymentText(m) === s);
+    return found || "Tarjeta de Crédito";
+  }
+
+  function normalizePaymentText(raw) {
+    return String(raw || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .trim();
+  }
+
+  function hasCreditCardSignal(text) {
+    return (
+      /\b(?:VISA|MASTERCARD|MASTER\s*CARD|CREDITO|CREDIT)\b/.test(text) ||
+      /(?:^|[^A-Z0-9])MC(?:[^A-Z0-9]|$)/.test(text)
+    );
+  }
+
+  function hasDebitCardSignal(text) {
+    return /\b(?:DEBITO|DEBIT|RED\s+COMPRA)\b/.test(text);
+  }
+
+  function hasCashSignal(text) {
+    return /\b(?:EFECTIVO|CASH)\b/.test(text);
   }
 
   function renderPortalChoices(receipt) {
-    const rawUrl = (receipt.billingUrl || receipt.portalUrl || '').trim();
+    const rawUrl = (receipt.billingUrl || receipt.portalUrl || "").trim();
     const rawDomain = getBillingDomain(receipt).toLowerCase();
-    const stations = (Array.isArray(supportedStations) && supportedStations.length > 0)
-      ? supportedStations
-      : DEFAULT_FALLBACK_STATIONS;
+    const stations =
+      Array.isArray(supportedStations) && supportedStations.length > 0
+        ? supportedStations
+        : DEFAULT_FALLBACK_STATIONS;
 
     let matchedIndex = -1;
     for (let i = 0; i < stations.length; i++) {
       const st = stations[i];
-      const stDomain = (st.domain || '').toLowerCase();
-      const stPortal = (st.portalUrl || '').toLowerCase();
+      const stDomain = (st.domain || "").toLowerCase();
+      const stPortal = (st.portalUrl || "").toLowerCase();
       if (
-        (rawUrl && (rawUrl.toLowerCase() === stPortal || rawUrl.toLowerCase().includes(stDomain))) ||
-        (rawDomain && (rawDomain === stDomain || rawDomain.includes(stDomain) || stDomain.includes(rawDomain))) ||
-        (receipt.stationId && receipt.stationId.toLowerCase() === st.id.toLowerCase())
+        (rawUrl &&
+          (rawUrl.toLowerCase() === stPortal ||
+            rawUrl.toLowerCase().includes(stDomain))) ||
+        (rawDomain &&
+          (rawDomain === stDomain ||
+            rawDomain.includes(stDomain) ||
+            stDomain.includes(rawDomain))) ||
+        (receipt.stationId &&
+          receipt.stationId.toLowerCase() === st.id.toLowerCase())
       ) {
         matchedIndex = i;
         break;
       }
     }
 
-    if (matchedIndex === -1 && (!rawUrl || rawUrl.includes('facturasgas') || rawDomain.includes('facturasgas'))) {
-      matchedIndex = stations.findIndex((s) => s.id === 'gogas');
+    if (
+      matchedIndex === -1 &&
+      (!rawUrl ||
+        rawUrl.includes("facturasgas") ||
+        rawDomain.includes("facturasgas"))
+    ) {
+      matchedIndex = stations.findIndex((s) => s.id === "gogas");
     }
 
-    let html = '';
+    let html = "";
     if (matchedIndex === -1 && rawUrl) {
       html += `<option value="${escapeHtml(rawUrl)}" selected>Detectado: ${escapeHtml(rawDomain || rawUrl)}</option>`;
     }
@@ -3177,9 +3858,9 @@ document.addEventListener('DOMContentLoaded', () => {
     stations.forEach((st, idx) => {
       const val = st.portalUrl || `https://${st.domain}`;
       const isSel = idx === matchedIndex;
-      const isAvailable = st.status === 'active';
-      const labelSuffix = isAvailable ? '' : ' (Próximamente)';
-      html += `<option value="${escapeHtml(val)}" ${isSel ? 'selected' : ''}>${escapeHtml(st.name)} (${escapeHtml(st.domain || val)})${labelSuffix}</option>`;
+      const isAvailable = st.status === "active";
+      const labelSuffix = isAvailable ? "" : " (Próximamente)";
+      html += `<option value="${escapeHtml(val)}" ${isSel ? "selected" : ""}>${escapeHtml(st.name)} (${escapeHtml(st.domain || val)})${labelSuffix}</option>`;
     });
 
     return html;
@@ -3187,11 +3868,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderReviewCards() {
     if (currentScannedReceipts.length === 0) {
-      reviewSection?.classList.add('hidden');
-      uploadCard?.classList.remove('hidden');
+      reviewSection?.classList.add("hidden");
+      uploadCard?.classList.remove("hidden");
       const profile = getProfile();
       if (profile && profile.rfc) {
-        navTabs?.classList.remove('hidden');
+        navTabs?.classList.remove("hidden");
         switchScreen(screenHistory);
         loadHistory();
       } else {
@@ -3201,18 +3882,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Ensure uploadCard is restored to workbenchLayout if loaned to historyContent
-    const workbenchLayout = document.querySelector('.workbench-layout');
-    if (uploadCard && workbenchLayout && uploadCard.parentElement !== workbenchLayout) {
+    const workbenchLayout = document.querySelector(".workbench-layout");
+    if (
+      uploadCard &&
+      workbenchLayout &&
+      uploadCard.parentElement !== workbenchLayout
+    ) {
       workbenchLayout.prepend(uploadCard);
     }
 
     // Switch screen to workbench so reviewSection and its tabs are visible!
     switchScreen(screenWorkbench);
 
-    uploadCard?.classList.add('hidden');
-    navTabs?.classList.add('hidden');
-    reviewSection?.classList.remove('hidden');
-    receiptsList.innerHTML = '';
+    uploadCard?.classList.add("hidden");
+    navTabs?.classList.add("hidden");
+    reviewSection?.classList.remove("hidden");
+    receiptsList.innerHTML = "";
 
     let totalAmount = 0;
 
@@ -3221,9 +3906,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fullwidthScannedImg && firstReceipt) {
       if (firstReceipt.previewUrl) {
         fullwidthScannedImg.src = firstReceipt.previewUrl;
-        fullwidthScannedImg.onclick = () => window.viewMedia(firstReceipt.previewUrl, 'Recibo Escaneado');
+        fullwidthScannedImg.onclick = () =>
+          window.viewMedia(firstReceipt.previewUrl, "Recibo Escaneado");
       } else {
-        fullwidthScannedImg.src = '';
+        fullwidthScannedImg.src = "";
       }
     }
 
@@ -3232,8 +3918,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const isDuplicate = isTicketDuplicate(receipt.trackingNumber);
 
-      const card = document.createElement('div');
-      card.className = `receipt-card ${isDuplicate ? 'card-duplicate' : ''}`;
+      const card = document.createElement("div");
+      card.className = `receipt-card ${isDuplicate ? "card-duplicate" : ""}`;
       card.innerHTML = `
         <div class="receipt-card-header">
           <div class="receipt-card-title-group">
@@ -3245,17 +3931,20 @@ document.addEventListener('DOMContentLoaded', () => {
           </button>
         </div>
 
-        ${isDuplicate ? `
+        ${isDuplicate
+          ? `
           <div class="duplicate-warning-banner">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span><strong>Ticket ya registrado:</strong> Este número de rastreo ya existe en tu historial. Elimínalo para continuar.</span>
           </div>
-        ` : ''}
+        `
+          : ""
+        }
 
         <div class="receipt-card-fields">
           <div class="form-group">
             <label class="form-label">No. de Rastreo / Ticket <span class="req">*</span></label>
-            <input type="text" class="form-input font-mono font-bold ${isDuplicate ? 'input-duplicate' : ''}" data-field="trackingNumber" data-index="${index}" value="${escapeHtml(receipt.trackingNumber || '')}" placeholder="Código de ticket">
+            <input type="text" class="form-input font-mono font-bold ${isDuplicate ? "input-duplicate" : ""}" data-field="trackingNumber" data-index="${index}" value="${escapeHtml(receipt.trackingNumber || "")}" placeholder="Código de ticket">
           </div>
 
           <div class="form-group">
@@ -3265,27 +3954,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
           <div class="form-group">
             <label class="form-label">Fecha y Hora</label>
-            <input type="text" class="form-input font-mono" data-field="date" data-index="${index}" value="${escapeHtml(receipt.date || '')}" placeholder="DD/MM/AAAA HH:MM">
+            <input type="text" class="form-input font-mono" data-field="date" data-index="${index}" value="${escapeHtml(receipt.date || "")}" placeholder="DD/MM/AAAA HH:MM">
           </div>
 
           <div class="form-group">
             <label class="form-label">No. de Estación</label>
-            <input type="text" class="form-input font-mono" data-field="stationNumber" data-index="${index}" value="${escapeHtml(receipt.stationNumber || '')}" placeholder="Ej. 14764">
+            <input type="text" class="form-input font-mono" data-field="stationNumber" data-index="${index}" value="${escapeHtml(receipt.stationNumber || "")}" placeholder="Ej. 14764">
           </div>
 
           <div class="form-group">
             <label class="form-label">Cajero / Despachador</label>
-            <input type="text" class="form-input" data-field="cashier" data-index="${index}" value="${escapeHtml(receipt.cashier || '')}" placeholder="Nombre o No. de Cajero">
+            <input type="text" class="form-input" data-field="cashier" data-index="${index}" value="${escapeHtml(receipt.cashier || "")}" placeholder="Nombre o No. de Cajero">
           </div>
 
           <div class="form-group">
             <label class="form-label">Forma de Pago <span class="req">*</span></label>
             <select class="form-select font-bold" data-field="paymentMethod" data-index="${index}">
               ${PAYMENT_METHODS.map((pm) => {
-                const isSel = normalizePaymentMethod(receipt.paymentMethod) === pm;
-                return `<option value="${escapeHtml(pm)}" ${isSel ? 'selected' : ''}>${escapeHtml(pm)}</option>`;
-              }).join('')}
+          const isSel =
+            normalizePaymentMethod(receipt.paymentMethod) === pm;
+          return `<option value="${escapeHtml(pm)}" ${isSel ? "selected" : ""}>${escapeHtml(pm)}</option>`;
+        }).join("")}
             </select>
+          </div>
+
+          <div class="form-group form-group-full">
+            <label class="form-label">Dirección / Sucursal</label>
+            <input type="text" class="form-input" data-field="address" data-index="${index}" value="${escapeHtml(receipt.address || "")}" placeholder="Ej. Av. Kabah Mz 1 Lote 2, Benito Juárez, Q. Roo">
           </div>
 
           <div class="form-group form-group-full">
@@ -3308,42 +4003,46 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Bind inputs & selects to state
-    receiptsList.querySelectorAll('input, select').forEach((element) => {
+    receiptsList.querySelectorAll("input, select").forEach((element) => {
       const handleFieldChange = (e) => {
-        const idx = parseInt(element.getAttribute('data-index'), 10);
-        const field = element.getAttribute('data-field');
+        const idx = parseInt(element.getAttribute("data-index"), 10);
+        const field = element.getAttribute("data-field");
         if (currentScannedReceipts[idx]) {
           currentScannedReceipts[idx][field] = e.target.value;
-          if (field === 'amount') {
+          if (field === "amount") {
             recalculateTotal();
-          } else if (field === 'trackingNumber') {
+          } else if (field === "trackingNumber") {
             updateDuplicateValidation();
-          } else if (field === 'billingUrl') {
-            const cardEl = element.closest('.receipt-card');
+          } else if (field === "billingUrl") {
+            const cardEl = element.closest(".receipt-card");
             if (cardEl) {
-              const headerDomain = cardEl.querySelector('.receipt-card-title-group strong');
+              const headerDomain = cardEl.querySelector(
+                ".receipt-card-title-group strong",
+              );
               if (headerDomain) {
-                headerDomain.textContent = getBillingDomain(currentScannedReceipts[idx]);
+                headerDomain.textContent = getBillingDomain(
+                  currentScannedReceipts[idx],
+                );
               }
             }
           }
         }
       };
-      element.addEventListener('input', handleFieldChange);
-      element.addEventListener('change', handleFieldChange);
+      element.addEventListener("input", handleFieldChange);
+      element.addEventListener("change", handleFieldChange);
     });
 
     // Bind delete buttons
-    receiptsList.querySelectorAll('[data-delete-index]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(btn.getAttribute('data-delete-index'), 10);
+    receiptsList.querySelectorAll("[data-delete-index]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const idx = parseInt(btn.getAttribute("data-delete-index"), 10);
         currentScannedReceipts.splice(idx, 1);
         renderReviewCards();
       });
     });
 
     if (totalTicketsCount) {
-      totalTicketsCount.textContent = `${currentScannedReceipts.length} ticket${currentScannedReceipts.length > 1 ? 's' : ''} listo${currentScannedReceipts.length > 1 ? 's' : ''}`;
+      totalTicketsCount.textContent = `${currentScannedReceipts.length} ticket${currentScannedReceipts.length > 1 ? "s" : ""} listo${currentScannedReceipts.length > 1 ? "s" : ""}`;
     }
     if (totalAmountSum) {
       totalAmountSum.textContent = `Total: $${totalAmount.toFixed(2)} MXN`;
@@ -3365,38 +4064,81 @@ document.addEventListener('DOMContentLoaded', () => {
   async function handleEnqueueInvoices() {
     const profile = getProfile();
     if (!profile || !profile.rfc) {
-      showToast('¡Datos del ticket listos! Configura tus datos fiscales para emitir tu factura.', 'info');
+      showToast(
+        "¡Datos del ticket listos! Configura tus datos fiscales para emitir tu factura.",
+        "info",
+      );
       openProfileScreen(false, { pendingInvoicing: true });
       return;
     }
 
     if (currentScannedReceipts.length === 0) {
-      showToast('No hay tickets en la lista para facturar.', 'error');
+      showToast("No hay tickets en la lista para facturar.", "error");
       return;
     }
 
     // Ensure latest history is loaded before evaluating
     await ensureUserHistoryTickets();
 
-    // Validate that all tickets have a trackingNumber and no duplicates
+    // Check if tickets are already in user history
+    const duplicateIndexes = [];
+    currentScannedReceipts.forEach((r, idx) => {
+      const trk = (r.trackingNumber || "").trim();
+      if (trk && isTicketDuplicate(trk)) {
+        duplicateIndexes.push(idx);
+      }
+    });
+
+    if (
+      duplicateIndexes.length === currentScannedReceipts.length &&
+      currentScannedReceipts.length > 0
+    ) {
+      // ALL tickets are already in user's history! Redirect gracefully to history screen.
+      currentScannedReceipts = [];
+      renderReviewCards();
+
+      showToast(
+        "Este recibo ya se encuentra registrado en tu historial. Te redirigimos a tu lista.",
+        "info",
+      );
+
+      switchScreen(screenHistory);
+      setNavTabActive("tab-history");
+      await loadHistory();
+      return;
+    }
+
+    if (duplicateIndexes.length > 0) {
+      // Omit already-existing tickets and continue with the rest
+      currentScannedReceipts = currentScannedReceipts.filter(
+        (_, idx) => !duplicateIndexes.includes(idx),
+      );
+      renderReviewCards();
+      showToast(
+        "Se omitieron los tickets que ya tenías en tu historial. Procediendo con los nuevos...",
+        "info",
+      );
+    }
+
+    // Validate remaining tickets have tracking numbers
     for (let i = 0; i < currentScannedReceipts.length; i++) {
       if (!currentScannedReceipts[i].trackingNumber) {
-        showToast(`El ticket #${i + 1} no tiene Número de Rastreo / Ticket. Por favor ingresa el código del ticket.`, 'error');
-        return;
-      }
-      const trk = (currentScannedReceipts[i].trackingNumber || '').trim();
-      if (trk && isTicketDuplicate(trk)) {
-        showToast(`El ticket "${trk}" ya está en tu historial. Elimínalo para continuar.`, 'error');
-        updateDuplicateValidation();
+        showToast(
+          `El ticket #${i + 1} no tiene Número de Rastreo / Ticket. Por favor ingresa el código del ticket.`,
+          "error",
+        );
         return;
       }
     }
 
     // Auto-prompt push notification permissions on receipt submit if not yet decided
-    if ('Notification' in window && Notification.permission === 'default') {
-      autoPromptPushPermission(profile.rfc).catch(() => {});
-    } else if ('Notification' in window && Notification.permission === 'granted') {
-      subscribeUserToPush(profile.rfc, { silentSuccess: true }).catch(() => {});
+    if ("Notification" in window && Notification.permission === "default") {
+      autoPromptPushPermission(profile.rfc).catch(() => { });
+    } else if (
+      "Notification" in window &&
+      Notification.permission === "granted"
+    ) {
+      subscribeUserToPush(profile.rfc, { silentSuccess: true }).catch(() => { });
     }
 
     btnEnqueueInvoices.disabled = true;
@@ -3411,9 +4153,9 @@ document.addEventListener('DOMContentLoaded', () => {
         billingProfile: profile,
       };
 
-      const res = await fetch('/api/queue/invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/queue/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -3422,8 +4164,18 @@ document.addEventListener('DOMContentLoaded', () => {
       btnEnqueueInvoices.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span>Avanzar y Facturar</span>`;
 
       if (res.status === 409 || data.duplicateTickets) {
-        showToast(data.error || 'Ticket ya registrado en tu historial.', 'error');
-        updateDuplicateValidation();
+        currentScannedReceipts = [];
+        renderReviewCards();
+
+        showToast(
+          data.error ||
+            "Este ticket ya se encuentra registrado en tu historial. Te redirigimos a tu lista.",
+          "info",
+        );
+
+        switchScreen(screenHistory);
+        setNavTabActive("tab-history");
+        await loadHistory();
         return;
       }
 
@@ -3434,31 +4186,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Switch to unified Historial screen and load fresh state from Redis
         switchScreen(screenHistory);
-        setNavTabActive('tab-history');
+        setNavTabActive("tab-history");
         await loadHistory();
       } else {
-        showToast(data.error || 'Error al encolar los procesos.', 'error');
+        showToast(data.error || "Error al encolar los procesos.", "error");
       }
     } catch (err) {
       btnEnqueueInvoices.disabled = false;
       btnEnqueueInvoices.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span>Avanzar y Facturar</span>`;
-      showToast(`Error al conectar con la cola: ${err.message}`, 'error');
+      showToast(`Error al conectar con la cola: ${err.message}`, "error");
     }
   }
 
   // --- QUEUE MONITORING & NOTIFICATION BADGE ---
   function updateQueueBadge() {
-    const pending = redisHistoryItems.filter((j) => j.status === 'waiting' || j.status === 'active');
+    const pending = redisHistoryItems.filter(
+      (j) => j.status === "waiting" || j.status === "active",
+    );
     if (pending.length > 0) {
       if (historyBadge) {
         historyBadge.textContent = pending.length;
-        historyBadge.classList.remove('hidden');
+        historyBadge.classList.remove("hidden");
       }
       if (activeJobsCount) {
         activeJobsCount.textContent = `${pending.length} en curso`;
       }
     } else {
-      if (historyBadge) historyBadge.classList.add('hidden');
+      if (historyBadge) historyBadge.classList.add("hidden");
       if (activeJobsCount) {
         activeJobsCount.textContent = `0 en curso`;
       }
@@ -3473,7 +4227,9 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadHistory() {
     const profile = getProfile();
     if (!profile || !profile.rfc) {
-      if (historySubtitle) historySubtitle.textContent = 'Configura tu perfil fiscal para consultar tu historial.';
+      if (historySubtitle)
+        historySubtitle.textContent =
+          "Configura tu perfil fiscal para consultar tu historial.";
       if (historyContent) {
         historyContent.innerHTML = `
           <div class="history-empty">
@@ -3493,7 +4249,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const res = await fetch(`/api/history/${encodeURIComponent(profile.rfc)}`);
+      const res = await fetch(
+        `/api/history/${encodeURIComponent(profile.rfc)}`,
+      );
       const data = await res.json();
 
       if (data.success && Array.isArray(data.history)) {
@@ -3503,26 +4261,32 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       window.userHistoryTickets = new Set(
         redisHistoryItems
-          .map((item) => (item.trackingNumber || '').trim().toUpperCase())
-          .filter((t) => t.length > 0)
+          .map((item) => (item.trackingNumber || "").trim().toUpperCase())
+          .filter((t) => t.length > 0),
       );
       renderUnifiedHistory();
+      if (activeHistorySubTab === "trends") {
+        fetchAndRenderTrends();
+      }
 
       // Check if any job is currently in progress across any device
-      const hasPending = redisHistoryItems.some((item) => item.status === 'waiting' || item.status === 'active');
+      const hasPending = redisHistoryItems.some(
+        (item) => item.status === "waiting" || item.status === "active",
+      );
       if (hasPending) {
         if (!historyPollingTimer) {
           historyPollingTimer = setInterval(loadHistory, 2500);
         }
-      } else {
-        if (historyPollingTimer) {
-          clearInterval(historyPollingTimer);
-          historyPollingTimer = null;
-        }
+      } else if (historyPollingTimer) {
+        clearInterval(historyPollingTimer);
+        historyPollingTimer = null;
       }
     } catch (err) {
-      console.warn('Error fetching history:', err);
+      console.warn("Error fetching history:", err);
       renderUnifiedHistory();
+      if (activeHistorySubTab === "trends") {
+        fetchAndRenderTrends();
+      }
     }
   }
 
@@ -3534,19 +4298,35 @@ document.addEventListener('DOMContentLoaded', () => {
     // Work directly with Redis-backed history and deduplicate defensively
     const seenMap = new Map();
     for (const item of redisHistoryItems) {
-      const trk = (item.trackingNumber && item.trackingNumber !== '---')
-        ? `trk_${String(item.trackingNumber).trim().toUpperCase()}`
-        : null;
+      const trk =
+        item.trackingNumber && item.trackingNumber !== "---"
+          ? `trk_${String(item.trackingNumber).trim().toUpperCase()}`
+          : null;
       const job = item.jobId ? `job_${String(item.jobId)}` : null;
-      const id = item.id ? `id_${String(item.id).replace(/^hist_/, '')}` : null;
+      const id = item.id ? `id_${String(item.id).replace(/^hist_/, "")}` : null;
 
       let matchedKey = null;
       for (const [key, existing] of seenMap.entries()) {
-        const trkMatch = trk && existing.trackingNumber && existing.trackingNumber !== '---' &&
-          String(existing.trackingNumber).trim().toUpperCase() === String(item.trackingNumber).trim().toUpperCase();
-        const jobMatch = (job && existing.jobId && String(existing.jobId) === String(item.jobId)) ||
-          (item.jobId && existing.id && (existing.id === String(item.jobId) || existing.id === `hist_${item.jobId}`));
-        const idMatch = (id && existing.id && (existing.id === item.id || existing.id === `hist_${item.jobId}` || item.id === `hist_${existing.jobId}`));
+        const trkMatch =
+          trk &&
+          existing.trackingNumber &&
+          existing.trackingNumber !== "---" &&
+          String(existing.trackingNumber).trim().toUpperCase() ===
+          String(item.trackingNumber).trim().toUpperCase();
+        const jobMatch =
+          (job &&
+            existing.jobId &&
+            String(existing.jobId) === String(item.jobId)) ||
+          (item.jobId &&
+            existing.id &&
+            (existing.id === String(item.jobId) ||
+              existing.id === `hist_${item.jobId}`));
+        const idMatch =
+          id &&
+          existing.id &&
+          (existing.id === item.id ||
+            existing.id === `hist_${item.jobId}` ||
+            item.id === `hist_${existing.jobId}`);
 
         if (trkMatch || jobMatch || idMatch) {
           matchedKey = key;
@@ -3554,14 +4334,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      const primaryKey = matchedKey || trk || job || id || `item_${Math.random()}`;
+      const primaryKey =
+        matchedKey || trk || job || id || `item_${Math.random()}`;
 
       if (matchedKey) {
         const existing = seenMap.get(matchedKey);
-        const statusPriority = { completed: 4, failed: 3, active: 2, waiting: 1, dry_run: 4 };
-        const preferredStatus = (statusPriority[item.status] || 0) >= (statusPriority[existing.status] || 0)
-          ? item.status
-          : existing.status;
+        const statusPriority = {
+          completed: 4,
+          failed: 3,
+          active: 2,
+          waiting: 1,
+          dry_run: 4,
+        };
+        const preferredStatus =
+          (statusPriority[item.status] || 0) >=
+            (statusPriority[existing.status] || 0)
+            ? item.status
+            : existing.status;
 
         seenMap.set(matchedKey, {
           ...existing,
@@ -3578,8 +4367,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sort: pending jobs (waiting/active) first, then by timestamp descending
     unifiedList.sort((a, b) => {
-      const aPending = a.status === 'waiting' || a.status === 'active';
-      const bPending = b.status === 'waiting' || b.status === 'active';
+      const aPending = a.status === "waiting" || a.status === "active";
+      const bPending = b.status === "waiting" || b.status === "active";
       if (aPending && !bPending) return -1;
       if (!aPending && bPending) return 1;
 
@@ -3588,64 +4377,131 @@ document.addEventListener('DOMContentLoaded', () => {
       return timeB - timeA;
     });
 
+    if (receiptsCountBadge) {
+      receiptsCountBadge.textContent = unifiedList.length;
+    }
+
     if (unifiedList.length === 0) {
-      historyContent.innerHTML = '';
+      historyContent.innerHTML = "";
+      if (historyPagination) historyPagination.classList.add("hidden");
       if (uploadCard) {
-        uploadCard.classList.remove('hidden');
-        if (btnBackToHistory) btnBackToHistory.classList.add('hidden');
+        uploadCard.classList.remove("hidden");
+        if (btnBackToHistory) btnBackToHistory.classList.add("hidden");
         historyContent.appendChild(uploadCard);
       }
       if (historySubtitle) {
-        historySubtitle.textContent = 'Aún no tienes facturas registradas. Sube tu primer ticket para comenzar:';
+        historySubtitle.textContent =
+          "Aún no tienes facturas registradas. Sube tu primer ticket para comenzar:";
       }
       if (btnNewFromHistory) {
-        btnNewFromHistory.classList.add('hidden');
+        btnNewFromHistory.classList.add("hidden");
       }
       if (mobileHistoryBar) {
-        mobileHistoryBar.classList.add('hidden');
+        mobileHistoryBar.classList.add("hidden");
       }
       return;
     }
 
     // When items exist:
     if (btnNewFromHistory) {
-      btnNewFromHistory.classList.remove('hidden');
+      btnNewFromHistory.classList.remove("hidden");
     }
     if (mobileHistoryBar) {
-      mobileHistoryBar.classList.remove('hidden');
+      mobileHistoryBar.classList.remove("hidden");
     }
     if (historySubtitle) {
       const profile = getProfile();
-      historySubtitle.textContent = `Mostrando facturas registradas para RFC: ${profile?.rfc || ''}`;
+      historySubtitle.textContent = `Mostrando facturas registradas para RFC: ${profile?.rfc || ""}`;
     }
 
     // Move uploadCard back to workbenchLayout if it was attached to historyContent
     if (uploadCard && uploadCard.parentElement === historyContent) {
-      const workbenchLayout = document.querySelector('.workbench-layout');
+      const workbenchLayout = document.querySelector(".workbench-layout");
       if (workbenchLayout) {
         workbenchLayout.prepend(uploadCard);
       }
-      uploadCard.classList.add('hidden');
+      uploadCard.classList.add("hidden");
     }
 
+    // Pagination logic (50 items max per page)
+    const totalItems = unifiedList.length;
+    const totalPages = Math.ceil(totalItems / historyPageSize) || 1;
+    if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
+    if (historyCurrentPage < 1) historyCurrentPage = 1;
+
+    const startIndex = (historyCurrentPage - 1) * historyPageSize;
+    const endIndex = Math.min(startIndex + historyPageSize, totalItems);
+    const pageItems = unifiedList.slice(startIndex, endIndex);
+
     let rowsHtml = '<div class="history-rows-list">';
-    unifiedList.forEach((item) => {
+    pageItems.forEach((item) => {
       rowsHtml += createHistoryRowHtml(item);
     });
-    rowsHtml += '</div>';
+    rowsHtml += "</div>";
 
     historyContent.innerHTML = rowsHtml;
 
+    // Render pagination controls
+    if (historyPagination) {
+      if (totalItems > historyPageSize) {
+        historyPagination.classList.remove("hidden");
+      } else {
+        historyPagination.classList.add("hidden");
+      }
+      if (paginationInfo) {
+        paginationInfo.textContent = `Mostrando ${startIndex + 1} - ${endIndex} de ${totalItems} facturas`;
+      }
+      if (btnPagePrev) {
+        btnPagePrev.disabled = historyCurrentPage <= 1;
+      }
+      if (btnPageNext) {
+        btnPageNext.disabled = historyCurrentPage >= totalPages;
+      }
+      if (paginationPages) {
+        let pagesHtml = "";
+        const maxButtons = 5;
+        let startPage = Math.max(1, historyCurrentPage - 2);
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        if (endPage - startPage < maxButtons - 1) {
+          startPage = Math.max(1, endPage - maxButtons + 1);
+        }
+        for (let p = startPage; p <= endPage; p++) {
+          pagesHtml += `<button type="button" class="page-num-btn ${p === historyCurrentPage ? "active" : ""}" data-page="${p}">${p}</button>`;
+        }
+        paginationPages.innerHTML = pagesHtml;
+        paginationPages.querySelectorAll(".page-num-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const targetPage = parseInt(btn.getAttribute("data-page"), 10);
+            if (targetPage && targetPage !== historyCurrentPage) {
+              historyCurrentPage = targetPage;
+              renderUnifiedHistory();
+              historyContent.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+          });
+        });
+      }
+    }
+
     // Row click: open full-page receipt viewer
-    historyContent.querySelectorAll('.history-row').forEach((row) => {
-      row.addEventListener('click', (e) => {
-        if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) {
+    historyContent.querySelectorAll(".history-row").forEach((row) => {
+      row.addEventListener("click", (e) => {
+        if (
+          e.target.closest("button") ||
+          e.target.closest("a") ||
+          e.target.closest("input")
+        ) {
           return;
         }
-        const entryId = row.getAttribute('data-entry-id');
-        const jobId = row.getAttribute('data-job-id');
+        const entryId = row.getAttribute("data-entry-id");
+        const jobId = row.getAttribute("data-job-id");
         const item = unifiedList.find(
-          (h) => (entryId && h.id === entryId) || (jobId && h.jobId === jobId) || (jobId && `hist_${h.jobId}` === entryId)
+          (h) =>
+            (entryId && h.id === entryId) ||
+            (jobId && h.jobId === jobId) ||
+            (jobId && `hist_${h.jobId}` === entryId),
         );
         if (item) {
           openReceiptViewer(item);
@@ -3654,64 +4510,71 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Cancel in-progress buttons
-    historyContent.querySelectorAll('.btn-cancel-history').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
+    historyContent.querySelectorAll(".btn-cancel-history").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
         e.stopPropagation();
-        const entryId = btn.getAttribute('data-entry-id');
-        const jobId = btn.getAttribute('data-job-id');
+        const entryId = btn.getAttribute("data-entry-id");
+        const jobId = btn.getAttribute("data-job-id");
         await handleDeleteHistoryItem(entryId, jobId, true);
       });
     });
 
     // Delete completed/failed buttons
-    historyContent.querySelectorAll('.btn-delete-history').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
+    historyContent.querySelectorAll(".btn-delete-history").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
         e.stopPropagation();
-        const entryId = btn.getAttribute('data-entry-id');
-        const jobId = btn.getAttribute('data-job-id');
+        const entryId = btn.getAttribute("data-entry-id");
+        const jobId = btn.getAttribute("data-job-id");
         await handleDeleteHistoryItem(entryId, jobId, false);
       });
     });
   }
 
   function createHistoryRowHtml(item) {
-    const isWaiting = item.status === 'waiting';
-    const isActive = item.status === 'active';
-    const isCompleted = item.status === 'completed';
-    const isFailed = item.status === 'failed';
-    const isDryRun = item.status === 'dry_run';
+    const isWaiting = item.status === "waiting";
+    const isActive = item.status === "active";
+    const isCompleted = item.status === "completed";
+    const isFailed = item.status === "failed";
+    const isDryRun = item.status === "dry_run";
     const isPending = isWaiting || isActive;
 
-    let statusClass = 'waiting';
-    let statusLabel = 'En Cola';
+    let statusClass = "waiting";
+    let statusLabel = "En Cola";
     let statusIcon = '<span class="pulse-beacon-dot"></span>';
 
     if (isActive) {
-      statusClass = 'active';
-      statusLabel = 'En Proceso';
+      statusClass = "active";
+      statusLabel = "En Proceso";
       statusIcon = '<div class="spinner-xs"></div>';
     } else if (isCompleted) {
-      statusClass = 'completed';
-      statusLabel = 'Completada';
-      statusIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+      statusClass = "completed";
+      statusLabel = "Completada";
+      statusIcon =
+        '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
     } else if (isFailed) {
-      statusClass = 'failed';
-      statusLabel = 'Fallida';
-      statusIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      statusClass = "failed";
+      statusLabel = "Fallida";
+      statusIcon =
+        '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     } else if (isDryRun) {
-      statusClass = 'verified';
-      statusLabel = 'Verificada';
-      statusIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+      statusClass = "verified";
+      statusLabel = "Verificada";
+      statusIcon =
+        '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
     }
 
     const dateFormatted = item.timestamp
-      ? new Date(item.timestamp).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
-      : item.date || 'Reciente';
+      ? new Date(item.timestamp).toLocaleString("es-MX", {
+        dateStyle: "short",
+        timeStyle: "short",
+      })
+      : item.date || "Reciente";
 
-    const progressVal = item.progress || (isCompleted ? 100 : isActive ? 50 : 15);
+    const progressVal =
+      item.progress || (isCompleted ? 100 : isActive ? 50 : 15);
 
     return `
-      <div class="history-row status-${statusClass}" id="history-row-${escapeHtml(item.id || item.jobId)}" data-entry-id="${escapeHtml(item.id || '')}" data-job-id="${escapeHtml(item.jobId || '')}" title="Haz clic para ver el ticket completo">
+      <div class="history-row status-${statusClass}" id="history-row-${escapeHtml(item.id || item.jobId)}" data-entry-id="${escapeHtml(item.id || "")}" data-job-id="${escapeHtml(item.jobId || "")}" title="Haz clic para ver el ticket completo">
         <div class="history-row-top">
           <div class="history-station-info">
             <div class="history-station-icon">
@@ -3719,7 +4582,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="history-station-text">
               <strong class="history-station-name">${escapeHtml(getBillingDomain(item))}</strong>
-              <span class="history-ticket-code font-mono">${escapeHtml(item.trackingNumber || item.jobId || '---')}</span>
+              <span class="history-ticket-code font-mono">${escapeHtml(item.trackingNumber || item.jobId || "---")}</span>
+              ${item.address ? `<span class="history-ticket-address" style="display:block; font-size: 0.72rem; color: var(--text-muted, #94a3b8); margin-top: 1px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(item.address)}">${escapeHtml(item.address)}</span>` : ""}
             </div>
           </div>
           <div class="history-status-wrap">
@@ -3730,17 +4594,20 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
 
-        ${isPending ? `
+        ${isPending
+        ? `
           <div class="history-progress-wrap">
             <div class="history-progress-bar">
               <div class="history-progress-fill" style="width: ${progressVal}%;"></div>
             </div>
             <div class="history-progress-text">
-              <span>${isActive ? 'Navegando y facturando en portal...' : 'Esperando turno en cola...'}</span>
+              <span>${isActive ? "Navegando y facturando en portal..." : "Esperando turno en cola..."}</span>
               <span>${progressVal}%</span>
             </div>
           </div>
-        ` : ''}
+        `
+        : ""
+      }
 
         <div class="history-row-bottom">
           <div class="history-meta-group">
@@ -3751,53 +4618,86 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="history-amount-pill">
               $${Number(item.amount || 0).toFixed(2)} MXN
             </span>
+            ${item.liters
+              ? `
+              <span class="history-amount-pill" style="background: rgba(6, 182, 212, 0.12); color: #06b6d4; border-color: rgba(6, 182, 212, 0.25);" title="Volumen despachado">
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 2px;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                ${Number(item.liters).toFixed(2)} L
+              </span>
+            `
+              : ""
+            }
+            ${item.paymentMethod
+              ? `
+              <span class="history-amount-pill" style="background: rgba(168, 85, 247, 0.12); color: #c084fc; border-color: rgba(168, 85, 247, 0.25);" title="Forma de pago">
+                ${escapeHtml(item.paymentMethod)}
+              </span>
+            `
+              : ""
+            }
           </div>
 
           <div class="history-row-actions">
-            ${(item.status === 'completed' || item.pdfUrl) ? `
-              <button type="button" class="btn btn-sm btn-outline" onclick="event.stopPropagation(); window.downloadComprobante('${escapeHtml(item.pdfUrl || '')}', '${escapeHtml(item.trackingNumber || '')}', '${escapeHtml(item.id || item.jobId || '')}')" title="Descargar comprobante en PDF">
+            ${item.status === "completed" || item.pdfUrl
+        ? `
+              <button type="button" class="btn btn-sm btn-outline" onclick="event.stopPropagation(); window.downloadComprobante('${escapeHtml(item.pdfUrl || "")}', '${escapeHtml(item.trackingNumber || "")}', '${escapeHtml(item.id || item.jobId || "")}')" title="Descargar comprobante en PDF">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 <span>Descargar PDF</span>
               </button>
-            ` : ''}
-            ${(item.videoUrl && serverConfig.recordVideo) ? `
-              <button type="button" class="btn btn-sm btn-outline" onclick="event.stopPropagation(); window.viewMedia('${item.videoUrl}', 'Video ${escapeHtml(item.trackingNumber || '')}', true)">
+            `
+        : ""
+      }
+            ${item.videoUrl && serverConfig.recordVideo
+        ? `
+              <button type="button" class="btn btn-sm btn-outline" onclick="event.stopPropagation(); window.viewMedia('${item.videoUrl}', 'Video ${escapeHtml(item.trackingNumber || "")}', true)">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 <span>Video</span>
               </button>
-            ` : ''}
-            ${isPending ? `
-              <button type="button" class="btn btn-sm btn-cancel-history" data-entry-id="${escapeHtml(item.id || '')}" data-job-id="${escapeHtml(item.jobId || '')}" title="Cancelar proceso y eliminar de la cola">
+            `
+        : ""
+      }
+            ${isPending
+        ? `
+              <button type="button" class="btn btn-sm btn-cancel-history" data-entry-id="${escapeHtml(item.id || "")}" data-job-id="${escapeHtml(item.jobId || "")}" title="Cancelar proceso y eliminar de la cola">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                 <span>Cancelar</span>
               </button>
-            ` : `
-              <button type="button" class="btn-icon-xs text-danger btn-delete-history" data-entry-id="${escapeHtml(item.id || '')}" data-job-id="${escapeHtml(item.jobId || '')}" title="Eliminar del historial">
+            `
+        : `
+              <button type="button" class="btn-icon-xs text-danger btn-delete-history" data-entry-id="${escapeHtml(item.id || "")}" data-job-id="${escapeHtml(item.jobId || "")}" title="Eliminar del historial">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
               </button>
-            `}
+            `
+      }
           </div>
         </div>
 
-        ${(item.failedReason || item.error || (item.status === 'failed' ? item.message : '')) ? `
+        ${item.failedReason ||
+        item.error ||
+        (item.status === "failed" ? item.message : "")
+        ? `
           <div class="history-error-banner">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span>${escapeHtml(item.failedReason || item.error || item.message)}</span>
           </div>
-        ` : ''}
+        `
+        : ""
+      }
       </div>
     `;
   }
 
-  window.downloadComprobante = function (pdfUrl, trackingNumber, entryId) {
-    const url = pdfUrl || `/api/invoices/${encodeURIComponent(trackingNumber || entryId)}/pdf?ticket=${encodeURIComponent(trackingNumber || '')}`;
-    const a = document.createElement('a');
+  window.downloadComprobante = (pdfUrl, trackingNumber, entryId) => {
+    const url =
+      pdfUrl ||
+      `/api/invoices/${encodeURIComponent(trackingNumber || entryId)}/pdf?ticket=${encodeURIComponent(trackingNumber || "")}`;
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `factura_${trackingNumber || 'comprobante'}.pdf`;
+    a.download = `factura_${trackingNumber || "comprobante"}.pdf`;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    showToast('Iniciando descarga del comprobante PDF...', 'info');
+    showToast("Iniciando descarga del comprobante PDF...", "info");
   };
 
   async function handleDeleteHistoryItem(entryId, jobId, isCancel = false) {
@@ -3807,41 +4707,428 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const idToDelete = entryId || jobId;
       if (idToDelete) {
-        await fetch(`/api/history/${encodeURIComponent(idToDelete)}?rfc=${encodeURIComponent(profile.rfc)}`, {
-          method: 'DELETE',
-        });
+        await fetch(
+          `/api/history/${encodeURIComponent(idToDelete)}?rfc=${encodeURIComponent(profile.rfc)}`,
+          {
+            method: "DELETE",
+          },
+        );
       }
 
       // Remove from redisHistoryItems
-      redisHistoryItems = redisHistoryItems.filter((h) =>
-        h.id !== idToDelete &&
-        h.jobId !== idToDelete &&
-        h.id !== entryId &&
-        h.jobId !== jobId &&
-        `hist_${h.jobId}` !== idToDelete
+      redisHistoryItems = redisHistoryItems.filter(
+        (h) =>
+          h.id !== idToDelete &&
+          h.jobId !== idToDelete &&
+          h.id !== entryId &&
+          h.jobId !== jobId &&
+          `hist_${h.jobId}` !== idToDelete,
       );
 
       // Synchronize window.userHistoryTickets so duplicate validation stays accurate
       window.userHistoryTickets = new Set(
         redisHistoryItems
-          .map((item) => (item.trackingNumber || '').trim().toUpperCase())
-          .filter((t) => t.length > 0)
+          .map((item) => (item.trackingNumber || "").trim().toUpperCase())
+          .filter((t) => t.length > 0),
       );
 
       renderUnifiedHistory();
-      showToast(isCancel ? 'Proceso cancelado y eliminado del historial.' : 'Factura eliminada del historial.', 'info');
+      showToast(
+        isCancel
+          ? "Proceso cancelado y eliminado del historial."
+          : "Factura eliminada del historial.",
+        "info",
+      );
     } catch (err) {
-      showToast(`Error al eliminar: ${err.message}`, 'error');
+      showToast(`Error al eliminar: ${err.message}`, "error");
     }
+  }
+
+  // --- TRENDS & SUB-TABS MANAGEMENT ---
+  function switchHistorySubTab(tab) {
+    activeHistorySubTab = tab;
+    if (tab === "trends") {
+      tabBtnReceipts?.classList.remove("active");
+      tabBtnReceipts?.setAttribute("aria-selected", "false");
+      tabBtnTrends?.classList.add("active");
+      tabBtnTrends?.setAttribute("aria-selected", "true");
+      paneReceipts?.classList.add("hidden");
+      paneTrends?.classList.remove("hidden");
+      fetchAndRenderTrends();
+    } else {
+      tabBtnTrends?.classList.remove("active");
+      tabBtnTrends?.setAttribute("aria-selected", "false");
+      tabBtnReceipts?.classList.add("active");
+      tabBtnReceipts?.setAttribute("aria-selected", "true");
+      paneTrends?.classList.add("hidden");
+      paneReceipts?.classList.remove("hidden");
+    }
+  }
+
+  function initHistoryTabsAndTrends() {
+    tabBtnReceipts?.addEventListener("click", () => switchHistorySubTab("receipts"));
+    tabBtnTrends?.addEventListener("click", () => switchHistorySubTab("trends"));
+
+    btnPagePrev?.addEventListener("click", () => {
+      if (historyCurrentPage > 1) {
+        historyCurrentPage--;
+        renderUnifiedHistory();
+        historyContent?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    btnPageNext?.addEventListener("click", () => {
+      const totalPages = Math.ceil(redisHistoryItems.length / historyPageSize) || 1;
+      if (historyCurrentPage < totalPages) {
+        historyCurrentPage++;
+        renderUnifiedHistory();
+        historyContent?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    // Helper to format YYYY-MM-DD to DD/MM/YYYY
+    function formatRangeDate(dateStr) {
+      if (!dateStr) return "";
+      const parts = dateStr.split("-");
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return dateStr;
+    }
+
+    // Modal helpers
+    function openCustomRangeModal() {
+      if (modalTrendDateFrom) modalTrendDateFrom.value = trendsCustomFrom || "";
+      if (modalTrendDateTo) modalTrendDateTo.value = trendsCustomTo || "";
+      customRangeModal?.classList.remove("hidden");
+    }
+
+    function closeCustomRangeModal() {
+      customRangeModal?.classList.add("hidden");
+    }
+
+    btnCloseCustomRangeModal?.addEventListener("click", closeCustomRangeModal);
+    btnCancelCustomRangeModal?.addEventListener("click", closeCustomRangeModal);
+    customRangeModal?.addEventListener("click", (e) => {
+      if (e.target === customRangeModal) closeCustomRangeModal();
+    });
+
+    // Date range preset pills: [7d, 15d, 30d, 60D, 90D, Rango]
+    trendsRangePills?.querySelectorAll(".range-pill").forEach((pill) => {
+      pill.addEventListener("click", () => {
+        const days = pill.getAttribute("data-days");
+        if (days === "custom") {
+          openCustomRangeModal();
+          return;
+        }
+        trendsRangePills.querySelectorAll(".range-pill").forEach((p) => p.classList.remove("active"));
+        pill.classList.add("active");
+        trendsSelectedDays = parseInt(days, 10) || 15;
+        trendsCustomFrom = "";
+        trendsCustomTo = "";
+        trendsActiveCustomRange?.classList.add("hidden");
+        trendsRangePills.classList.remove("hidden");
+        fetchAndRenderTrends();
+      });
+    });
+
+    // Apply custom range from modal
+    btnApplyModalCustomRange?.addEventListener("click", () => {
+      const from = modalTrendDateFrom?.value;
+      const to = modalTrendDateTo?.value;
+      if (!from && !to) {
+        showToast("Selecciona al menos una fecha de inicio o fin.", "warning");
+        return;
+      }
+      if (from && to && from > to) {
+        showToast("La fecha inicial no puede ser mayor que la fecha final.", "warning");
+        return;
+      }
+
+      trendsCustomFrom = from || "";
+      trendsCustomTo = to || "";
+      trendsSelectedDays = 0;
+      closeCustomRangeModal();
+
+      // Hide preset pills and show active custom range chip
+      trendsRangePills?.classList.add("hidden");
+      if (trendsActiveCustomRange) {
+        trendsActiveCustomRange.classList.remove("hidden");
+        if (activeRangeText) {
+          if (trendsCustomFrom && trendsCustomTo) {
+            activeRangeText.textContent = `${formatRangeDate(trendsCustomFrom)} al ${formatRangeDate(trendsCustomTo)}`;
+          } else if (trendsCustomFrom) {
+            activeRangeText.textContent = `Desde ${formatRangeDate(trendsCustomFrom)}`;
+          } else {
+            activeRangeText.textContent = `Hasta ${formatRangeDate(trendsCustomTo)}`;
+          }
+        }
+      }
+
+      fetchAndRenderTrends();
+    });
+
+    // Clear filter button: resets to 15D by default and shows the filter pills list
+    btnClearRangeFilter?.addEventListener("click", () => {
+      trendsCustomFrom = "";
+      trendsCustomTo = "";
+      trendsSelectedDays = 15;
+      if (modalTrendDateFrom) modalTrendDateFrom.value = "";
+      if (modalTrendDateTo) modalTrendDateTo.value = "";
+
+      // Hide custom range chip and show preset pills
+      trendsActiveCustomRange?.classList.add("hidden");
+      trendsRangePills?.classList.remove("hidden");
+
+      // Set 15D pill as active
+      trendsRangePills?.querySelectorAll(".range-pill").forEach((p) => {
+        if (p.getAttribute("data-days") === "15") {
+          p.classList.add("active");
+        } else {
+          p.classList.remove("active");
+        }
+      });
+
+      fetchAndRenderTrends();
+    });
+  }
+
+  async function fetchAndRenderTrends() {
+    const profile = getProfile();
+    if (!profile || !profile.rfc) {
+      if (trendsEmpty) {
+        trendsEmpty.classList.remove("hidden");
+        const emptyTitle = trendsEmpty.querySelector(".trends-empty-title");
+        if (emptyTitle) emptyTitle.textContent = "Configura tu perfil fiscal";
+      }
+      if (trendsDataGrid) trendsDataGrid.classList.add("hidden");
+      return;
+    }
+
+    if (trendsLoading) trendsLoading.classList.remove("hidden");
+    if (trendsEmpty) trendsEmpty.classList.add("hidden");
+    if (trendsDataGrid) trendsDataGrid.classList.add("hidden");
+
+    if (kpiPeriodLabel) {
+      if (trendsCustomFrom || trendsCustomTo) {
+        if (trendsCustomFrom && trendsCustomTo) {
+          kpiPeriodLabel.textContent = `${formatRangeDate(trendsCustomFrom)} al ${formatRangeDate(trendsCustomTo)}`;
+        } else if (trendsCustomFrom) {
+          kpiPeriodLabel.textContent = `Desde ${formatRangeDate(trendsCustomFrom)}`;
+        } else {
+          kpiPeriodLabel.textContent = `Hasta ${formatRangeDate(trendsCustomTo)}`;
+        }
+      } else {
+        kpiPeriodLabel.textContent = `Últimos ${trendsSelectedDays} días`;
+      }
+    }
+
+    try {
+      let url = `/api/transactions?rfc=${encodeURIComponent(profile.rfc)}`;
+      if (trendsCustomFrom || trendsCustomTo) {
+        if (trendsCustomFrom) url += `&from=${encodeURIComponent(trendsCustomFrom)}`;
+        if (trendsCustomTo) url += `&to=${encodeURIComponent(trendsCustomTo)}`;
+      } else {
+        url += `&days=${trendsSelectedDays}`;
+      }
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (trendsLoading) trendsLoading.classList.add("hidden");
+
+      if (!data.success || !data.summary || data.summary.count === 0) {
+        if (trendsEmpty) trendsEmpty.classList.remove("hidden");
+        if (trendsDataGrid) trendsDataGrid.classList.add("hidden");
+        return;
+      }
+
+      if (trendsDataGrid) trendsDataGrid.classList.remove("hidden");
+      if (trendsEmpty) trendsEmpty.classList.add("hidden");
+
+      const s = data.summary;
+
+      // 1. KPI Cards
+      if (kpiTotalAmount) {
+        kpiTotalAmount.textContent = `$${Number(s.totalAmount).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      if (kpiTotalLiters) {
+        kpiTotalLiters.textContent = `${Number(s.totalLiters).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} L`;
+      }
+      if (kpiAverageTicket) {
+        kpiAverageTicket.textContent = `$${Number(s.averageTicket).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+      if (kpiTotalCount) {
+        kpiTotalCount.textContent = `${s.count}`;
+      }
+
+      // 2. Timeline Chart
+      renderTimelineChart(timelineChartContainer, s.timeline || []);
+
+      // 3. Gas Stations Breakdown
+      renderStationsBreakdown(stationsChartContainer, s.byGasStation || {}, s.totalAmount);
+
+      // 4. Payment Methods Breakdown
+      renderPaymentsBreakdown(paymentsChartContainer, s.byPaymentMethod || {}, s.totalAmount);
+
+    } catch (err) {
+      console.warn("Error fetching trends:", err);
+      if (trendsLoading) trendsLoading.classList.add("hidden");
+      if (trendsEmpty) trendsEmpty.classList.remove("hidden");
+    }
+  }
+
+  function renderTimelineChart(container, timeline) {
+    if (!container) return;
+    if (!timeline || timeline.length === 0) {
+      container.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 180px; color: var(--text-secondary); font-size: 0.85rem;">
+          Sin movimientos en el período seleccionado
+        </div>
+      `;
+      return;
+    }
+
+    const maxAmount = Math.max(...timeline.map((t) => t.amount), 100);
+    const chartHeight = 220;
+    const paddingBottom = 32;
+    const paddingTop = 24;
+    const effectiveHeight = chartHeight - paddingBottom - paddingTop;
+    const totalBars = timeline.length;
+    const barWidth = Math.max(12, Math.min(36, Math.floor(580 / (totalBars * 1.6))));
+    const svgWidth = Math.max(540, totalBars * (barWidth + 18) + 80);
+
+    let barsSvg = "";
+    timeline.forEach((item, idx) => {
+      const heightPercent = item.amount / maxAmount;
+      const barH = Math.max(6, heightPercent * effectiveHeight);
+      const x = 60 + idx * ((svgWidth - 90) / Math.max(1, totalBars - 1 || 1));
+      const y = chartHeight - paddingBottom - barH;
+      const dateShort = item.date ? item.date.slice(5) : "";
+
+      barsSvg += `
+        <g class="chart-bar-group" data-date="${escapeHtml(item.date)}" data-amount="${item.amount.toFixed(2)}" data-liters="${(item.liters || 0).toFixed(2)}" data-count="${item.count}">
+          <rect class="chart-bar-rect" x="${x - barWidth / 2}" y="${y}" width="${barWidth}" height="${barH}" rx="4" />
+          <text class="chart-axis-label" x="${x}" y="${chartHeight - 10}" text-anchor="middle">${escapeHtml(dateShort)}</text>
+        </g>
+      `;
+    });
+
+    container.innerHTML = `
+      <div style="overflow-x: auto; width: 100%; padding-bottom: 0.5rem;">
+        <svg class="svg-chart" viewBox="0 0 ${svgWidth} ${chartHeight}" style="min-width: ${svgWidth}px;">
+          <defs>
+            <linearGradient id="chart-bar-gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#3b82f6" />
+              <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0.6" />
+            </linearGradient>
+          </defs>
+          <!-- Grid lines -->
+          <line class="chart-grid-line" x1="45" y1="${paddingTop}" x2="${svgWidth - 20}" y2="${paddingTop}" />
+          <line class="chart-grid-line" x1="45" y1="${paddingTop + effectiveHeight / 2}" x2="${svgWidth - 20}" y2="${paddingTop + effectiveHeight / 2}" />
+          <line class="chart-grid-line" x1="45" y1="${chartHeight - paddingBottom}" x2="${svgWidth - 20}" y2="${chartHeight - paddingBottom}" />
+          
+          <!-- Y-axis labels -->
+          <text class="chart-axis-label" x="40" y="${paddingTop + 4}" text-anchor="end">$${Math.round(maxAmount)}</text>
+          <text class="chart-axis-label" x="40" y="${paddingTop + effectiveHeight / 2 + 4}" text-anchor="end">$${Math.round(maxAmount / 2)}</text>
+          <text class="chart-axis-label" x="40" y="${chartHeight - paddingBottom + 4}" text-anchor="end">$0</text>
+          
+          ${barsSvg}
+        </svg>
+      </div>
+      <div class="chart-tooltip hidden" id="chart-tooltip"></div>
+    `;
+
+    // Interactive tooltip
+    const tooltip = container.querySelector("#chart-tooltip");
+    container.querySelectorAll(".chart-bar-group").forEach((group) => {
+      group.addEventListener("mouseenter", () => {
+        const d = group.getAttribute("data-date");
+        const a = group.getAttribute("data-amount");
+        const l = group.getAttribute("data-liters");
+        const c = group.getAttribute("data-count");
+        if (tooltip) {
+          tooltip.innerHTML = `
+            <strong>Fecha: ${escapeHtml(d)}</strong><br>
+            Gasto: <strong>$${parseFloat(a).toLocaleString("es-MX", { minimumFractionDigits: 2 })} MXN</strong><br>
+            Litros: ${parseFloat(l).toFixed(2)} L (${c} carga${c > 1 ? "s" : ""})
+          `;
+          tooltip.classList.remove("hidden");
+          const rect = group.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          tooltip.style.left = `${rect.left - containerRect.left + rect.width / 2}px`;
+          tooltip.style.top = `${rect.top - containerRect.top - 8}px`;
+        }
+      });
+      group.addEventListener("mouseleave", () => {
+        if (tooltip) tooltip.classList.add("hidden");
+      });
+    });
+  }
+
+  function renderStationsBreakdown(container, byGasStation, totalAmount) {
+    if (!container) return;
+    const entries = Object.entries(byGasStation || {});
+    if (entries.length === 0) {
+      container.innerHTML = `<p style="color: var(--text-secondary); font-size: 0.85rem; padding: 1rem 0;">Sin registros de gasolineras</p>`;
+      return;
+    }
+    entries.sort((a, b) => b[1].amount - a[1].amount);
+    let html = "";
+    entries.forEach(([station, data]) => {
+      const pct = totalAmount > 0 ? ((data.amount / totalAmount) * 100).toFixed(1) : 0;
+      html += `
+        <div class="dist-item">
+          <div class="dist-info-row">
+            <span class="dist-name">
+              <span>${escapeHtml(station)}</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(${data.count} ticket${data.count > 1 ? "s" : ""})</span>
+            </span>
+            <span class="dist-amount">$${data.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })} <small style="font-size: 0.75rem; color: #10b981;">(${pct}%)</small></span>
+          </div>
+          <div class="dist-bar-track">
+            <div class="dist-bar-fill bar-fill-station" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  }
+
+  function renderPaymentsBreakdown(container, byPaymentMethod, totalAmount) {
+    if (!container) return;
+    const entries = Object.entries(byPaymentMethod || {});
+    if (entries.length === 0) {
+      container.innerHTML = `<p style="color: var(--text-secondary); font-size: 0.85rem; padding: 1rem 0;">Sin registros de métodos de pago</p>`;
+      return;
+    }
+    entries.sort((a, b) => b[1].amount - a[1].amount);
+    let html = "";
+    entries.forEach(([method, data]) => {
+      const pct = totalAmount > 0 ? ((data.amount / totalAmount) * 100).toFixed(1) : 0;
+      html += `
+        <div class="dist-item">
+          <div class="dist-info-row">
+            <span class="dist-name">
+              <span>${escapeHtml(method)}</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(${data.count})</span>
+            </span>
+            <span class="dist-amount">$${data.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })} <small style="font-size: 0.75rem; color: #3b82f6;">(${pct}%)</small></span>
+          </div>
+          <div class="dist-bar-track">
+            <div class="dist-bar-fill bar-fill-payment" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
   }
 
   // --- FULLSCREEN RECEIPT VIEWER (FULL-PAGE, ZOOM, ROTATE, PAN) ---
   function updateViewerTransform(transition = true) {
     if (!receiptViewerStage) return;
     if (transition) {
-      receiptViewerStage.classList.remove('no-transition');
+      receiptViewerStage.classList.remove("no-transition");
     } else {
-      receiptViewerStage.classList.add('no-transition');
+      receiptViewerStage.classList.add("no-transition");
     }
     receiptViewerStage.style.transform = `translate(${viewerPanX}px, ${viewerPanY}px) scale(${viewerScale}) rotate(${viewerRotation}deg)`;
     if (viewerZoomLevel) {
@@ -3868,58 +5155,82 @@ document.addEventListener('DOMContentLoaded', () => {
     updateViewerTransform(true);
   }
 
-  window.openReceiptViewer = function (item) {
+  window.openReceiptViewer = (item) => {
     openReceiptViewer(item);
   };
 
   function openReceiptViewer(item) {
-    const imgUrl = item.receiptImageUrl || item.previewUrl || item.screenshotUrl;
+    const imgUrl =
+      item.receiptImageUrl || item.previewUrl || item.screenshotUrl;
     if (!imgUrl) {
-      showToast('No hay imagen o recibo escaneado disponible para este registro.', 'warning');
+      showToast(
+        "No hay imagen o recibo escaneado disponible para este registro.",
+        "warning",
+      );
       return;
     }
 
     if (receiptViewerTitle) {
-      receiptViewerTitle.textContent = getBillingDomain(item) || item.gasStation || 'Recibo de Gasolina';
+      receiptViewerTitle.textContent =
+        getBillingDomain(item) || item.gasStation || "Recibo de Gasolina";
     }
     if (receiptViewerSubtitle) {
       const parts = [];
       if (item.trackingNumber) parts.push(`Ticket: ${item.trackingNumber}`);
       if (item.amount) parts.push(`$${Number(item.amount).toFixed(2)} MXN`);
       if (item.date) parts.push(item.date);
-      receiptViewerSubtitle.textContent = parts.join(' • ') || '---';
+      if (item.address) parts.push(item.address);
+      receiptViewerSubtitle.textContent = parts.join(" • ") || "---";
     }
 
     if (receiptViewerImg) {
+      receiptViewerImg.onerror = function () {
+        const src = receiptViewerImg.src || "";
+        if (src.includes("/output/")) {
+          if (src.endsWith(".png")) {
+            receiptViewerImg.src = src.replace(/\.png$/, ".jpeg");
+          } else if (src.endsWith(".jpeg")) {
+            receiptViewerImg.src = src.replace(/\.jpeg$/, ".jpg");
+          } else if (src.endsWith(".jpg")) {
+            receiptViewerImg.src = src.replace(/\.jpg$/, ".webp");
+          } else {
+            receiptViewerImg.onerror = null;
+          }
+        }
+      };
       receiptViewerImg.src = imgUrl;
     }
 
     resetViewerTransform();
-    receiptViewerOverlay?.classList.remove('hidden');
-    document.body.classList.add('viewer-open');
+    receiptViewerOverlay?.classList.remove("hidden");
+    document.body.classList.add("viewer-open");
 
     try {
-      window.history.pushState({ receiptViewerOpen: true }, '');
-    } catch {}
+      window.history.pushState({ receiptViewerOpen: true }, "");
+    } catch { }
   }
 
   function closeReceiptViewer(shouldGoBack = true) {
-    if (receiptViewerOverlay?.classList.contains('hidden')) return;
-    receiptViewerOverlay?.classList.add('hidden');
-    document.body.classList.remove('viewer-open');
-    if (receiptViewerImg) receiptViewerImg.src = '';
+    if (receiptViewerOverlay?.classList.contains("hidden")) return;
+    receiptViewerOverlay?.classList.add("hidden");
+    document.body.classList.remove("viewer-open");
+    if (receiptViewerImg) receiptViewerImg.src = "";
     resetViewerTransform();
 
-    if (shouldGoBack && window.history.state && window.history.state.receiptViewerOpen) {
+    if (
+      shouldGoBack &&
+      window.history.state &&
+      window.history.state.receiptViewerOpen
+    ) {
       try {
         window.history.back();
-      } catch {}
+      } catch { }
     }
   }
 
   // --- MODAL VIEWER (SCREENSHOTS & VIDEOS) ---
-  window.viewMedia = function (url, title, isVideo = false) {
-    modalTitle.textContent = title || 'Comprobante';
+  window.viewMedia = (url, title, isVideo = false) => {
+    modalTitle.textContent = title || "Comprobante";
     if (isVideo) {
       modalBody.innerHTML = `
         <video controls autoplay loop playsinline style="max-width:100%;max-height:70vh;border-radius:8px;">
@@ -3932,103 +5243,114 @@ document.addEventListener('DOMContentLoaded', () => {
         <img src="${url}" alt="Comprobante" style="max-width:100%;max-height:70vh;border-radius:8px;">
       `;
     }
-    mediaModal.classList.remove('hidden');
+    mediaModal.classList.remove("hidden");
     try {
-      window.history.pushState({ modalOpen: true }, '');
-    } catch {}
+      window.history.pushState({ modalOpen: true }, "");
+    } catch { }
   };
 
   function closeModal(shouldGoBack = true) {
-    mediaModal.classList.add('hidden');
-    modalBody.innerHTML = '';
-    const modalCard = document.getElementById('modal-card');
-    if (modalCard) modalCard.style.transform = '';
-    if (shouldGoBack && window.history.state && window.history.state.modalOpen) {
+    mediaModal.classList.add("hidden");
+    modalBody.innerHTML = "";
+    const modalCard = document.getElementById("modal-card");
+    if (modalCard) modalCard.style.transform = "";
+    if (
+      shouldGoBack &&
+      window.history.state &&
+      window.history.state.modalOpen
+    ) {
       try {
         window.history.back();
-      } catch {}
+      } catch { }
     }
   }
 
-  function openLegalModal(tabId = 'legal-pane-terms') {
+  function openLegalModal(tabId = "legal-pane-terms") {
     if (!legalModal) return;
 
-    const tabButtons = legalModal.querySelectorAll('.legal-tab-btn');
-    const panes = legalModal.querySelectorAll('.legal-pane');
+    const tabButtons = legalModal.querySelectorAll(".legal-tab-btn");
+    const panes = legalModal.querySelectorAll(".legal-pane");
 
     tabButtons.forEach((btn) => {
-      if (btn.getAttribute('data-tab') === tabId) {
-        btn.classList.add('active');
+      if (btn.getAttribute("data-tab") === tabId) {
+        btn.classList.add("active");
       } else {
-        btn.classList.remove('active');
+        btn.classList.remove("active");
       }
     });
 
     panes.forEach((pane) => {
       if (pane.id === tabId) {
-        pane.classList.add('active');
+        pane.classList.add("active");
       } else {
-        pane.classList.remove('active');
+        pane.classList.remove("active");
       }
     });
 
-    if (tabId === 'legal-pane-terms') {
-      if (legalModalTitle) legalModalTitle.textContent = 'Términos y Condiciones de Uso';
-    } else if (tabId === 'legal-pane-privacy') {
-      if (legalModalTitle) legalModalTitle.textContent = 'Política de Privacidad Integral';
-    } else if (tabId === 'legal-pane-disclaimer') {
-      if (legalModalTitle) legalModalTitle.textContent = 'Aviso Legal y Deslinde SAT';
+    if (tabId === "legal-pane-terms") {
+      if (legalModalTitle)
+        legalModalTitle.textContent = "Términos y Condiciones de Uso";
+    } else if (tabId === "legal-pane-privacy") {
+      if (legalModalTitle)
+        legalModalTitle.textContent = "Política de Privacidad Integral";
+    } else if (tabId === "legal-pane-disclaimer") {
+      if (legalModalTitle)
+        legalModalTitle.textContent = "Aviso Legal y Deslinde SAT";
     }
 
-    const modalBody = legalModal.querySelector('.legal-modal-body');
+    const modalBody = legalModal.querySelector(".legal-modal-body");
     if (modalBody) modalBody.scrollTop = 0;
 
-    legalModal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+    legalModal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
 
     try {
-      window.history.pushState({ legalModalOpen: true }, '');
-    } catch {}
+      window.history.pushState({ legalModalOpen: true }, "");
+    } catch { }
   }
 
   function closeLegalModal(shouldGoBack = true) {
     if (!legalModal) return;
-    legalModal.classList.add('hidden');
-    document.body.style.overflow = '';
-    if (shouldGoBack && window.history.state && window.history.state.legalModalOpen) {
+    legalModal.classList.add("hidden");
+    document.body.style.overflow = "";
+    if (
+      shouldGoBack &&
+      window.history.state &&
+      window.history.state.legalModalOpen
+    ) {
       try {
         window.history.back();
-      } catch {}
+      } catch { }
     }
   }
 
   // Helper
   function escapeHtml(str) {
-    if (!str) return '';
+    if (!str) return "";
     return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   // Toast Notification System
-  function showToast(message, type = 'info') {
-    let container = document.querySelector('.toast-container');
+  function showToast(message, type = "info") {
+    let container = document.querySelector(".toast-container");
     if (!container) {
-      container = document.createElement('div');
-      container.className = 'toast-container';
+      container = document.createElement("div");
+      container.className = "toast-container";
       document.body.appendChild(container);
     }
 
-    const toast = document.createElement('div');
+    const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
 
     let iconSvg = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
-    if (type === 'error') {
+    if (type === "error") {
       iconSvg = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
-    } else if (type === 'success') {
+    } else if (type === "success") {
       iconSvg = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
     }
 
@@ -4040,8 +5362,8 @@ document.addEventListener('DOMContentLoaded', () => {
     container.appendChild(toast);
 
     setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(14px) scale(0.96)';
+      toast.style.opacity = "0";
+      toast.style.transform = "translateY(14px) scale(0.96)";
       setTimeout(() => toast.remove(), 260);
     }, 3000);
   }
@@ -4049,49 +5371,58 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Progressive Web App (PWA) Lifecycle & Install Prompt ---
   function setupPWA() {
     // 1. Register Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
         navigator.serviceWorker
-          .register('/sw.js')
+          .register("/sw.js")
           .then((registration) => {
-            console.log('[CombusTicket PWA] Service Worker activo con alcance:', registration.scope);
+            console.log(
+              "[CombusTicket PWA] Service Worker activo con alcance:",
+              registration.scope,
+            );
           })
           .catch((err) => {
-            console.warn('[CombusTicket PWA] Error al registrar Service Worker:', err);
+            console.warn(
+              "[CombusTicket PWA] Error al registrar Service Worker:",
+              err,
+            );
           });
       });
     }
 
     // 2. Install Prompt Handler
     let deferredInstallPrompt = null;
-    const btnPwaInstall = document.getElementById('btn-pwa-install');
+    const btnPwaInstall = document.getElementById("btn-pwa-install");
 
-    window.addEventListener('beforeinstallprompt', (e) => {
+    window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       deferredInstallPrompt = e;
       if (btnPwaInstall) {
-        btnPwaInstall.classList.remove('hidden');
+        btnPwaInstall.classList.remove("hidden");
       }
     });
 
     if (btnPwaInstall) {
-      btnPwaInstall.addEventListener('click', async () => {
+      btnPwaInstall.addEventListener("click", async () => {
         if (!deferredInstallPrompt) return;
         deferredInstallPrompt.prompt();
         const choice = await deferredInstallPrompt.userChoice;
-        if (choice.outcome === 'accepted') {
-          showToast('CombusTicket se está instalando en tu dispositivo...', 'success');
+        if (choice.outcome === "accepted") {
+          showToast(
+            "CombusTicket se está instalando en tu dispositivo...",
+            "success",
+          );
         }
         deferredInstallPrompt = null;
-        btnPwaInstall.classList.add('hidden');
+        btnPwaInstall.classList.add("hidden");
       });
     }
 
-    window.addEventListener('appinstalled', () => {
-      console.log('[CombusTicket PWA] Aplicación instalada con éxito.');
-      showToast('¡CombusTicket instalada como App nativa!', 'success');
+    window.addEventListener("appinstalled", () => {
+      console.log("[CombusTicket PWA] Aplicación instalada con éxito.");
+      showToast("¡CombusTicket instalada como App nativa!", "success");
       if (btnPwaInstall) {
-        btnPwaInstall.classList.add('hidden');
+        btnPwaInstall.classList.add("hidden");
       }
     });
 
@@ -4101,8 +5432,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Push Notifications (VAPID) ---
   function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
     for (let i = 0; i < rawData.length; ++i) {
@@ -4112,79 +5445,102 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updatePushStatusUI() {
-    const btnPush = document.getElementById('btn-push-subscribe');
-    const textPush = document.getElementById('push-btn-text');
-    const statusBadge = document.getElementById('push-status-badge');
-    const statusDesc = document.getElementById('push-status-desc');
+    const btnPush = document.getElementById("btn-push-subscribe");
+    const textPush = document.getElementById("push-btn-text");
+    const statusBadge = document.getElementById("push-status-badge");
+    const statusDesc = document.getElementById("push-status-desc");
 
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-      if (profileNotificationsZone) profileNotificationsZone.classList.add('hidden');
+    if (
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window) ||
+      !("Notification" in window)
+    ) {
+      if (profileNotificationsZone)
+        profileNotificationsZone.classList.add("hidden");
       return;
     }
 
     if (!btnPush) return;
 
-    if (Notification.permission === 'denied') {
-      btnPush.classList.remove('btn-active');
+    if (Notification.permission === "denied") {
+      btnPush.classList.remove("btn-active");
       btnPush.disabled = true;
-      if (textPush) textPush.textContent = 'Permiso Bloqueado';
-      btnPush.setAttribute('title', 'Notificaciones bloqueadas en los ajustes de tu navegador');
+      if (textPush) textPush.textContent = "Permiso Bloqueado";
+      btnPush.setAttribute(
+        "title",
+        "Notificaciones bloqueadas en los ajustes de tu navegador",
+      );
       if (statusBadge) {
-        statusBadge.className = 'push-status-badge badge-blocked';
-        statusBadge.textContent = 'Bloqueadas';
+        statusBadge.className = "push-status-badge badge-blocked";
+        statusBadge.textContent = "Bloqueadas";
       }
       if (statusDesc) {
-        statusDesc.textContent = 'Las notificaciones están bloqueadas en la configuración de tu navegador. Para recibirlas, permite las alertas en los permisos del sitio.';
+        statusDesc.textContent =
+          "Las notificaciones están bloqueadas en la configuración de tu navegador. Para recibirlas, permite las alertas en los permisos del sitio.";
       }
       return;
     }
 
     btnPush.disabled = false;
 
-    if (Notification.permission === 'granted') {
+    if (Notification.permission === "granted") {
       try {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
-          btnPush.classList.add('btn-active');
-          if (textPush) textPush.textContent = 'Desactivar Alertas';
-          btnPush.setAttribute('title', 'Notificaciones activadas. Clic para desactivar');
+          btnPush.classList.add("btn-active");
+          if (textPush) textPush.textContent = "Desactivar Alertas";
+          btnPush.setAttribute(
+            "title",
+            "Notificaciones activadas. Clic para desactivar",
+          );
           if (statusBadge) {
-            statusBadge.className = 'push-status-badge badge-active';
-            statusBadge.textContent = 'Activas';
+            statusBadge.className = "push-status-badge badge-active";
+            statusBadge.textContent = "Activas";
           }
           if (statusDesc) {
-            statusDesc.textContent = 'Alertas push activadas en este dispositivo. Te notificaremos en cuanto tus facturas se timbren o requieran atención.';
+            statusDesc.textContent =
+              "Alertas push activadas en este dispositivo. Te notificaremos en cuanto tus facturas se timbren o requieran atención.";
           }
           return;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
-    btnPush.classList.remove('btn-active');
-    if (textPush) textPush.textContent = 'Activar Alertas';
-    btnPush.setAttribute('title', 'Activar notificaciones de facturas completadas');
+    btnPush.classList.remove("btn-active");
+    if (textPush) textPush.textContent = "Activar Alertas";
+    btnPush.setAttribute(
+      "title",
+      "Activar notificaciones de facturas completadas",
+    );
     if (statusBadge) {
-      statusBadge.className = 'push-status-badge badge-inactive';
-      statusBadge.textContent = 'Inactivas';
+      statusBadge.className = "push-status-badge badge-inactive";
+      statusBadge.textContent = "Inactivas";
     }
     if (statusDesc) {
-      statusDesc.textContent = 'Recibe avisos directos en este dispositivo cuando tus facturas se completen o requieran atención.';
+      statusDesc.textContent =
+        "Recibe avisos directos en este dispositivo cuando tus facturas se completen o requieran atención.";
     }
   }
 
   async function subscribeUserToPush(targetRfc, options = {}) {
     const { silentSuccess = false } = options;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    if (
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window) ||
+      !("Notification" in window)
+    ) {
       return false;
     }
 
     let rfc = targetRfc;
     if (!rfc) {
       try {
-        const localProfile = JSON.parse(localStorage.getItem('combusticket_profile') || '{}');
+        const localProfile = JSON.parse(
+          localStorage.getItem("combusticket_profile") || "{}",
+        );
         if (localProfile && localProfile.rfc) rfc = localProfile.rfc;
-      } catch (e) {}
+      } catch (e) { }
     }
 
     try {
@@ -4192,10 +5548,14 @@ document.addEventListener('DOMContentLoaded', () => {
       let sub = await reg.pushManager.getSubscription();
 
       if (!sub) {
-        const res = await fetch('/api/push/public-key');
+        const res = await fetch("/api/push/public-key");
         const data = await res.json();
         if (!data.success || !data.publicKey) {
-          if (!silentSuccess) showToast('No se pudo obtener la clave VAPID del servidor.', 'error');
+          if (!silentSuccess)
+            showToast(
+              "No se pudo obtener la clave VAPID del servidor.",
+              "error",
+            );
           return false;
         }
 
@@ -4207,22 +5567,28 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (sub) {
-        await fetch('/api/push/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ subscription: sub, rfc }),
         });
 
         if (!silentSuccess) {
-          showToast('🔔 ¡Notificaciones push activadas! Te avisaremos al timbrar tu factura.', 'success');
+          showToast(
+            "🔔 ¡Notificaciones push activadas! Te avisaremos al timbrar tu factura.",
+            "success",
+          );
         }
         updatePushStatusUI();
         return true;
       }
     } catch (err) {
-      console.error('[Push] Error al suscribir a notificaciones:', err);
+      console.error("[Push] Error al suscribir a notificaciones:", err);
       if (!silentSuccess) {
-        showToast('Error al configurar notificaciones push: ' + (err.message || err), 'error');
+        showToast(
+          "Error al configurar notificaciones push: " + (err.message || err),
+          "error",
+        );
       }
       updatePushStatusUI();
     }
@@ -4230,60 +5596,79 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function unsubscribeUserFromPush() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
     try {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
         await sub.unsubscribe();
-        let rfc = undefined;
+        let rfc;
         try {
-          const localProfile = JSON.parse(localStorage.getItem('combusticket_profile') || '{}');
+          const localProfile = JSON.parse(
+            localStorage.getItem("combusticket_profile") || "{}",
+          );
           if (localProfile && localProfile.rfc) rfc = localProfile.rfc;
-        } catch (e) {}
+        } catch (e) { }
 
-        await fetch('/api/push/unsubscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch("/api/push/unsubscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: sub.endpoint, rfc }),
-        }).catch(() => {});
+        }).catch(() => { });
 
-        showToast('Notificaciones push desactivadas.', 'info');
+        showToast("Notificaciones push desactivadas.", "info");
         updatePushStatusUI();
       }
     } catch (err) {
-      console.error('[Push] Error al desactivar notificaciones:', err);
-      showToast('Error al desactivar notificaciones: ' + (err.message || err), 'error');
+      console.error("[Push] Error al desactivar notificaciones:", err);
+      showToast(
+        "Error al desactivar notificaciones: " + (err.message || err),
+        "error",
+      );
       updatePushStatusUI();
     }
   }
 
   async function autoPromptPushPermission(rfc) {
-    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (
+      !("Notification" in window) ||
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window)
+    ) {
       return;
     }
-    if (Notification.permission === 'default') {
+    if (Notification.permission === "default") {
       try {
         const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
+        if (permission === "granted") {
           await subscribeUserToPush(rfc, { silentSuccess: false });
         }
       } catch (err) {
-        console.warn('[Push] Error en solicitud automática de permisos:', err);
+        console.warn("[Push] Error en solicitud automática de permisos:", err);
       }
-    } else if (Notification.permission === 'granted') {
-      subscribeUserToPush(rfc, { silentSuccess: true }).catch(() => {});
+    } else if (Notification.permission === "granted") {
+      subscribeUserToPush(rfc, { silentSuccess: true }).catch(() => { });
     }
   }
 
   async function togglePushSubscription() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-      showToast('Tu navegador no soporta notificaciones push en segundo plano.', 'warning');
+    if (
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window) ||
+      !("Notification" in window)
+    ) {
+      showToast(
+        "Tu navegador no soporta notificaciones push en segundo plano.",
+        "warning",
+      );
       return;
     }
 
-    if (Notification.permission === 'denied') {
-      showToast('Las notificaciones están bloqueadas en tu navegador. Puedes habilitarlas en los permisos del sitio.', 'warning');
+    if (Notification.permission === "denied") {
+      showToast(
+        "Las notificaciones están bloqueadas en tu navegador. Puedes habilitarlas en los permisos del sitio.",
+        "warning",
+      );
       return;
     }
 
@@ -4298,25 +5683,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Request permission
       const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        showToast('Permiso de notificaciones no concedido.', 'warning');
+      if (permission !== "granted") {
+        showToast("Permiso de notificaciones no concedido.", "warning");
         updatePushStatusUI();
         return;
       }
 
       await subscribeUserToPush(getProfile()?.rfc, { silentSuccess: false });
     } catch (err) {
-      console.error('[Push] Error al configurar notificaciones:', err);
-      showToast('Error al configurar notificaciones push: ' + (err.message || err), 'error');
+      console.error("[Push] Error al configurar notificaciones:", err);
+      showToast(
+        "Error al configurar notificaciones push: " + (err.message || err),
+        "error",
+      );
       updatePushStatusUI();
     }
   }
 
   function setupPushNotifications() {
-    const btnPush = document.getElementById('btn-push-subscribe');
+    const btnPush = document.getElementById("btn-push-subscribe");
     if (btnPush) {
-      btnPush.addEventListener('click', togglePushSubscription);
-      navigator.serviceWorker?.ready?.then(updatePushStatusUI).catch(() => {});
+      btnPush.addEventListener("click", togglePushSubscription);
+      navigator.serviceWorker?.ready?.then(updatePushStatusUI).catch(() => { });
     }
   }
 
@@ -4325,4 +5713,3 @@ document.addEventListener('DOMContentLoaded', () => {
   // Run app
   init();
 });
-
