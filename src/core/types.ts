@@ -46,7 +46,7 @@ export interface ReceiptTransactionRecord {
   updatedAt: string;
   submittedAt?: string;
   completedAt?: string;
-  status: "scanned" | "enqueued" | "dry_run" | "completed" | "failed";
+  status: "scanned" | "enqueued" | "waiting" | "dry_run" | "completed" | "failed";
   jobId?: string;
   ticket: {
     trackingNumber: string;
