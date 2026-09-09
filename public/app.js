@@ -2362,6 +2362,53 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- EVENT LISTENERS ---
   function setupEventListeners() {
+    // --- PWA Install Banner ---
+    let _deferredInstallPrompt = null;
+    const pwaInstallBanner = document.getElementById("pwa-install-banner");
+    const btnPwaInstall = document.getElementById("btn-pwa-install");
+    const btnPwaDismiss = document.getElementById("btn-pwa-dismiss");
+    const PWA_DISMISSED_KEY = "combusticket_pwa_banner_dismissed";
+
+    function showPwaBanner() {
+      if (!pwaInstallBanner) return;
+      if (sessionStorage.getItem(PWA_DISMISSED_KEY)) return;
+      pwaInstallBanner.classList.remove("hidden", "dismissing");
+    }
+
+    function hidePwaBanner() {
+      if (!pwaInstallBanner) return;
+      pwaInstallBanner.classList.add("dismissing");
+      setTimeout(() => pwaInstallBanner.classList.add("hidden"), 380);
+    }
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      _deferredInstallPrompt = e;
+      showPwaBanner();
+    });
+
+    btnPwaInstall?.addEventListener("click", async () => {
+      if (!_deferredInstallPrompt) return;
+      hidePwaBanner();
+      _deferredInstallPrompt.prompt();
+      const { outcome } = await _deferredInstallPrompt.userChoice;
+      if (outcome === "accepted") {
+        _deferredInstallPrompt = null;
+      }
+    });
+
+    btnPwaDismiss?.addEventListener("click", () => {
+      sessionStorage.setItem(PWA_DISMISSED_KEY, "1");
+      hidePwaBanner();
+    });
+
+    // Hide banner once actually installed
+    window.addEventListener("appinstalled", () => {
+      hidePwaBanner();
+      _deferredInstallPrompt = null;
+    });
+
+    // -----------------------------------------------
     brandLogo?.addEventListener("click", () => {
       const profile = getProfile();
       if (profile && profile.rfc) {
@@ -3718,6 +3765,79 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast("Recibo limpiado.", "info");
   }
 
+  /**
+   * Returns an SVG icon representing the payment method.
+   * Used in mobile meta strip to save horizontal space.
+   */
+  function getPaymentMethodIcon(method) {
+    if (!method) return "";
+    const m = method.toLowerCase();
+    // Credit / debit card
+    if (m.includes("tarjeta") || m.includes("cr\u00e9dito") || m.includes("credito") || m.includes("d\u00e9bito") || m.includes("debito") || m.includes("card") || m === "03" || m === "04") {
+      return `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" title="${escapeHtml(method)}"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`;
+    }
+    // Transfer
+    if (m.includes("transfer") || m === "03") {
+      return `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" title="${escapeHtml(method)}"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`;
+    }
+    // Cash / efectivo
+    if (m.includes("efectivo") || m.includes("cash") || m === "01") {
+      return `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" title="${escapeHtml(method)}"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>`;
+    }
+    // Generic fallback
+    return `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" title="${escapeHtml(method)}"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
+  }
+
+  /**
+   * Returns an <img> tag with the gas station's real favicon/logo, falling back to a generic SVG icon.
+   */
+  function getStationLogoHtml(item) {
+    // Determine the most specific logo domain
+    const station = (item.gasStation || "").toLowerCase();
+    const billingUrl = (item.billingUrl || item.portalUrl || "").trim();
+
+    // Known stations → fixed logo domain
+    const LOGO_MAP = {
+      gogas:          "https://facturasgas.com",
+      iga:            "https://facturasgas.com",
+      facturasgas:    "https://facturasgas.com",
+      oxxo:           "https://oxxogas.com",
+      "oxxo gas":     "https://oxxogas.com",
+      petro:          "https://petro-7.com.mx",
+      "petro-7":      "https://petro-7.com.mx",
+      hidrosina:      "https://hidrosina.com.mx",
+      "g500":         "https://g500.com.mx",
+      valero:         "https://valero.com.mx",
+      mobil:          "https://mobil.com",
+      shell:          "https://shell.com.mx",
+      bp:             "https://bp.com",
+      chevron:        "https://chevron.com",
+    };
+
+    let logoBase = null;
+    for (const [key, url] of Object.entries(LOGO_MAP)) {
+      if (station.includes(key)) { logoBase = url; break; }
+    }
+
+    // Fallback: try billing URL origin
+    if (!logoBase && billingUrl) {
+      try {
+        const parsed = new URL(billingUrl.startsWith("http") ? billingUrl : "https://" + billingUrl);
+        logoBase = parsed.origin;
+      } catch { /* ignore */ }
+    }
+
+    if (!logoBase) {
+      // Generic gas pump SVG
+      return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8"/><path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5"/><path d="M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/><path d="M13 2h4a2 2 0 0 1 2 2v7"/><path d="M4 22h16"/></svg>`;
+    }
+
+    const faviconUrl = `${logoBase}/favicon.ico`;
+    const fallbackSvg = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8"/><path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5"/><path d="M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/><path d="M13 2h4a2 2 0 0 1 2 2v7"/><path d="M4 22h16"/></svg>`;
+    // onerror swaps the broken img for the inline SVG fallback
+    return `<img src="${escapeHtml(faviconUrl)}" width="22" height="22" style="object-fit:contain;border-radius:4px;" alt="Logo" onerror="this.outerHTML=${JSON.stringify(fallbackSvg).replace(/"/g,'&quot;')};">`;
+  }
+
   function getBillingDomain(item) {
     if (!item) return "facturasgas.com";
     let urlStr = (item.billingUrl || item.portalUrl || "").trim();
@@ -4666,7 +4786,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="history-row-top">
           <div class="history-station-info">
             <div class="history-station-icon">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8"/><path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5"/><path d="M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/><path d="M13 2h4a2 2 0 0 1 2 2v7"/><path d="M4 22h16"/></svg>
+              ${getStationLogoHtml(item)}
             </div>
             <div class="history-station-text">
               <strong class="history-station-name">${escapeHtml(getBillingDomain(item))}</strong>
@@ -4717,8 +4837,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             ${item.paymentMethod
               ? `
-              <span class="history-amount-pill" style="background: rgba(168, 85, 247, 0.12); color: #c084fc; border-color: rgba(168, 85, 247, 0.25);" title="Forma de pago">
-                ${escapeHtml(item.paymentMethod)}
+              <span class="history-amount-pill history-payment-pill" style="background: rgba(168, 85, 247, 0.12); color: #c084fc; border-color: rgba(168, 85, 247, 0.25);" title="${escapeHtml(item.paymentMethod)}">
+                <span class="payment-text">${escapeHtml(item.paymentMethod)}</span>
+                <span class="payment-icon">${getPaymentMethodIcon(item.paymentMethod)}</span>
               </span>
             `
               : ""

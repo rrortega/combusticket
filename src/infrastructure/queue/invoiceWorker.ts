@@ -285,6 +285,19 @@ export function startInvoiceWorker(): Worker<InvoiceJobData, InvoiceResult> {
           return cancelledResult;
         }
 
+        // Translate low-level automation errors into user-friendly messages
+        const rawMsg: string = err.message || "";
+        let humanError: string;
+        if (rawMsg.includes("Timeout") || rawMsg.includes("timeout")) {
+          humanError = "El portal tardó demasiado en responder. El proceso se reintentó automáticamente hasta 3 veces sin éxito. Intenta de nuevo más tarde.";
+        } else if (rawMsg.includes("net::ERR_") || rawMsg.includes("ERR_NAME_NOT_RESOLVED") || rawMsg.includes("ERR_CONNECTION")) {
+          humanError = "No se pudo conectar con el portal de facturación. Verifica tu conexión e intenta nuevamente.";
+        } else if (rawMsg.includes("Navigation") || rawMsg.includes("net::ERR_ABORTED")) {
+          humanError = "La navegación al portal fue interrumpida. Intenta de nuevo.";
+        } else {
+          humanError = "Ocurrió un error durante la automatización. Por favor intenta nuevamente.";
+        }
+
         // Record failed attempt in history as well so user knows what happened
         const failedEntry: InvoiceHistoryEntry = {
           id: `hist_${job.id}`,
@@ -309,8 +322,8 @@ export function startInvoiceWorker(): Worker<InvoiceJobData, InvoiceResult> {
           fileHash: job.data.receiptData.fileHash,
           receiptJsonUrl: job.data.receiptData.receiptJsonUrl,
           receiptBaseName: job.data.receiptData.receiptBaseName,
-          message: "Error durante la automatización",
-          error: err.message,
+          message: humanError,
+          error: humanError,
         };
 
         await RedisHistoryService.saveEntry(failedEntry).catch(() => {});

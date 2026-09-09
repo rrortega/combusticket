@@ -86,145 +86,48 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       profile.formaPago,
     );
 
-    // Step 1: Select Dropdowns with realistic pacing
-    const selectsToSet = [
-      {
-        id: "#CdCfdiRegimen",
-        val: profile.regimenFiscal,
-        label: "Régimen Fiscal",
-      },
-      { id: "#CfdiMetodoPago", val: paymentCode, label: "Forma de Pago" },
-      { id: "#CdUsoCfdi", val: profile.usoCfdi, label: "Uso de CFDI" },
-    ];
-
-    for (const item of selectsToSet) {
-      if (item.val) {
-        await page.evaluate(`
-          (() => {
-            const el = document.querySelector(${JSON.stringify(item.id)});
-            if (el) {
-              el.value = ${JSON.stringify(item.val)};
-              el.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-          })()
-        `);
-        Logger.debug(
+    // Attempt to fill form + register ticket, retrying on timeout (up to 3 times)
+    const MAX_FORM_ATTEMPTS = 3;
+    for (let attempt = 1; attempt <= MAX_FORM_ATTEMPTS; attempt++) {
+      if (attempt > 1) {
+        Logger.warn(
           "FacturasGas",
-          `Set select ${item.label} (${item.id}) to: "${item.val}"`,
+          `[Attempt ${attempt}/${MAX_FORM_ATTEMPTS}] Reloading portal page and retrying form fill...`,
         );
-        await page.waitForTimeout(350);
-      }
-    }
-
-    // Step 2: Fill text fields sequentially with visible HTML attribute & event dispatching
-    const textFields: Array<{
-      selector: string;
-      value: string;
-      label: string;
-    }> = [
-      { selector: "#RFC", value: profile.rfc, label: "RFC" },
-      {
-        selector: "#RazonSocial",
-        value: profile.razonSocial,
-        label: "Razón Social",
-      },
-      { selector: "#Email", value: profile.email, label: "Email" },
-      {
-        selector: "#Email_verif",
-        value: profile.emailConfirm,
-        label: "Confirmar Email",
-      },
-      { selector: "#CP", value: profile.codigoPostal, label: "Código Postal" },
-    ];
-
-    Logger.debug("FacturasGas", "Profile data to fill:", {
-      rfc: profile.rfc,
-      razonSocial: profile.razonSocial,
-      email: profile.email,
-      codigoPostal: profile.codigoPostal,
-      regimen: profile.regimenFiscal,
-      pago: paymentCode,
-      uso: profile.usoCfdi,
-    });
-
-    // Pre-assign both Email inputs so the portal validator never detects a temporary mismatch
-    await page
-      .evaluate(`
-      (() => {
-        const e1 = document.querySelector('#Email');
-        const e2 = document.querySelector('#Email_verif');
-        if (e1) { e1.value = ${JSON.stringify(profile.email)}; e1.setAttribute('value', ${JSON.stringify(profile.email)}); }
-        if (e2) { e2.value = ${JSON.stringify(profile.emailConfirm)}; e2.setAttribute('value', ${JSON.stringify(profile.emailConfirm)}); }
-      })()
-    `)
-      .catch(() => {});
-
-    for (const field of textFields) {
-      if (field.value) {
-        await page.evaluate(`
-          (() => {
-            const el = document.querySelector(${JSON.stringify(field.selector)});
-            if (el) {
-              el.focus();
-              el.value = ${JSON.stringify(field.value)};
-              el.setAttribute('value', ${JSON.stringify(field.value)});
-              el.dispatchEvent(new Event('input', { bubbles: true }));
-              el.dispatchEvent(new Event('change', { bubbles: true }));
-              el.blur();
-            }
-          })()
-        `);
-        Logger.debug(
-          "FacturasGas",
-          `Filled ${field.label} (${field.selector}): "${field.value}"`,
-        );
-        await page.waitForTimeout(350);
-      }
-    }
-
-    // Step 3: Type Ticket number into #Ticket field
-    if (receipt.trackingNumber) {
-      await page.evaluate(`
-        (() => {
-          const el = document.querySelector('#Ticket');
-          if (el) {
-            el.focus();
-            el.value = ${JSON.stringify(receipt.trackingNumber)};
-            el.setAttribute('value', ${JSON.stringify(receipt.trackingNumber)});
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        })()
-      `);
-      Logger.debug(
-        "FacturasGas",
-        `Filled Ticket (#Ticket): "${receipt.trackingNumber}"`,
-      );
-      await page.waitForTimeout(400);
-    }
-
-    // Clean up any jQuery UI autocomplete overlays
-    await page.evaluate(`
-      (() => {
-        document.querySelectorAll('.ui-autocomplete').forEach((el) => el.remove());
-        if (window.$ && window.$('#RFC') && window.$('#RFC').autocomplete) {
-          try {
-            window.$('#RFC').autocomplete('close');
-          } catch {}
+        try {
+          await page.goto(targetUrl, {
+            waitUntil: "domcontentloaded",
+            timeout: options.timeoutMs || 30000,
+          });
+          await page.waitForTimeout(1500);
+          // Re-apply style suppression after reload
+          await page
+            .addStyleTag({
+              content:
+                ".popover, .ui-autocomplete, .alert, .alert-warning { display: none !important; opacity: 0 !important; visibility: hidden !important; }",
+            })
+            .catch(() => {});
+        } catch (reloadErr: any) {
+          Logger.warn("FacturasGas", `Reload failed on attempt ${attempt}: ${reloadErr.message}`);
         }
-      })()
-    `);
+      }
 
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(400);
-
-    // Step 4: Click "Agregar" to register ticket into the invoice list
-    Logger.info(
-      "FacturasGas",
-      `Registering ticket: ${receipt.trackingNumber}...`,
-    );
-    await page.click("#Button_Add");
-    await page.waitForTimeout(2500);
+      try {
+        await this._fillAndRegisterTicket(page, receipt, profile, paymentCode, options);
+        break; // success — exit retry loop
+      } catch (fillErr: any) {
+        const isTimeout = fillErr.message?.includes("Timeout") || fillErr.message?.includes("timeout");
+        if (isTimeout && attempt < MAX_FORM_ATTEMPTS) {
+          Logger.warn(
+            "FacturasGas",
+            `[Attempt ${attempt}/${MAX_FORM_ATTEMPTS}] Timeout on form interaction, will retry: ${fillErr.message.split("\n")[0]}`,
+          );
+          continue;
+        }
+        // Last attempt or non-timeout error: re-throw
+        throw fillErr;
+      }
+    }
 
     const ticketStatus = (await page.evaluate(`
       (() => {
@@ -442,11 +345,9 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       ) {
         submitted = false;
         isSuccess = false;
-        finalMessage =
-          pageOutcome.rejectionMessage ||
-          (pageOutcome.isAlreadyBilled
-            ? `El ticket '${receipt.trackingNumber}' ya fue facturado previamente en el portal.`
-            : `El ticket '${receipt.trackingNumber}' fue rechazado por el portal.`);
+        finalMessage = pageOutcome.isAlreadyBilled
+          ? "Este ticket ya había sido facturado"
+          : (pageOutcome.rejectionMessage || `El ticket '${receipt.trackingNumber}' fue rechazado por el portal.`);
         Logger.warn(
           "FacturasGas",
           `Portal rejection detected: "${finalMessage}"`,
@@ -522,6 +423,127 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
         rejectionReason: isSuccess ? undefined : finalMessage,
       },
     };
+  }
+
+  /**
+   * Fills the billing profile form and clicks #Button_Add to register the ticket.
+   * Extracted so the retry loop in execute() can call it multiple times cleanly.
+   */
+  private async _fillAndRegisterTicket(
+    page: Page,
+    receipt: ParsedReceiptData,
+    profile: BillingProfile,
+    paymentCode: string,
+    options: AutomationOptions,
+  ): Promise<void> {
+    // Step 1: Select Dropdowns with realistic pacing
+    const selectsToSet = [
+      { id: "#CdCfdiRegimen", val: profile.regimenFiscal, label: "Régimen Fiscal" },
+      { id: "#CfdiMetodoPago", val: paymentCode, label: "Forma de Pago" },
+      { id: "#CdUsoCfdi", val: profile.usoCfdi, label: "Uso de CFDI" },
+    ];
+
+    for (const item of selectsToSet) {
+      if (item.val) {
+        await page.evaluate(`
+          (() => {
+            const el = document.querySelector(${JSON.stringify(item.id)});
+            if (el) {
+              el.value = ${JSON.stringify(item.val)};
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          })()
+        `);
+        Logger.debug("FacturasGas", `Set select ${item.label} (${item.id}) to: "${item.val}"`);
+        await page.waitForTimeout(350);
+      }
+    }
+
+    // Step 2: Fill text fields sequentially
+    Logger.debug("FacturasGas", "Profile data to fill:", {
+      rfc: profile.rfc,
+      razonSocial: profile.razonSocial,
+      email: profile.email,
+      codigoPostal: profile.codigoPostal,
+      regimen: profile.regimenFiscal,
+      pago: paymentCode,
+      uso: profile.usoCfdi,
+    });
+
+    // Pre-assign both Email inputs so the portal validator never detects a temporary mismatch
+    await page
+      .evaluate(`
+      (() => {
+        const e1 = document.querySelector('#Email');
+        const e2 = document.querySelector('#Email_verif');
+        if (e1) { e1.value = ${JSON.stringify(profile.email)}; e1.setAttribute('value', ${JSON.stringify(profile.email)}); }
+        if (e2) { e2.value = ${JSON.stringify(profile.emailConfirm)}; e2.setAttribute('value', ${JSON.stringify(profile.emailConfirm)}); }
+      })()
+    `)
+      .catch(() => {});
+
+    const textFields = [
+      { selector: "#RFC", value: profile.rfc, label: "RFC" },
+      { selector: "#RazonSocial", value: profile.razonSocial, label: "Razón Social" },
+      { selector: "#Email", value: profile.email, label: "Email" },
+      { selector: "#Email_verif", value: profile.emailConfirm, label: "Confirmar Email" },
+      { selector: "#CP", value: profile.codigoPostal, label: "Código Postal" },
+    ];
+
+    for (const field of textFields) {
+      if (field.value) {
+        await page.evaluate(`
+          (() => {
+            const el = document.querySelector(${JSON.stringify(field.selector)});
+            if (el) {
+              el.focus();
+              el.value = ${JSON.stringify(field.value)};
+              el.setAttribute('value', ${JSON.stringify(field.value)});
+              el.dispatchEvent(new Event('input', { bubbles: true }));
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+              el.blur();
+            }
+          })()
+        `);
+        Logger.debug("FacturasGas", `Filled ${field.label} (${field.selector}): "${field.value}"`);
+        await page.waitForTimeout(350);
+      }
+    }
+
+    // Step 3: Fill ticket number
+    if (receipt.trackingNumber) {
+      await page.evaluate(`
+        (() => {
+          const el = document.querySelector('#Ticket');
+          if (el) {
+            el.focus();
+            el.value = ${JSON.stringify(receipt.trackingNumber)};
+            el.setAttribute('value', ${JSON.stringify(receipt.trackingNumber)});
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        })()
+      `);
+      Logger.debug("FacturasGas", `Filled Ticket (#Ticket): "${receipt.trackingNumber}"`);
+      await page.waitForTimeout(400);
+    }
+
+    // Clean up jQuery UI autocomplete overlays
+    await page.evaluate(`
+      (() => {
+        document.querySelectorAll('.ui-autocomplete').forEach((el) => el.remove());
+        if (window.$ && window.$('#RFC') && window.$('#RFC').autocomplete) {
+          try { window.$('#RFC').autocomplete('close'); } catch {}
+        }
+      })()
+    `);
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(400);
+
+    // Step 4: Click "Agregar" to register ticket
+    Logger.info("FacturasGas", `Registering ticket: ${receipt.trackingNumber}...`);
+    await page.click("#Button_Add", { timeout: options.timeoutMs || 30000 });
+    await page.waitForTimeout(2500);
   }
 
   private resolvePaymentMethodCode(

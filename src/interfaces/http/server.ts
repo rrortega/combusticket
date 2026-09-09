@@ -891,7 +891,7 @@ export async function createHttpServer(
               imageFileName: savedFileName || `${baseName}.png`,
               receiptImageUrl: finalImageUrl,
               parsed: item.receiptData,
-              status: "enqueued",
+              status: "waiting",
             });
           item.receiptData.receiptJsonUrl = metadataRecord.jsonUrl;
         } catch (metaErr: any) {

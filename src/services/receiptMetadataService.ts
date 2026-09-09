@@ -447,7 +447,7 @@ export class ReceiptMetadataService {
       createdAt: existingRecord.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       submittedAt: new Date().toISOString(),
-      status: "enqueued",
+      status: "waiting",
       jobId: String(jobId),
       ticket: {
         trackingNumber: receiptData.trackingNumber,
