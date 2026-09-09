@@ -725,6 +725,60 @@ export async function createHttpServer(
         });
       }
 
+      // Verify all items belong to an active station
+      const stationsPath = path.resolve(
+        process.cwd(),
+        "config",
+        "supported_stations.json",
+      );
+      let activeStationDescriptors: any[] = [];
+      if (fs.existsSync(stationsPath)) {
+        try {
+          const allStations = JSON.parse(
+            fs.readFileSync(stationsPath, "utf-8"),
+          );
+          activeStationDescriptors = allStations.filter(
+            (s: any) => s.status === "active",
+          );
+        } catch {}
+      }
+      if (activeStationDescriptors.length === 0) {
+        activeStationDescriptors = [
+          { id: "gogas", domain: "facturasgas.com", status: "active" },
+        ];
+      }
+
+      for (const item of jobsToQueue) {
+        const url = (item.receiptData.billingUrl || "").toLowerCase();
+        const station = (item.receiptData.gasStation || "").toLowerCase();
+        const isActive = activeStationDescriptors.some((st: any) => {
+          const stDomain = (st.domain || "").toLowerCase();
+          const stPortal = (st.portalUrl || "").toLowerCase();
+          const stId = (st.id || "").toLowerCase();
+          const stName = (st.name || "").toLowerCase();
+          return (
+            (stDomain && url.includes(stDomain)) ||
+            (stPortal && url === stPortal) ||
+            (stId && station === stId) ||
+            (stName && station === stName) ||
+            (st.id === "gogas" &&
+              (url.includes("facturasgas") ||
+                station.includes("gogas") ||
+                station.includes("facturasgas") ||
+                station.includes("lagas")))
+          );
+        });
+
+        if (!isActive) {
+          return res.status(400).json({
+            success: false,
+            unavailableStation: true,
+            stationName: item.receiptData.gasStation || "Esta gasolinera",
+            error: `La gasolinera "${item.receiptData.gasStation || "seleccionada"}" aún no está disponible para facturación automática.`,
+          });
+        }
+      }
+
       // Verify duplicate tracking number against existing history.
       // Entries with status 'scanned' are pre-submission artifacts and must NOT block invoicing.
       const existingHistory = await RedisHistoryService.getHistoryByRfc(

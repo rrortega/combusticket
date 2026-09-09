@@ -3789,56 +3789,84 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /**
-   * Returns an <img> tag with the gas station's real favicon/logo, falling back to a generic SVG icon.
+   * Returns the exact same circular SVG logo used in the home/landing station cards.
    */
   function getStationLogoHtml(item) {
+    if (!item) return getStationLogoSvg("generic", "Gasolinera");
+
+    const rawDomain = (getBillingDomain(item) || "").toLowerCase();
+    const rawUrl = (item.billingUrl || item.portalUrl || "").toLowerCase();
     const station = (item.gasStation || "").toLowerCase();
-    const billingUrl = (item.billingUrl || item.portalUrl || "").trim();
+    const stationId = (item.stationId || "").toLowerCase();
 
-    // Mapping station keywords to real corporate brand domains
-    const BRAND_DOMAINS = {
-      gogas:       "gogas.com.mx",
-      iga:         "grupoiga.com.mx",
-      oxxo:        "oxxogas.com",
-      "oxxo gas":  "oxxogas.com",
-      petro:       "petro-7.com.mx",
-      "petro-7":   "petro-7.com.mx",
-      hidrosina:   "hidrosina.com.mx",
-      g500:        "g500network.com",
-      valero:      "valero.com.mx",
-      mobil:       "mobil.com.mx",
-      shell:       "shell.com.mx",
-      bp:          "bp.com",
-      chevron:     "chevron.com",
-      pemex:       "pemex.com",
-      lagas:       "lagas.com.mx",
-      arce:        "gasolineraarce.com.mx",
-      facturasgas: "facturasgas.com",
-    };
+    let canonicalId = "generic";
+    let canonicalName = item.gasStation || getBillingDomain(item) || "";
 
-    let targetDomain = null;
-    for (const [key, domain] of Object.entries(BRAND_DOMAINS)) {
-      if (station.includes(key)) {
-        targetDomain = domain;
-        break;
-      }
+    if (stationId) {
+      canonicalId = stationId;
+    } else if (
+      station.includes("gogas") ||
+      station.includes("facturasgas") ||
+      station.includes("delfines") ||
+      rawDomain.includes("facturasgas") ||
+      rawUrl.includes("facturasgas")
+    ) {
+      canonicalId = "gogas";
+      canonicalName = "GoGas";
+    } else if (station.includes("pemex") || rawDomain.includes("pemex") || rawUrl.includes("pemex")) {
+      canonicalId = "pemex";
+      canonicalName = "PEMEX";
+    } else if (station.includes("bp") || station.includes("british") || rawDomain.includes("bp") || rawUrl.includes("bp")) {
+      canonicalId = "bp";
+      canonicalName = "BP";
+    } else if (station.includes("shell") || rawDomain.includes("shell") || rawUrl.includes("shell")) {
+      canonicalId = "shell";
+      canonicalName = "Shell";
+    } else if (station.includes("everilion")) {
+      canonicalId = "everilion";
+      canonicalName = "Everilion";
+    } else if (station.includes("chevron") || rawDomain.includes("chevron") || rawUrl.includes("chevron")) {
+      canonicalId = "chevron";
+      canonicalName = "Chevron";
+    } else if (station.includes("total") || rawDomain.includes("totalenergies") || rawUrl.includes("totalenergies")) {
+      canonicalId = "totalenergies";
+      canonicalName = "TotalEnergies";
+    } else if (station.includes("mobil") || station.includes("petromax") || rawDomain.includes("mobil") || rawUrl.includes("mobil")) {
+      canonicalId = "exxonmobil";
+      canonicalName = "Mobil";
+    } else if (station.includes("islo") || rawDomain.includes("gasislo")) {
+      canonicalId = "gasislo";
+      canonicalName = "GasIslo";
+    } else if (station.includes("policon") || rawDomain.includes("efectifactura")) {
+      canonicalId = "policon";
+      canonicalName = "Policon";
+    } else if (station.includes("hidrosina") || rawDomain.includes("hidrosina")) {
+      canonicalId = "hidrosina";
+      canonicalName = "Hidrosina";
+    } else if (station.includes("oxxo") || rawDomain.includes("oxxogas")) {
+      canonicalId = "oxxogas";
+      canonicalName = "OXXO Gas";
+    } else if (station.includes("petro") || rawDomain.includes("petro-7")) {
+      canonicalId = "petro7";
+      canonicalName = "Petro-7";
+    } else if (station.includes("g500") || rawDomain.includes("g500")) {
+      canonicalId = "g500";
+      canonicalName = "G500";
+    } else if (station.includes("valero") || rawDomain.includes("valero")) {
+      canonicalId = "valero";
+      canonicalName = "Valero";
+    } else if (station.includes("repsol") || rawDomain.includes("repsol")) {
+      canonicalId = "repsol";
+      canonicalName = "Repsol";
+    } else if (station.includes("arce")) {
+      canonicalId = "arce";
+      canonicalName = "Gasolinera Arce";
+    } else if (station.includes("lagas") || rawDomain.includes("lagas")) {
+      canonicalId = "lagas";
+      canonicalName = "La Gas";
     }
 
-    if (!targetDomain && billingUrl) {
-      try {
-        const parsed = new URL(billingUrl.startsWith("http") ? billingUrl : "https://" + billingUrl);
-        targetDomain = parsed.hostname.replace(/^www\./, "");
-      } catch { /* ignore */ }
-    }
-
-    const fallbackSvg = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8"/><path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5"/><path d="M3 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/><path d="M13 2h4a2 2 0 0 1 2 2v7"/><path d="M4 22h16"/></svg>`;
-
-    if (!targetDomain) {
-      return fallbackSvg;
-    }
-
-    const logoUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(targetDomain)}&sz=128`;
-    return `<img src="${escapeHtml(logoUrl)}" width="22" height="22" style="object-fit:contain;border-radius:4px;display:block;" alt="Logo" onerror="this.outerHTML=${JSON.stringify(fallbackSvg).replace(/"/g, '&quot;')};">`;
+    return getStationLogoSvg(canonicalId, canonicalName);
   }
 
   function getBillingDomain(item) {
@@ -3956,18 +3984,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (btnEnqueueInvoices) {
+      const hasUnavailable = currentScannedReceipts.some(
+        (r) => !getStationAvailability(r).isAvailable,
+      );
       const allDuplicates =
         currentScannedReceipts.length > 0 &&
         currentScannedReceipts.every((r) => isTicketDuplicate(r.trackingNumber));
 
-      if (allDuplicates) {
+      if (hasUnavailable) {
         btnEnqueueInvoices.disabled = false;
         btnEnqueueInvoices.removeAttribute("disabled");
-        btnEnqueueInvoices.title = "Este recibo ya existe en tu historial. Clic para ver tu lista.";
+        btnEnqueueInvoices.classList.add("btn-disabled-notice");
+        btnEnqueueInvoices.title =
+          "Gasolinera no disponible para facturación automática. Clic para contactar al desarrollador.";
+        btnEnqueueInvoices.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Gasolinera no disponible (Consultar)</span>`;
+      } else if (allDuplicates) {
+        btnEnqueueInvoices.disabled = false;
+        btnEnqueueInvoices.removeAttribute("disabled");
+        btnEnqueueInvoices.classList.remove("btn-disabled-notice");
+        btnEnqueueInvoices.title =
+          "Este recibo ya existe en tu historial. Clic para ver tu lista.";
         btnEnqueueInvoices.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Ver en mi Historial</span>`;
       } else {
         btnEnqueueInvoices.disabled = false;
         btnEnqueueInvoices.removeAttribute("disabled");
+        btnEnqueueInvoices.classList.remove("btn-disabled-notice");
         btnEnqueueInvoices.title = "";
         btnEnqueueInvoices.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span>Avanzar y Facturar</span>`;
       }
@@ -4022,47 +4063,197 @@ document.addEventListener("DOMContentLoaded", () => {
     return /\b(?:EFECTIVO|CASH)\b/.test(text);
   }
 
+  /**
+   * Determines whether the gas station associated with the receipt has an active automation adapter.
+   */
+  function getStationAvailability(receipt) {
+    if (!receipt)
+      return { isAvailable: false, stationName: "Gasolinera", station: null };
+    const rawUrl = (receipt.billingUrl || receipt.portalUrl || "")
+      .trim()
+      .toLowerCase();
+    const stationField = (receipt.gasStation || "").trim().toLowerCase();
+    const stationId = (receipt.stationId || "").trim().toLowerCase();
+    const stations =
+      Array.isArray(supportedStations) && supportedStations.length > 0
+        ? supportedStations
+        : DEFAULT_FALLBACK_STATIONS;
+
+    let matchedStation = null;
+
+    // 1. Direct stationId match
+    if (stationId) {
+      matchedStation = stations.find(
+        (st) => (st.id || "").toLowerCase() === stationId,
+      );
+    }
+
+    // 2. Portal URL exact match or domain match (if URL is set)
+    if (!matchedStation && rawUrl) {
+      matchedStation = stations.find((st) => {
+        const stPortal = (st.portalUrl || "").toLowerCase();
+        return stPortal && (rawUrl === stPortal || rawUrl.startsWith(stPortal));
+      });
+
+      if (!matchedStation) {
+        matchedStation = stations.find((st) => {
+          const stDomain = (st.domain || "").toLowerCase();
+          return stDomain && rawUrl.includes(stDomain);
+        });
+      }
+    }
+
+    // 3. Match by gasStation name / brand keyword
+    if (!matchedStation && stationField) {
+      matchedStation = stations.find((st) => {
+        const stName = (st.name || "").toLowerCase();
+        const stId = (st.id || "").toLowerCase();
+        return stationField === stId || stationField === stName;
+      });
+
+      if (!matchedStation) {
+        matchedStation = stations.find((st) => {
+          const stName = (st.name || "").toLowerCase();
+          const stId = (st.id || "").toLowerCase();
+          const stBrand = (st.brandName || "").toLowerCase();
+          return (
+            (stId.length > 2 && stationField.includes(stId)) ||
+            (stName.length > 2 && stationField.includes(stName)) ||
+            (stBrand.length > 3 && stationField.includes(stBrand))
+          );
+        });
+      }
+    }
+
+    if (matchedStation) {
+      return {
+        isAvailable: matchedStation.status === "active",
+        stationName: matchedStation.name || receipt.gasStation || "Gasolinera",
+        station: matchedStation,
+      };
+    }
+
+    // Fallback: If explicitly GoGas / FacturasGas / LaGas
+    if (
+      stationField.includes("gogas") ||
+      stationField.includes("facturasgas") ||
+      stationField.includes("lagas") ||
+      rawUrl.includes("facturasgas")
+    ) {
+      const gogasSt = stations.find((s) => s.id === "gogas");
+      return {
+        isAvailable: gogasSt ? gogasSt.status === "active" : true,
+        stationName: "GoGas",
+        station: gogasSt,
+      };
+    }
+
+    // Any other or unrecognized station is UNAVAILABLE
+    return {
+      isAvailable: false,
+      stationName: receipt.gasStation || "Gasolinera no disponible",
+      station: null,
+    };
+  }
+
+  /**
+   * Sends receipt information and photo link directly to developer via WhatsApp.
+   */
+  function sendReceiptToDeveloper(receipt) {
+    const availability = getStationAvailability(receipt);
+    const stationName =
+      receipt.gasStation ||
+      availability.stationName ||
+      getBillingDomain(receipt) ||
+      "esta gasolinera";
+
+    let photoUrl = "";
+    if (receipt.previewUrl || receipt.receiptImageUrl) {
+      const rawUrl = receipt.previewUrl || receipt.receiptImageUrl;
+      photoUrl = rawUrl.startsWith("http")
+        ? rawUrl
+        : window.location.origin + rawUrl;
+    }
+
+    const message = `Hola ROLODEV, intente subir un recibo de "${stationName}" y aun no esta disoinible, te envio la foto del recibo para que lo agreges cuando puedas!${photoUrl ? `\n\nFoto del recibo: ${photoUrl}` : ""}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=529984137684&text=${encodeURIComponent(message)}`;
+
+    window.open(whatsappUrl, "_blank");
+    showToast(
+      "Abriendo WhatsApp para enviar el recibo al desarrollador...",
+      "info",
+    );
+  }
+
   function renderPortalChoices(receipt) {
-    const rawUrl = (receipt.billingUrl || receipt.portalUrl || "").trim();
-    const rawDomain = getBillingDomain(receipt).toLowerCase();
+    const rawUrl = (receipt.billingUrl || receipt.portalUrl || "")
+      .trim()
+      .toLowerCase();
+    const stationId = (receipt.stationId || "").trim().toLowerCase();
+    const stationField = (receipt.gasStation || "").trim().toLowerCase();
     const stations =
       Array.isArray(supportedStations) && supportedStations.length > 0
         ? supportedStations
         : DEFAULT_FALLBACK_STATIONS;
 
     let matchedIndex = -1;
-    for (let i = 0; i < stations.length; i++) {
-      const st = stations[i];
-      const stDomain = (st.domain || "").toLowerCase();
-      const stPortal = (st.portalUrl || "").toLowerCase();
-      if (
-        (rawUrl &&
-          (rawUrl.toLowerCase() === stPortal ||
-            rawUrl.toLowerCase().includes(stDomain))) ||
-        (rawDomain &&
-          (rawDomain === stDomain ||
-            rawDomain.includes(stDomain) ||
-            stDomain.includes(rawDomain))) ||
-        (receipt.stationId &&
-          receipt.stationId.toLowerCase() === st.id.toLowerCase())
-      ) {
-        matchedIndex = i;
-        break;
+
+    // 1. By explicit stationId
+    if (stationId) {
+      matchedIndex = stations.findIndex(
+        (s) => (s.id || "").toLowerCase() === stationId,
+      );
+    }
+
+    // 2. By portalUrl or domain match in URL
+    if (matchedIndex === -1 && rawUrl) {
+      matchedIndex = stations.findIndex((s) => {
+        const p = (s.portalUrl || "").toLowerCase();
+        return p && (rawUrl === p || rawUrl.startsWith(p));
+      });
+      if (matchedIndex === -1) {
+        matchedIndex = stations.findIndex((s) => {
+          const d = (s.domain || "").toLowerCase();
+          return d && rawUrl.includes(d);
+        });
       }
     }
 
+    // 3. By gasStation name / brand keyword
+    if (matchedIndex === -1 && stationField) {
+      matchedIndex = stations.findIndex((s) => {
+        const sId = (s.id || "").toLowerCase();
+        const sName = (s.name || "").toLowerCase();
+        return stationField === sId || stationField === sName;
+      });
+      if (matchedIndex === -1) {
+        matchedIndex = stations.findIndex((s) => {
+          const sId = (s.id || "").toLowerCase();
+          const sName = (s.name || "").toLowerCase();
+          const sBrand = (s.brandName || "").toLowerCase();
+          return (
+            (sId.length > 2 && stationField.includes(sId)) ||
+            (sName.length > 2 && stationField.includes(sName)) ||
+            (sBrand.length > 3 && stationField.includes(sBrand))
+          );
+        });
+      }
+    }
+
+    // 4. Default fallback: only GoGas if not matched and no conflicting name
     if (
       matchedIndex === -1 &&
       (!rawUrl ||
         rawUrl.includes("facturasgas") ||
-        rawDomain.includes("facturasgas"))
+        !stationField ||
+        stationField.includes("gogas"))
     ) {
       matchedIndex = stations.findIndex((s) => s.id === "gogas");
     }
 
     let html = "";
     if (matchedIndex === -1 && rawUrl) {
-      html += `<option value="${escapeHtml(rawUrl)}" selected>Detectado: ${escapeHtml(rawDomain || rawUrl)}</option>`;
+      html += `<option value="${escapeHtml(rawUrl)}" selected>Detectado: ${escapeHtml(receipt.gasStation || rawUrl)}</option>`;
     }
 
     stations.forEach((st, idx) => {
@@ -4070,7 +4261,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const isSel = idx === matchedIndex;
       const isAvailable = st.status === "active";
       const labelSuffix = isAvailable ? "" : " (Próximamente)";
-      html += `<option value="${escapeHtml(val)}" ${isSel ? "selected" : ""}>${escapeHtml(st.name)} (${escapeHtml(st.domain || val)})${labelSuffix}</option>`;
+      html += `<option value="${escapeHtml(val)}" data-station-id="${escapeHtml(st.id)}" ${isSel ? "selected" : ""}>${escapeHtml(st.name)} (${escapeHtml(st.domain || val)})${labelSuffix}</option>`;
     });
 
     return html;
@@ -4127,6 +4318,7 @@ document.addEventListener("DOMContentLoaded", () => {
       totalAmount += Number(receipt.amount || 0);
 
       const isDuplicate = isTicketDuplicate(receipt.trackingNumber);
+      const availability = getStationAvailability(receipt);
 
       const card = document.createElement("div");
       card.className = `receipt-card ${isDuplicate ? "card-duplicate" : ""}`;
@@ -4146,6 +4338,22 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="duplicate-warning-banner">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span><strong>Ticket ya registrado:</strong> Este número de rastreo ya existe en tu historial. Elimínalo para continuar.</span>
+          </div>
+        `
+          : ""
+        }
+
+        ${!availability.isAvailable
+          ? `
+          <div class="unavailable-warning-banner">
+            <div class="unavailable-warning-header">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span><strong>Gasolinera no disponible aún:</strong> ${escapeHtml(availability.stationName)} no cuenta con facturación automática por el momento. Puedes enviar el recibo al desarrollador para agregarla.</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-whatsapp btn-send-dev-direct" data-index="${index}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+              <span>Enviar recibo al desarrollador</span>
+            </button>
           </div>
         `
           : ""
@@ -4224,22 +4432,44 @@ document.addEventListener("DOMContentLoaded", () => {
           } else if (field === "trackingNumber") {
             updateDuplicateValidation();
           } else if (field === "billingUrl") {
-            const cardEl = element.closest(".receipt-card");
-            if (cardEl) {
-              const headerDomain = cardEl.querySelector(
-                ".receipt-card-title-group strong",
-              );
-              if (headerDomain) {
-                headerDomain.textContent = getBillingDomain(
-                  currentScannedReceipts[idx],
-                );
-              }
+            const stations =
+              Array.isArray(supportedStations) && supportedStations.length > 0
+                ? supportedStations
+                : DEFAULT_FALLBACK_STATIONS;
+            const selSt = stations.find(
+              (s) =>
+                (s.portalUrl && s.portalUrl === e.target.value) ||
+                (s.domain &&
+                  (e.target.value.includes(s.domain) ||
+                    s.domain.includes(e.target.value))) ||
+                s.id === e.target.value,
+            );
+            if (selSt) {
+              currentScannedReceipts[idx].stationId = selSt.id;
+              currentScannedReceipts[idx].gasStation = selSt.name;
+              currentScannedReceipts[idx].billingUrl =
+                selSt.portalUrl || `https://${selSt.domain}`;
+            } else {
+              currentScannedReceipts[idx].billingUrl = e.target.value;
             }
+            renderReviewCards();
           }
         }
       };
       element.addEventListener("input", handleFieldChange);
       element.addEventListener("change", handleFieldChange);
+    });
+
+    // Bind direct send to developer buttons
+    receiptsList.querySelectorAll(".btn-send-dev-direct").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute("data-index"), 10);
+        if (currentScannedReceipts[idx]) {
+          sendReceiptToDeveloper(currentScannedReceipts[idx]);
+        }
+      });
     });
 
     // Bind delete buttons
@@ -4258,6 +4488,20 @@ document.addEventListener("DOMContentLoaded", () => {
       totalAmountSum.textContent = `Total: $${totalAmount.toFixed(2)} MXN`;
     }
 
+    // Update submit button state depending on unavailable stations
+    const hasUnavailable = currentScannedReceipts.some(
+      (r) => !getStationAvailability(r).isAvailable,
+    );
+    if (btnEnqueueInvoices) {
+      if (hasUnavailable) {
+        btnEnqueueInvoices.classList.add("btn-disabled-notice");
+        btnEnqueueInvoices.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Gasolinera no disponible (Consultar)</span>`;
+      } else {
+        btnEnqueueInvoices.classList.remove("btn-disabled-notice");
+        btnEnqueueInvoices.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span>Avanzar y Facturar</span>`;
+      }
+    }
+
     updateDuplicateValidation();
   }
 
@@ -4272,6 +4516,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- ENQUEUE INVOICE JOBS (BULLMQ) ---
   async function handleEnqueueInvoices() {
+    if (currentScannedReceipts.length === 0) {
+      showToast("No hay tickets en la lista para facturar.", "error");
+      return;
+    }
+
+    // 1. FIRST PRIORITY: Block immediately if any scanned receipt belongs to an unavailable gas station
+    const unavailableReceipt = currentScannedReceipts.find(
+      (r) => !getStationAvailability(r).isAvailable,
+    );
+
+    if (unavailableReceipt) {
+      const availability = getStationAvailability(unavailableReceipt);
+      const stationName =
+        availability.stationName ||
+        unavailableReceipt.gasStation ||
+        "esta gasolinera";
+
+      const confirmed = await showCustomConfirm({
+        title: "Ups, no hemos añadido aún esta gasolinera",
+        message: `La gasolinera "${stationName}" aún no está disponible para facturación automática. Puedes enviarle el recibo al desarrollador para que la agregue.`,
+        confirmText: "Enviar recibo al desarrollador",
+        cancelText: "Cancelar",
+        type: "whatsapp",
+      });
+
+      if (confirmed) {
+        sendReceiptToDeveloper(unavailableReceipt);
+      }
+      return;
+    }
+
     const profile = getProfile();
     if (!profile || !profile.rfc) {
       showToast(
@@ -4279,11 +4554,6 @@ document.addEventListener("DOMContentLoaded", () => {
         "info",
       );
       openProfileScreen(false, { pendingInvoicing: true });
-      return;
-    }
-
-    if (currentScannedReceipts.length === 0) {
-      showToast("No hay tickets en la lista para facturar.", "error");
       return;
     }
 
@@ -4372,6 +4642,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       btnEnqueueInvoices.disabled = false;
       btnEnqueueInvoices.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span>Avanzar y Facturar</span>`;
+
+      if (res.status === 400 && data.unavailableStation) {
+        const confirmed = await showCustomConfirm({
+          title: "Ups, no hemos añadido aún esta gasolinera",
+          message: `La gasolinera "${data.stationName || "seleccionada"}" aún no está disponible para facturación automática. Puedes enviarle el recibo al desarrollador para que la agregue.`,
+          confirmText: "Enviar recibo al desarrollador",
+          cancelText: "Cancelar",
+          type: "whatsapp",
+        });
+        if (confirmed && currentScannedReceipts[0]) {
+          sendReceiptToDeveloper(currentScannedReceipts[0]);
+        }
+        return;
+      }
 
       if (res.status === 409 || data.duplicateTickets) {
         currentScannedReceipts = [];
@@ -4996,6 +5280,7 @@ document.addEventListener("DOMContentLoaded", () => {
     confirmText = "Sí, eliminar",
     cancelText = "Cancelar",
     isDanger = true,
+    type = isDanger ? "danger" : "primary",
   } = {}) {
     return new Promise((resolve) => {
       const modal = document.getElementById("custom-confirm-modal");
@@ -5012,22 +5297,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (modalTitle) modalTitle.textContent = title;
       if (modalMsg) modalMsg.textContent = message;
-      if (btnAccept) btnAccept.textContent = confirmText;
       if (btnCancel) btnCancel.textContent = cancelText;
 
-      if (isDanger) {
-        btnAccept.className = "btn btn-danger btn-action-modal";
+      const trashSvg = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
+      const whatsappSvg = `<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>`;
+
+      if (type === "whatsapp") {
+        btnAccept.className = "btn btn-whatsapp btn-action-modal";
+        btnAccept.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right:6px;"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg><span>${escapeHtml(confirmText)}</span>`;
         if (iconContainer) {
+          iconContainer.innerHTML = whatsappSvg;
+          iconContainer.style.background = "rgba(37, 211, 102, 0.15)";
+          iconContainer.style.color = "#25d366";
+          iconContainer.style.borderColor = "rgba(37, 211, 102, 0.35)";
+          iconContainer.style.boxShadow = "0 0 20px rgba(37, 211, 102, 0.25)";
+        }
+      } else if (type === "danger" || isDanger) {
+        btnAccept.className = "btn btn-danger btn-action-modal";
+        btnAccept.textContent = confirmText;
+        if (iconContainer) {
+          iconContainer.innerHTML = trashSvg;
           iconContainer.style.background = "rgba(239, 68, 68, 0.12)";
           iconContainer.style.color = "#f87171";
           iconContainer.style.borderColor = "rgba(239, 68, 68, 0.3)";
+          iconContainer.style.boxShadow = "0 0 18px rgba(239, 68, 68, 0.18)";
         }
       } else {
         btnAccept.className = "btn btn-primary btn-action-modal";
+        btnAccept.textContent = confirmText;
         if (iconContainer) {
+          iconContainer.innerHTML = trashSvg;
           iconContainer.style.background = "rgba(16, 185, 129, 0.12)";
           iconContainer.style.color = "#34d399";
           iconContainer.style.borderColor = "rgba(16, 185, 129, 0.3)";
+          iconContainer.style.boxShadow = "0 0 18px rgba(16, 185, 129, 0.18)";
         }
       }
 

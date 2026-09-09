@@ -65,7 +65,7 @@ export class ReceiptParser {
       paymentMethod,
     );
     const liters = this.extractLiters(lines, rawText, total);
-    const billingUrl = this.extractBillingUrl(lines, rawText);
+    const billingUrl = this.extractBillingUrl(lines, rawText, gasStation);
 
     return {
       gasStation,
@@ -717,7 +717,11 @@ export class ReceiptParser {
     return parts.length > 0 ? parts.join(" - ") : undefined;
   }
 
-  private extractBillingUrl(lines: string[], rawText: string): string {
+  private extractBillingUrl(
+    lines: string[],
+    rawText: string,
+    gasStation?: string,
+  ): string {
     // Look for facturasgas explicitly
     if (/facturas\s*gas\.com/i.test(rawText)) {
       return "https://www.facturasgas.com";
@@ -735,6 +739,45 @@ export class ReceiptParser {
         }
         return url;
       }
+    }
+
+    // Map by gasStation if recognized
+    const brand = (gasStation || "").toUpperCase();
+    if (brand.includes("PEMEX")) {
+      return "https://portaldecombustibles.pemex.com/business-clients/sporadic-invoices";
+    }
+    if (brand.includes("BP")) {
+      return "https://gasolineriabp.com.mx/facturagasbpme";
+    }
+    if (brand.includes("SHELL") || brand.includes("EVERILION")) {
+      return "https://facturacion.shell.com.mx/";
+    }
+    if (brand.includes("CHEVRON")) {
+      return "https://www.chevroncontechron.com/es_mx/home/Facturacion.html";
+    }
+    if (brand.includes("TOTAL")) {
+      return "https://totalenergies.mx/nosotros/estaciones-de-servicio/facturacion";
+    }
+    if (brand.includes("MOBIL") || brand.includes("EXXON")) {
+      return "https://www.mobil.com.mx/es-mx/gasolina/facturacion";
+    }
+    if (brand.includes("OXXO")) {
+      return "https://facturacion.oxxogas.com/";
+    }
+    if (brand.includes("G500")) {
+      return "https://g500network.com/facturacion-en-linea/";
+    }
+    if (brand.includes("GULF")) {
+      return "https://facturacion.gulfsureste.com.mx/";
+    }
+    if (brand.includes("HIDROSINA")) {
+      return "https://www.hidrosina.com.mx/";
+    }
+    if (brand.includes("PETRO") || brand.includes("7-ELEVEN")) {
+      return "https://petro-7.com.mx/facturacion/";
+    }
+    if (brand.includes("REPSOL")) {
+      return "https://factura.repsol.com.mx/";
     }
 
     return "https://www.facturasgas.com";

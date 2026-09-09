@@ -3515,14 +3515,30 @@ html.no-profile:not(.app-initialized) #screen-welcome {
 }
 
 .history-station-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background: rgba(6, 182, 212, 0.12);
-  color: var(--accent);
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  max-width: 40px;
+  max-height: 40px;
+  flex: 0 0 40px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.history-station-icon svg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
   flex-shrink: 0;
 }
 
@@ -7299,4 +7315,59 @@ body.viewer-open {
     min-height: 48px;
     font-size: 0.95rem;
   }
+}
+
+/* ============================================================
+   Unavailable Gas Station Banner & WhatsApp Action
+   ============================================================ */
+.unavailable-warning-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-md, 10px);
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.unavailable-warning-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.83rem;
+  color: #fbbf24;
+  line-height: 1.45;
+}
+
+.unavailable-warning-header svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #f59e0b;
+}
+
+.btn-whatsapp {
+  background: #25d366 !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.25) !important;
+  cursor: pointer;
+}
+
+.btn-whatsapp:hover {
+  background: #20ba5a !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.35) !important;
+}
+
+.btn-disabled-notice {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  color: #fbbf24 !important;
 }
