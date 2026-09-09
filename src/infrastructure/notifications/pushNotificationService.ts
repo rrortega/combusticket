@@ -191,8 +191,8 @@ export class PushNotificationService {
       title = `🧪 Simulación Completada (${ticket})`;
       body = `El formulario para ${station} (${amount}) fue validado correctamente en modo Dry-Run.`;
     } else if (entry.status === 'completed') {
-      title = `🧾 ¡Factura Lista! (${ticket})`;
-      body = `Tu factura de ${station} por ${amount} fue emitida y timbrada con éxito. Toca para descargar el PDF.`;
+      title = `🧾 ¡Factura Generada! (${ticket})`;
+      body = `Tu factura de ${station} por ${amount} fue emitida y completada con éxito.`;
     } else {
       title = `⚠️ Facturación no completada (${ticket})`;
       body = `El portal rechazó el ticket o requiere atención: ${entry.error || entry.message || 'Error desconocido'}`;
@@ -205,7 +205,7 @@ export class PushNotificationService {
       badge: '/favicon-32x32.png',
       tag: `invoice-${entry.jobId || ticket}`,
       data: {
-        url: entry.pdfUrl || entry.screenshotUrl || '/',
+        url: entry.screenshotUrl || '/',
         jobId: entry.jobId,
         ticket: entry.trackingNumber,
         status: entry.status,
