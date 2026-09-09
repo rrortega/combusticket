@@ -189,7 +189,8 @@ export class ReceiptMetadataService {
   }
 
   /**
-   * Checks if receipt hash has already been registered or processed
+   * Checks if receipt hash has already been registered or processed.
+   * Returns false if the hash belongs to a deleted (tombstoned) entry.
    */
   public static async isDuplicateHash(
     rfc: string,
@@ -206,11 +207,34 @@ export class ReceiptMetadataService {
       return false;
     }
 
-    // 1. Check if an active history record in Redis contains this hash for this RFC
+    // 0. If this hash was tombstoned (entry deleted by user), it is NOT a duplicate.
+    //    This prevents false-positive duplicate detection after soft-delete.
+    try {
+      const tombstoned = await RedisHistoryService.isEntryTombstoned(cleanRfc, {
+        fileHash,
+      });
+      if (tombstoned) {
+        // Clean up any stale hash registration to keep Redis consistent
+        await RedisHistoryService.unregisterFileHash(cleanRfc, fileHash);
+        return false;
+      }
+    } catch (err: any) {
+      console.warn(
+        "[ReceiptMetadataService] Could not inspect tombstone for duplicate hash check:",
+        err.message,
+      );
+    }
+
+    // 1. Check if an active history record in Redis contains this hash for this RFC.
+    //    Entries with status 'scanned' are pre-submission artifacts — they must NOT
+    //    block the same file from being invoiced for the first time.
     try {
       const history = await RedisHistoryService.getHistoryByRfc(cleanRfc);
       const hasHistoryEntry = history.some(
-        (h) => h.fileHash === fileHash && h.status !== "failed",
+        (h) =>
+          h.fileHash === fileHash &&
+          h.status !== "failed" &&
+          h.status !== "scanned",
       );
       if (hasHistoryEntry) {
         return true;
@@ -699,7 +723,7 @@ export class ReceiptMetadataService {
         message: r.invoiceResult?.message || "Factura registrada",
       });
 
-      if (r.fileHash) {
+      if (r.fileHash && r.status !== "scanned") {
         await RedisHistoryService.registerFileHash(rfcFolder, r.fileHash);
       }
     }

@@ -21,7 +21,7 @@ export interface InvoiceHistoryEntry {
   amount: number;
   date: string;
   timestamp: string;
-  status: "waiting" | "active" | "completed" | "failed" | "dry_run";
+  status: "waiting" | "active" | "completed" | "failed" | "dry_run" | "scanned";
   progress?: number;
   submitted: boolean;
   screenshotUrl?: string;

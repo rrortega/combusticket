@@ -760,12 +760,14 @@ export async function createHttpServer(
         });
       }
 
-      // Verify duplicate tracking number against existing history
+      // Verify duplicate tracking number against existing history.
+      // Entries with status 'scanned' are pre-submission artifacts and must NOT block invoicing.
       const existingHistory = await RedisHistoryService.getHistoryByRfc(
         billingProfile.rfc,
       );
       const registeredTickets = new Set(
         existingHistory
+          .filter((h) => h.status !== "scanned")
           .map((h) => (h.trackingNumber || "").trim().toUpperCase())
           .filter((t) => t.length > 0),
       );
@@ -1294,7 +1296,12 @@ export async function createHttpServer(
         }
       }
 
-      let artifactDeletion;
+      // Attempt to delete physical artifacts (image + JSON from disk and storage).
+      // Errors here are non-fatal for the tombstone + hash cleanup that follows.
+      let artifactDeletion: { deletedKeys: string[]; missing: boolean } = {
+        deletedKeys: [],
+        missing: true,
+      };
       try {
         artifactDeletion = await ReceiptMetadataService.deleteReceiptArtifacts({
           rfc,
@@ -1305,14 +1312,22 @@ export async function createHttpServer(
           },
         });
       } catch (deleteErr: any) {
-        return res.status(500).json({
-          success: false,
-          error: deleteErr.message,
-        });
+        console.warn(
+          `[History] deleteReceiptArtifacts failed for entry "${id}":`,
+          deleteErr.message,
+        );
+        // Non-fatal — continue with hash cleanup and Redis entry removal.
       }
 
-      if (entry.fileHash) {
-        await RedisHistoryService.unregisterFileHash(rfc, entry.fileHash);
+      // Always unregister the file hash from Redis so the same file can be
+      // re-uploaded after deletion without a false-positive duplicate error.
+      const fileHashToRemove = entry.fileHash;
+      if (fileHashToRemove) {
+        await RedisHistoryService.unregisterFileHash(rfc, fileHashToRemove);
+        // Also tombstone by hash so isDuplicateHash short-circuits correctly
+        await RedisHistoryService.tombstoneEntry(rfc, {
+          fileHash: fileHashToRemove,
+        });
       }
 
       const deleted = await RedisHistoryService.deleteEntry(rfc, id);
