@@ -242,7 +242,7 @@ export async function createHttpServer(
   // Supports single or multiple files
   app.post(
     "/api/receipts/scan",
-    upload.array("receipts", 10),
+    upload.array("receipts", 1),
     async (req: Request, res: Response) => {
       try {
         const files = req.files as Express.Multer.File[];
@@ -301,13 +301,9 @@ export async function createHttpServer(
           });
         }
 
-        const localRfcReceiptsDir = path.resolve(
-          ENV.SCREENSHOT_DIR,
-          rfcFolder,
-          "receipts",
-        );
-        if (!fs.existsSync(localRfcReceiptsDir)) {
-          fs.mkdirSync(localRfcReceiptsDir, { recursive: true });
+        const stagingDir = path.resolve(ENV.SCREENSHOT_DIR, "TEMP", "staging");
+        if (!fs.existsSync(stagingDir)) {
+          fs.mkdirSync(stagingDir, { recursive: true });
         }
 
         const parsedResults: Array<{
@@ -324,60 +320,29 @@ export async function createHttpServer(
             // 1. Run OCR FIRST on in-memory buffer so OCR never fails due to storage misconfiguration
             const parsed = await service.parseReceiptOnly(file.buffer);
 
-            // 2. Prepare destination filenames and keys scoped by RFC
+            // 2. Save only to temporary staging folder for user preview (no permanent RFC storage or JSON pollution)
             const ext = path.extname(file.originalname) || ".png";
             const baseName = `receipt_${requestTimestamp}_${i}`;
-            const savedFileName = `${baseName}${ext}`;
-            const key = `${rfcFolder}/receipts/${savedFileName}`;
             const fileHash = fileHashes[i];
+            const stagingFileName = `${fileHash}${ext}`;
+            const localStagingPath = path.join(stagingDir, stagingFileName);
 
-            // Always write a local backup copy to disk
-            const localFilePath = path.join(localRfcReceiptsDir, savedFileName);
             try {
-              fs.writeFileSync(localFilePath, file.buffer);
+              fs.writeFileSync(localStagingPath, file.buffer);
             } catch (writeErr: any) {
               console.warn(
-                "[Server] Could not write local receipt backup:",
+                "[Server] Could not write staging receipt preview:",
                 writeErr.message,
               );
             }
 
-            // 3. Upload to configured storage (MinIO / S3 / Local)
-            let receiptImageUrl = `/output/${rfcFolder}/receipts/${savedFileName}`;
-            try {
-              const uploadResult = await storageService.upload(
-                key,
-                file.buffer,
-                {
-                  contentType: file.mimetype || "image/png",
-                },
-              );
-              if (uploadResult?.url) {
-                receiptImageUrl = uploadResult.url;
-              }
-            } catch (storageErr: any) {
-              console.warn(
-                `[Server] Storage upload failed for key "${key}":`,
-                storageErr.message,
-              );
-              // Non-fatal: receiptImageUrl safely retains local fallback URL
-            }
+            // Preview URL points to ephemeral staging area
+            const receiptImageUrl = `/output/TEMP/staging/${stagingFileName}`;
 
             parsed.receiptImageUrl = receiptImageUrl;
             parsed.receiptBaseName = baseName;
             parsed.fileHash = fileHash;
-
-            const metadataRecord =
-              await ReceiptMetadataService.saveScannedMetadata({
-                rfc: rfcFolder,
-                baseName,
-                fileHash,
-                originalFilename: file.originalname,
-                imageFileName: savedFileName,
-                receiptImageUrl,
-                parsed,
-              });
-            parsed.receiptJsonUrl = metadataRecord.jsonUrl;
+            parsed.receiptJsonUrl = undefined;
 
             parsedResults.push({
               index: i,
@@ -821,6 +786,121 @@ export async function createHttpServer(
 
       const enqueuedJobs = [];
       for (const item of jobsToQueue) {
+        const itemRfc = ReceiptMetadataService.sanitizeRfc(item.billingProfile.rfc);
+        const baseName = item.receiptData.receiptBaseName || `receipt_${Date.now()}_0`;
+        const fileHash = item.receiptData.fileHash || "";
+
+        // Promote temporary staging image to permanent RFC receipts storage on enqueue
+        const currentImgUrl = item.receiptData.receiptImageUrl || item.receiptData.previewUrl || "";
+        let finalImageUrl = currentImgUrl;
+        let savedFileName = item.receiptData.imageFileName || "";
+
+        if (
+          currentImgUrl.includes("/output/TEMP/staging/") ||
+          currentImgUrl.includes("/output/TEMP/receipts/") ||
+          currentImgUrl.startsWith("/output/TEMP/")
+        ) {
+          const tempFileName = path.basename(currentImgUrl);
+          const ext = path.extname(tempFileName) || ".png";
+          savedFileName = `${baseName}${ext}`;
+
+          const localRfcReceiptsDir = path.resolve(
+            ENV.SCREENSHOT_DIR,
+            itemRfc,
+            "receipts",
+          );
+          if (!fs.existsSync(localRfcReceiptsDir)) {
+            fs.mkdirSync(localRfcReceiptsDir, { recursive: true });
+          }
+          const permLocalPath = path.join(localRfcReceiptsDir, savedFileName);
+
+          const stagingSource = path.resolve(
+            ENV.SCREENSHOT_DIR,
+            "TEMP",
+            "staging",
+            tempFileName,
+          );
+          const legacyTempSource = path.resolve(
+            ENV.SCREENSHOT_DIR,
+            "TEMP",
+            "receipts",
+            tempFileName,
+          );
+          const sourcePath = fs.existsSync(stagingSource)
+            ? stagingSource
+            : fs.existsSync(legacyTempSource)
+              ? legacyTempSource
+              : null;
+
+          if (sourcePath && fs.existsSync(sourcePath)) {
+            try {
+              const buffer = fs.readFileSync(sourcePath);
+              fs.writeFileSync(permLocalPath, buffer);
+              finalImageUrl = `/output/${itemRfc}/receipts/${savedFileName}`;
+
+              // Upload to permanent storage (MinIO / S3 / Local)
+              const storageKey = `${itemRfc}/receipts/${savedFileName}`;
+              try {
+                const uploadResult = await storageService.upload(
+                  storageKey,
+                  buffer,
+                  {
+                    contentType:
+                      ext.includes("jpg") || ext.includes("jpeg")
+                        ? "image/jpeg"
+                        : "image/png",
+                  },
+                );
+                if (uploadResult?.url) {
+                  finalImageUrl = uploadResult.url;
+                }
+              } catch (storageErr: any) {
+                console.warn(
+                  `[Server] Storage upload failed for key "${storageKey}":`,
+                  storageErr.message,
+                );
+              }
+            } catch (copyErr: any) {
+              console.warn(
+                "[Server] Could not promote staging image to RFC storage:",
+                copyErr.message,
+              );
+            }
+          }
+        }
+
+        item.receiptData.receiptImageUrl = finalImageUrl;
+        item.receiptData.imageFileName = savedFileName;
+        item.receiptData.receiptBaseName = baseName;
+
+        // Clear any previous deletion tombstones for this tracking number or hash so the new submission is accepted
+        await RedisHistoryService.untombstoneEntry(itemRfc, {
+          fileHash,
+          trackingNumber: item.receiptData.trackingNumber,
+          id: baseName,
+        });
+
+        // Persist definitive JSON metadata with enqueued status now that user confirmed
+        try {
+          const metadataRecord =
+            await ReceiptMetadataService.saveScannedMetadata({
+              rfc: itemRfc,
+              baseName,
+              fileHash,
+              originalFilename: savedFileName || `${baseName}.png`,
+              imageFileName: savedFileName || `${baseName}.png`,
+              receiptImageUrl: finalImageUrl,
+              parsed: item.receiptData,
+              status: "enqueued",
+            });
+          item.receiptData.receiptJsonUrl = metadataRecord.jsonUrl;
+        } catch (metaErr: any) {
+          console.warn(
+            "[Server] Could not save permanent metadata record:",
+            metaErr.message,
+          );
+        }
+
         const job = await addInvoiceJob({
           receiptData: item.receiptData,
           billingProfile: item.billingProfile,
@@ -851,8 +931,7 @@ export async function createHttpServer(
           status: "waiting",
           progress: 10,
           submitted: false,
-          receiptImageUrl:
-            item.receiptData.receiptImageUrl || item.receiptData.previewUrl,
+          receiptImageUrl: finalImageUrl,
           fileHash: item.receiptData.fileHash,
           receiptJsonUrl: item.receiptData.receiptJsonUrl,
           message: "Esperando turno en cola...",

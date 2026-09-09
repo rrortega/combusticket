@@ -456,6 +456,23 @@ export class RedisHistoryService {
     }
   }
 
+  public static async untombstoneEntry(
+    rfc: string,
+    entry: Partial<InvoiceHistoryEntry>,
+  ): Promise<void> {
+    const tokens = this.tombstoneTokens(entry);
+    if (tokens.length === 0) return;
+    try {
+      const redis = getRedisClient();
+      await redis.srem(this.getTombstonesKey(rfc), ...tokens);
+    } catch (err: any) {
+      console.warn(
+        "[RedisHistory] Could not remove deletion tombstone:",
+        err.message,
+      );
+    }
+  }
+
   public static async isEntryTombstoned(
     rfc: string,
     entry: Partial<InvoiceHistoryEntry>,

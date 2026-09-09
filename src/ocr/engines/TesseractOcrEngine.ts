@@ -39,9 +39,17 @@ export class TesseractOcrEngine implements IOcrEngine {
       imageBuffer = fs.readFileSync(resolved);
     }
 
-    return sharp(imageBuffer)
-      .rotate()
+    const meta = await sharp(imageBuffer).metadata();
+    let img = sharp(imageBuffer).rotate();
+
+    // Scale up mobile photos or lower-res tickets so dot-matrix characters have sufficient x-height (>=20px)
+    if (meta.width && meta.width < 1600) {
+      img = img.resize({ width: 1600, withoutEnlargement: false });
+    }
+
+    return img
       .grayscale()
+      .linear(1.25, -15)
       .normalize()
       .sharpen()
       .toBuffer();

@@ -815,7 +815,7 @@
 
           <!-- Dropzone -->
           <div class="dropzone" id="dropzone">
-            <input type="file" id="file-input" accept="image/*" multiple class="file-input">
+            <input type="file" id="file-input" accept="image/*" class="file-input">
 
             <div class="dropzone-content" id="dropzone-prompt">
               <div class="dropzone-icon-wrap">
@@ -825,17 +825,14 @@
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
-              <p class="dropzone-main-text">Arrastra aquí tus fotos de tickets <br>o<br> <span class="highlight">haz
-                  clic
-                  para
-                  seleccionarlas</span></p>
-              <p class="dropzone-hint">Formatos compatibles: JPG, PNG, WEBP (Permite selección múltiple)</p>
+              <p class="dropzone-main-text">Arrastra aquí la foto de tu ticket <br>o<br> <span class="highlight">haz clic para seleccionarla</span></p>
+              <p class="dropzone-hint">Formatos compatibles: JPG, PNG, WEBP</p>
             </div>
 
             <!-- Upload scanning spinner overlay -->
             <div class="dropzone-scanning hidden" id="dropzone-scanning">
               <div class="spinner"></div>
-              <p class="scanning-text">Leyendo y analizando ticket(s)...</p>
+              <p class="scanning-text">Leyendo y analizando el ticket...</p>
               <p class="scanning-subtext">Extrayendo estación, monto, fecha y código de rastreo...</p>
             </div>
           </div>
@@ -1214,6 +1211,45 @@
 
   </main>
 
+  <!-- Mobile Bottom Navigation Bar (mobile only) -->
+  <nav id="mobile-bottom-nav" class="mobile-bottom-nav" aria-label="Navegación principal">
+    <!-- History Tab -->
+    <button type="button" class="mbn-item" id="mbn-tab-history" aria-label="Historial de facturas">
+      <span class="mbn-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        <span class="mbn-badge hidden" id="mbn-history-badge"></span>
+      </span>
+      <span class="mbn-label">Historial</span>
+    </button>
+
+    <!-- Center Camera FAB (protruding) -->
+    <div class="mbn-fab-wrap">
+      <button type="button" class="mbn-fab" id="btn-mobile-camera-fab" aria-label="Escanear nuevo ticket">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span class="mbn-fab-ring" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <!-- Trends Tab -->
+    <button type="button" class="mbn-item" id="mbn-tab-trends" aria-label="Mis tendencias de consumo">
+      <span class="mbn-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+          <polyline points="17 6 23 6 23 12"/>
+        </svg>
+      </span>
+      <span class="mbn-label">Tendencias</span>
+    </button>
+  </nav>
+
   <!-- Product Sticky Footer -->
   <footer class="app-footer">
     <div class="footer-container">
@@ -1221,14 +1257,8 @@
         <!-- Brand & Legal Shield Description -->
         <div class="footer-brand-col">
           <div class="footer-logo">
-            <svg class="footer-logo-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
-              stroke-width="2">
-              <path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8" />
-              <path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5" />
-              <path d="M4 22h16" />
-              <path d="M14 13l2-2 4 4" />
-            </svg>
-            <span class="footer-brand-name">Combus<strong>Ticket</strong></span>
+            <img src="/favicon.svg" alt="CombusTicket Logo" class="footer-brand-logo-img" width="30" height="30">
+            <span class="footer-brand-name">Combus<span class="gradient-text">Ticket</span></span>
           </div>
           <p class="footer-mission">
             Plataforma de automatización robótica (RPA) para la gestión, extracción y conciliación de facturas de
@@ -1327,9 +1357,9 @@
     </div>
   </footer>
 
-  <!-- Floating Round Camera Action Button (Direct child of body for guaranteed viewport fixed positioning) -->
-  <div class="mobile-camera-fab-container" id="mobile-camera-fab-container">
-    <button type="button" class="mobile-camera-fab-btn" id="btn-mobile-camera-fab"
+  <!-- Floating Round Camera Action Button (Legacy - Replaced by Bottom Bar FAB) -->
+  <div class="mobile-camera-fab-container hidden" id="mobile-camera-fab-container" style="display: none !important;">
+    <button type="button" class="mobile-camera-fab-btn" id="btn-mobile-camera-fab-legacy"
       title="Tomar foto o escanear ticket de gasolina" aria-label="Escanear Ticket de Gasolina con Cámara">
       <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"
         stroke-linecap="round" stroke-linejoin="round">
@@ -1753,6 +1783,7 @@
   <div class="modal-overlay hidden" id="custom-range-modal" role="dialog" aria-modal="true"
     aria-labelledby="custom-range-modal-title">
     <div class="modal-card custom-range-modal-card">
+      <div class="drawer-handle-bar"><span class="drawer-handle"></span></div>
       <div class="modal-header">
         <div class="modal-header-icon">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">

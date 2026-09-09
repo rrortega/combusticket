@@ -28,6 +28,7 @@ export interface ParsedReceiptData {
   receiptImageUrl?: string;
   receiptJsonUrl?: string;
   receiptBaseName?: string;
+  imageFileName?: string;
   fileHash?: string;
   previewUrl?: string;
 }

@@ -264,7 +264,11 @@ export class ReceiptMetadataService {
         const record = JSON.parse(
           fs.readFileSync(path.join(localDir, jsonFileName), "utf-8"),
         ) as Partial<ReceiptTransactionRecord>;
-        if (record.fileHash === fileHash) {
+        if (
+          record.fileHash === fileHash &&
+          record.status !== "failed" &&
+          record.status !== "scanned"
+        ) {
           foundInStorage = true;
           break;
         }
@@ -303,6 +307,7 @@ export class ReceiptMetadataService {
     imageFileName: string;
     receiptImageUrl: string;
     parsed: ParsedReceiptData;
+    status?: ReceiptTransactionRecord["status"];
   }): Promise<ReceiptTransactionRecord> {
     const {
       rfc,
@@ -312,6 +317,7 @@ export class ReceiptMetadataService {
       imageFileName,
       receiptImageUrl,
       parsed,
+      status,
     } = options;
     const rfcFolder = this.sanitizeRfc(rfc);
     const localDir = this.getLocalReceiptsDir(rfc);
@@ -329,7 +335,7 @@ export class ReceiptMetadataService {
       rfc: rfc.trim().toUpperCase(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      status: "scanned",
+      status: status || "scanned",
       ticket: {
         trackingNumber: parsed.trackingNumber,
         stationNumber: parsed.stationNumber,
@@ -678,6 +684,8 @@ export class ReceiptMetadataService {
 
     // 2. Upsert valid records from disk into Redis
     for (const r of records) {
+      if (r.status === "scanned") continue;
+
       const isTombstoned = await RedisHistoryService.isEntryTombstoned(
         rfcFolder,
         {
@@ -723,7 +731,7 @@ export class ReceiptMetadataService {
         message: r.invoiceResult?.message || "Factura registrada",
       });
 
-      if (r.fileHash && r.status !== "scanned") {
+      if (r.fileHash) {
         await RedisHistoryService.registerFileHash(rfcFolder, r.fileHash);
       }
     }

@@ -246,7 +246,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const mobileCameraFabContainer = document.getElementById(
     "mobile-camera-fab-container",
   );
+  // Mobile bottom nav
+  const mobileBottomNav = document.getElementById("mobile-bottom-nav");
+  const mbnTabHistory = document.getElementById("mbn-tab-history");
+  const mbnTabTrends = document.getElementById("mbn-tab-trends");
+  const mbnHistoryBadge = document.getElementById("mbn-history-badge");
+  const mbnFabWrap = document.querySelector(".mbn-fab-wrap");
   const stationsGrid = document.getElementById("stations-grid");
+
+  function updateMbnActiveState(activeTab) {
+    if (!mbnTabHistory || !mbnTabTrends) return;
+    const isHistory = (activeTab === "history" || activeTab === "receipts");
+    const isTrends = (activeTab === "trends");
+    mbnTabHistory.classList.toggle("active", isHistory);
+    mbnTabTrends.classList.toggle("active", isTrends);
+  }
 
   // Profile Form Elements
   const profileForm = document.getElementById("profile-form");
@@ -563,6 +577,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.documentElement.classList.remove("no-profile");
       updateProfileUI();
       switchScreen(screenHistory);
+      updateMbnActiveState("history");
       loadHistory();
     } else {
       document.documentElement.classList.remove("has-profile");
@@ -570,6 +585,7 @@ document.addEventListener("DOMContentLoaded", () => {
       profilePill?.classList.add("hidden");
       btnHeaderOnboard?.classList.add("hidden");
       switchScreen(screenWelcome);
+      updateMbnActiveState("");
 
       // Background pre-fill from server default if available
       fetch("/api/profile")
@@ -641,6 +657,9 @@ document.addEventListener("DOMContentLoaded", () => {
       btnHeaderOnboard?.classList.add("hidden");
     }
     headerProfile?.classList.remove("is-loading");
+    if (typeof updateMbnVisibility === "function") {
+      updateMbnVisibility();
+    }
   }
 
   // --- CATALOG & STATIONS LOADING ---
@@ -2252,6 +2271,36 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // ── Hide bottom nav when overlays/modals are open OR when reviewing scanned tickets ──
+  // When no profile: nav shows on welcome/history but only the center FAB; tabs are hidden.
+  function updateMbnVisibility() {
+    if (!mobileBottomNav) return;
+    const overlayIds = [
+      "scanner-overlay", "media-modal", "legal-modal",
+      "delete-profile-modal", "custom-range-modal", "receipt-viewer-overlay",
+    ];
+    const anyModalOpen = overlayIds.some((oid) => {
+      const o = document.getElementById(oid);
+      return o && !o.classList.contains("hidden");
+    }) || document.body.classList.contains("viewer-open");
+
+    const isReviewing = (reviewSection && !reviewSection.classList.contains("hidden")) || currentScreen === "workbench";
+    const onAllowedScreen = (currentScreen === "welcome" || currentScreen === "history") && !isReviewing;
+
+    if (anyModalOpen || !onAllowedScreen) {
+      mobileBottomNav.classList.add("hidden");
+      mobileBottomNav.style.display = "none";
+    } else {
+      mobileBottomNav.classList.remove("hidden");
+      mobileBottomNav.style.display = "";
+
+      // Show/hide History+Trends tabs based on whether the user has a profile
+      const hasProfile = Boolean(getProfile()?.rfc);
+      if (mbnTabHistory) mbnTabHistory.style.visibility = hasProfile ? "" : "hidden";
+      if (mbnTabTrends) mbnTabTrends.style.visibility = hasProfile ? "" : "hidden";
+    }
+  }
+
   // --- NAVIGATION & SCREEN ROUTING ---
   function switchScreen(targetScreen) {
     for (const sc of allScreens) {
@@ -2266,12 +2315,35 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (targetScreen === screenWorkbench) currentScreen = "workbench";
 
     if (mobileCameraFabContainer) {
-      if (targetScreen === screenWelcome) {
+      if (targetScreen === screenWelcome || targetScreen === screenHistory) {
         mobileCameraFabContainer.classList.remove("hidden");
       } else {
         mobileCameraFabContainer.classList.add("hidden");
       }
     }
+
+    if (mobileBottomNav) {
+      if (targetScreen === screenWelcome || targetScreen === screenHistory) {
+        mobileBottomNav.classList.remove("hidden");
+        mobileBottomNav.style.display = "";
+      } else {
+        mobileBottomNav.classList.add("hidden");
+        mobileBottomNav.style.display = "none";
+      }
+    }
+
+    if (typeof updateMbnActiveState === "function") {
+      if (targetScreen === screenHistory) {
+        updateMbnActiveState(activeHistorySubTab || "history");
+      } else {
+        updateMbnActiveState("");
+      }
+    }
+
+    if (typeof updateMbnVisibility === "function") {
+      updateMbnVisibility();
+    }
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -2463,7 +2535,17 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       dropzone.classList.remove("dragover");
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        uploadFilesForScan(e.dataTransfer.files);
+        // Only accept a single image file
+        const imageFiles = Array.from(e.dataTransfer.files).filter((f) =>
+          f.type.startsWith("image/")
+        );
+        if (imageFiles.length === 0) {
+          showToast("Solo se aceptan imágenes (JPG, PNG, WEBP).", "error");
+          return;
+        }
+        const dt = new DataTransfer();
+        dt.items.add(imageFiles[0]);
+        uploadFilesForScan(dt.files);
       }
     });
 
@@ -3339,13 +3421,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- RECEIPT SCANNING (OCR ON-THE-FLY) ---
-  function handleFileSelect(e) {
-    if (e.target.files && e.target.files.length > 0) {
-      uploadFilesForScan(e.target.files);
-      fileInput.value = ""; // Reset input
-    }
-  }
 
   // --- FULLSCREEN SCANNER OVERLAY ---
   function showScanner(imageSrc, statusMsg = "Escaneando ticket con IA...") {
@@ -3400,7 +3475,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- RECEIPT SCANNING (OCR ON-THE-FLY) ---
   function handleFileSelect(e) {
     if (e.target.files && e.target.files.length > 0) {
-      uploadFilesForScan(e.target.files);
+      // Enforce single image — even if the OS bypassed the accept attribute
+      const file = e.target.files[0];
+      if (!file.type.startsWith("image/")) {
+        showToast("Solo se aceptan imágenes (JPG, PNG, WEBP).", "error");
+        fileInput.value = "";
+        return;
+      }
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      uploadFilesForScan(dt.files);
       fileInput.value = ""; // Reset input
     }
   }
@@ -3698,6 +3782,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.success && Array.isArray(data.history)) {
         window.userHistoryTickets = new Set(
           data.history
+            // Exclude pre-submission ("scanned") and failed entries — same logic as server-side duplicate check.
+            // A ticket with status "scanned" is a pending OCR artifact, not yet invoiced; it must NOT block re-submission.
+            .filter((item) => item.status !== "scanned" && item.status !== "failed")
             .map((item) => (item.trackingNumber || "").trim().toUpperCase())
             .filter((t) => t.length > 0),
         );
@@ -4180,11 +4267,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (data.success && Array.isArray(data.jobs)) {
-        // Clear current receipts workbench
+        // Clear current receipts workbench without triggering renderReviewCards()'s internal loadHistory() call
         currentScannedReceipts = [];
-        renderReviewCards();
+        if (reviewSection) reviewSection.classList.add("hidden");
+        if (uploadCard) uploadCard.classList.remove("hidden");
 
-        // Switch to unified Historial screen and load fresh state from Redis
+        // Switch to unified Historial screen and load fresh state from Redis (single call, awaited)
         switchScreen(screenHistory);
         setNavTabActive("tab-history");
         await loadHistory();
@@ -4763,6 +4851,7 @@ document.addEventListener("DOMContentLoaded", () => {
       paneTrends?.classList.add("hidden");
       paneReceipts?.classList.remove("hidden");
     }
+    updateMbnActiveState(tab);
   }
 
   function initHistoryTabsAndTrends() {
@@ -4799,10 +4888,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (modalTrendDateFrom) modalTrendDateFrom.value = trendsCustomFrom || "";
       if (modalTrendDateTo) modalTrendDateTo.value = trendsCustomTo || "";
       customRangeModal?.classList.remove("hidden");
+      try {
+        history.pushState({ modal: "custom-range" }, "");
+      } catch (_) {}
     }
 
     function closeCustomRangeModal() {
-      customRangeModal?.classList.add("hidden");
+      if (!customRangeModal || customRangeModal.classList.contains("hidden")) return;
+      customRangeModal.classList.add("hidden");
+      if (window.history.state && window.history.state.modal === "custom-range") {
+        try {
+          window.history.back();
+        } catch (_) {}
+      }
     }
 
     btnCloseCustomRangeModal?.addEventListener("click", closeCustomRangeModal);
@@ -4810,6 +4908,62 @@ document.addEventListener("DOMContentLoaded", () => {
     customRangeModal?.addEventListener("click", (e) => {
       if (e.target === customRangeModal) closeCustomRangeModal();
     });
+
+    // ESC key closes the modal
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !customRangeModal?.classList.contains("hidden")) {
+        closeCustomRangeModal();
+      }
+    });
+
+    // Android back / browser popstate closes the modal
+    window.addEventListener("popstate", (e) => {
+      if (!customRangeModal?.classList.contains("hidden")) {
+        customRangeModal.classList.add("hidden");
+      }
+    });
+
+    // Mobile pull-down / touch swipe down on the modal card closes it
+    (function setupModalSwipeDown() {
+      const card = customRangeModal?.querySelector(".custom-range-modal-card");
+      if (!card) return;
+      let startY = 0;
+      let currentY = 0;
+      let isDragging = false;
+
+      card.addEventListener("touchstart", (e) => {
+        if (e.target.closest("input, button, label")) return;
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        isDragging = true;
+        card.style.transition = "none";
+      }, { passive: true });
+
+      card.addEventListener("touchmove", (e) => {
+        if (!isDragging) return;
+        currentY = e.touches[0].clientY;
+        const delta = currentY - startY;
+        if (delta > 0) {
+          card.style.transform = `translateY(${delta}px)`;
+        }
+      }, { passive: true });
+
+      card.addEventListener("touchend", () => {
+        if (!isDragging) return;
+        isDragging = false;
+        card.style.transition = "transform 0.2s ease";
+        const delta = currentY - startY;
+        if (delta > 70) {
+          card.style.transform = "translateY(100%)";
+          setTimeout(() => {
+            card.style.transform = "";
+            closeCustomRangeModal();
+          }, 180);
+        } else {
+          card.style.transform = "";
+        }
+      }, { passive: true });
+    })();
 
     // Date range preset pills: [7d, 15d, 30d, 60D, 90D, Rango]
     trendsRangePills?.querySelectorAll(".range-pill").forEach((pill) => {
@@ -4888,6 +5042,78 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       fetchAndRenderTrends();
+    });
+
+    // ── Mobile Bottom Navigation Bar wiring ──
+    mbnTabHistory?.addEventListener("click", () => {
+      switchScreen(screenHistory);
+      switchHistorySubTab("receipts");
+      setNavTabActive("tab-history");
+      updateMbnActiveState("history");
+      loadHistory();
+    });
+
+    mbnTabTrends?.addEventListener("click", () => {
+      switchScreen(screenHistory);
+      switchHistorySubTab("trends");
+      setNavTabActive("tab-history");
+      updateMbnActiveState("trends");
+    });
+
+    // Sync mbn badge with existing history badge
+    const syncMbnBadge = () => {
+      if (!mbnHistoryBadge) return;
+      const count = historyBadge?.textContent?.trim();
+      const visible = historyBadge && !historyBadge.classList.contains("hidden");
+      if (visible && count) {
+        mbnHistoryBadge.textContent = count;
+        mbnHistoryBadge.classList.remove("hidden");
+      } else {
+        mbnHistoryBadge.classList.add("hidden");
+      }
+    };
+    // Observe the existing badge for changes
+    if (historyBadge && mbnHistoryBadge) {
+      new MutationObserver(syncMbnBadge).observe(historyBadge, {
+        attributes: true, childList: true, subtree: true, characterData: true,
+      });
+    }
+
+    // Initial bottom nav visibility check
+    updateMbnVisibility();
+
+    // Observe all overlay/modal elements for hidden class removal (= opened)
+    const overlayIds = [
+      "scanner-overlay", "media-modal", "legal-modal",
+      "delete-profile-modal", "custom-range-modal", "receipt-viewer-overlay",
+    ];
+    overlayIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      new MutationObserver(updateMbnVisibility).observe(el, {
+        attributes: true,
+        attributeFilter: ["class", "style"],
+      });
+    });
+
+    // Also observe review-section and screen-workbench
+    if (reviewSection) {
+      new MutationObserver(updateMbnVisibility).observe(reviewSection, {
+        attributes: true,
+        attributeFilter: ["class", "style"],
+      });
+    }
+    if (screenWorkbench) {
+      new MutationObserver(updateMbnVisibility).observe(screenWorkbench, {
+        attributes: true,
+        attributeFilter: ["class", "style"],
+      });
+    }
+
+    // Also observe document.body for viewer-open class
+    new MutationObserver(updateMbnVisibility).observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
     });
   }
 
