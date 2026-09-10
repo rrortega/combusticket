@@ -17,6 +17,8 @@ export interface ParsedReceiptData {
   cashier?: string;
   trackingNumber: string;
   transaction?: string;
+  webId?: string;
+  folio?: string;
   date: string;
   paymentMethod: string;
   amount: number;
@@ -55,6 +57,8 @@ export interface ReceiptTransactionRecord {
     cashier?: string;
     gasStation: string;
     transaction?: string;
+    webId?: string;
+    folio?: string;
     date: string;
     paymentMethod: string;
     amount: number;
@@ -86,6 +90,14 @@ export interface BillingProfile {
   formaPago: string;
   usoCfdi: string;
   alias?: string;
+  // Domicilio fiscal extendido (requerido por cadenas como Lodemo)
+  calle?: string;
+  numExt?: string;
+  numInt?: string;
+  colonia?: string;
+  municipio?: string;
+  estado?: string;
+  localidad?: string;
 }
 
 export interface AutomationOptions {

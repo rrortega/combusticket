@@ -270,6 +270,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const profCp = document.getElementById("prof-cp");
   const profRegimen = document.getElementById("prof-regimen");
   const profUso = document.getElementById("prof-uso");
+  const profCalle = document.getElementById("prof-calle");
+  const profNumExt = document.getElementById("prof-num-ext");
+  const profNumInt = document.getElementById("prof-num-int");
+  const profColonia = document.getElementById("prof-colonia");
+  const profMunicipio = document.getElementById("prof-municipio");
+  const profEstado = document.getElementById("prof-estado");
+  const profLocalidad = document.getElementById("prof-localidad");
   const btnCancelProfile = document.getElementById("btn-cancel-profile");
   const btnSaveProfile = document.getElementById("btn-save-profile");
   const profilePendingNotice = document.getElementById(
@@ -307,6 +314,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const profCpFeedback = document.getElementById("prof-cp-feedback");
   const profRegimenFeedback = document.getElementById("prof-regimen-feedback");
   const profUsoFeedback = document.getElementById("prof-uso-feedback");
+  const profCalleFeedback = document.getElementById("prof-calle-feedback");
+  const profNumExtFeedback = document.getElementById("prof-num-ext-feedback");
+  const profColoniaFeedback = document.getElementById("prof-colonia-feedback");
+  const profMunicipioFeedback = document.getElementById("prof-municipio-feedback");
+  const profEstadoFeedback = document.getElementById("prof-estado-feedback");
 
   // Custom Searchable Régimen Fiscal Choice
   const customRegimenContainer = document.getElementById(
@@ -442,7 +454,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const paymentsChartContainer = document.getElementById("payments-chart-container");
 
   let historyCurrentPage = 1;
-  const historyPageSize = 50;
+  const historyBatchSize = 15;
+  let historyLoadedCount = 15;
+  let isLoadingMoreHistory = false;
+  let historyScrollObserver = null;
   let activeHistorySubTab = "receipts"; // "receipts" | "trends"
   let trendsSelectedDays = 15;
   let trendsCustomFrom = "";
@@ -1587,6 +1602,28 @@ document.addEventListener("DOMContentLoaded", () => {
         "Estaciones de servicio GoGas y Red FacturasGas a nivel nacional.",
     },
     {
+      id: "lodemo",
+      name: "Grupo Lodemo",
+      brandName: "LodemoRed / LaGas Yucatán & Q.Roo",
+      domain: "lodemored.com.mx",
+      portalUrl: "https://fact.lodemored.net/",
+      status: "active",
+      statusText: "Disponible",
+      description:
+        "Estaciones de servicio Grupo Lodemo, Zazil Ha y LaGas en Yucatán y Quintana Roo.",
+    },
+    {
+      id: "controlgas",
+      name: "LitrosCompletos",
+      brandName: "LitrosCompletos",
+      domain: "litroscompletos.mx",
+      portalUrl: "https://www.litroscompletos.mx",
+      status: "active",
+      statusText: "Disponible",
+      description:
+        "Estaciones de servicio de la red LitrosCompletos (Combustibles de Cancún, Sandoval, E04778).",
+    },
+    {
       id: "pemex",
       name: "PEMEX",
       brandName: "Petróleos Mexicanos",
@@ -1868,6 +1905,32 @@ document.addEventListener("DOMContentLoaded", () => {
         <path d="M24 8 C16.5 8 10.5 14 10.5 21.5 C10.5 28 15 33.5 21.5 34.7 L21.5 27.5 C17.8 26.5 15.5 24 15.5 21.5 C15.5 17 19.2 13.5 24 13.5 C26.2 13.5 28.2 14.3 29.7 15.7 L33.8 11.5 C31.2 9.2 27.8 8 24 8 Z" fill="#10B981"/>
         <path d="M24 13.5 C28.5 13.5 32 17 32 21.5 C32 23.5 31.2 25.2 29.8 26.5 L29.8 21.5 L24 21.5 L24 26.5 L33.2 26.5 C34.8 24 35.2 21 34.6 18 L30.2 19.8 C29.2 16.5 26.8 14 24 13.5 Z" fill="#00D2FF"/>
         <text x="24" y="40" text-anchor="middle" fill="#FFFFFF" font-size="7" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">GOGAS</text>
+      </svg>`;
+    }
+
+    // 1b. Grupo Lodemo
+    if (id === "lodemo" || name.includes("lodemo") || name.includes("zazil")) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#C5161D"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#FFFFFF" stroke-width="1.5"/>
+        <path d="M15 13 H21 V27 H33 V33 H15 Z" fill="#FFFFFF"/>
+        <text x="24" y="42" text-anchor="middle" fill="#FFFFFF" font-size="6.5" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">LODEMO</text>
+      </svg>`;
+    }
+
+    // 1c. ControlGas / LitrosCompletos
+    if (
+      id === "controlgas" ||
+      name.includes("controlgas") ||
+      name.includes("litroscompletos") ||
+      name.includes("combustibles de cancun")
+    ) {
+      return `<svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="24" fill="#007DC0"/>
+        <circle cx="24" cy="24" r="22.5" stroke="#FFFFFF" stroke-width="1.5"/>
+        <path d="M14 18 H34 V22 H14 Z M14 26 H28 V30 H14 Z" fill="#FFFFFF"/>
+        <circle cx="32" cy="28" r="3" fill="#F59E0B"/>
+        <text x="24" y="42" text-anchor="middle" fill="#FFFFFF" font-size="6" font-weight="900" font-family="system-ui, -apple-system, sans-serif" letter-spacing="0.5">CONTROLGAS</text>
       </svg>`;
     }
 
@@ -2954,6 +3017,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         syncCustomUsoFromValue("G03");
 
+        // Extended address fields for test profile
+        if (profCalle) profCalle.value = "BLVD. KUKULCAN";
+        if (profNumExt) profNumExt.value = "MZA 53 KM 14";
+        if (profNumInt) profNumInt.value = "S/N";
+        if (profColonia) profColonia.value = "ZONA HOTELERA";
+        if (profMunicipio) profMunicipio.value = "BENITO JUAREZ";
+        if (profEstado) profEstado.value = "QUINTANA ROO";
+        if (profLocalidad) profLocalidad.value = "CANCUN";
+
         // Trigger real-time visual validation states
         setFieldValidationUI(
           profRfc,
@@ -3064,6 +3136,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (profile.regimenFiscal)
           syncCustomRegimenFromValue(profile.regimenFiscal);
         if (profile.usoCfdi) syncCustomUsoFromValue(profile.usoCfdi);
+        if (profCalle) profCalle.value = profile.calle || "";
+        if (profNumExt) profNumExt.value = profile.numExt || "";
+        if (profNumInt) profNumInt.value = profile.numInt || "";
+        if (profColonia) profColonia.value = profile.colonia || "";
+        if (profMunicipio) profMunicipio.value = profile.municipio || "";
+        if (profEstado) profEstado.value = profile.estado || "";
+        if (profLocalidad) profLocalidad.value = profile.localidad || "";
       }
     } else if (isEditing) {
       profilePendingNotice?.classList.add("hidden");
@@ -3107,6 +3186,14 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         syncCustomUsoFromValue("G03");
       }
+
+      if (profCalle) profCalle.value = profile.calle || "";
+      if (profNumExt) profNumExt.value = profile.numExt || "";
+      if (profNumInt) profNumInt.value = profile.numInt || "";
+      if (profColonia) profColonia.value = profile.colonia || "";
+      if (profMunicipio) profMunicipio.value = profile.municipio || "";
+      if (profEstado) profEstado.value = profile.estado || "";
+      if (profLocalidad) profLocalidad.value = profile.localidad || "";
 
       // Pre-evaluate visual validation for existing fields
       if (profRfc.value)
@@ -3203,25 +3290,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 3. Strict Email Validation
-    const emailResult = validateEmail(email);
-    setFieldValidationUI(profEmail, profEmailFeedback, emailResult, true);
-    if (!emailResult.valid) {
-      showToast(emailResult.message, "error");
-      profEmail.focus();
-      return;
-    }
-
-    // 4. Strict Código Postal Validation
-    const cpResult = validatePostalCode(codigoPostal);
-    setFieldValidationUI(profCp, profCpFeedback, cpResult, true);
-    if (!cpResult.valid) {
-      showToast(cpResult.message, "error");
-      profCp.focus();
-      return;
-    }
-
-    // 5. Régimen Fiscal Selection
+    // 3. Régimen Fiscal Selection
     if (regimenFiscal) {
       customRegimenContainer?.classList.remove("is-invalid");
     } else {
@@ -3235,7 +3304,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 6. Uso de CFDI Selection
+    // 4. Uso de CFDI Selection
     if (usoCfdi) {
       customUsoContainer?.classList.remove("is-invalid");
     } else {
@@ -3249,6 +3318,104 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // 5. Strict Código Postal Validation
+    const cpResult = validatePostalCode(codigoPostal);
+    setFieldValidationUI(profCp, profCpFeedback, cpResult, true);
+    if (!cpResult.valid) {
+      showToast(cpResult.message, "error");
+      profCp.focus();
+      return;
+    }
+
+    // 6. Domicilio Fiscal: Calle
+    const calle = profCalle ? profCalle.value.trim().toUpperCase() : "";
+    if (calle) {
+      setFieldValidationUI(profCalle, profCalleFeedback, { valid: true }, true);
+    } else {
+      setFieldValidationUI(
+        profCalle,
+        profCalleFeedback,
+        { valid: false, message: "Ingresa la calle de tu domicilio fiscal." },
+        true,
+      );
+      showToast("Ingresa la calle de tu domicilio fiscal.", "error");
+      profCalle?.focus();
+      return;
+    }
+
+    // 7. Domicilio Fiscal: Número Exterior
+    const numExt = profNumExt ? profNumExt.value.trim().toUpperCase() : "";
+    if (numExt) {
+      setFieldValidationUI(profNumExt, profNumExtFeedback, { valid: true }, true);
+    } else {
+      setFieldValidationUI(
+        profNumExt,
+        profNumExtFeedback,
+        { valid: false, message: "Ingresa el número exterior." },
+        true,
+      );
+      showToast("Ingresa el número exterior de tu domicilio.", "error");
+      profNumExt?.focus();
+      return;
+    }
+
+    // 8. Domicilio Fiscal: Colonia
+    const colonia = profColonia ? profColonia.value.trim().toUpperCase() : "";
+    if (colonia) {
+      setFieldValidationUI(profColonia, profColoniaFeedback, { valid: true }, true);
+    } else {
+      setFieldValidationUI(
+        profColonia,
+        profColoniaFeedback,
+        { valid: false, message: "Ingresa la colonia o fraccionamiento." },
+        true,
+      );
+      showToast("Ingresa la colonia de tu domicilio fiscal.", "error");
+      profColonia?.focus();
+      return;
+    }
+
+    // 9. Domicilio Fiscal: Municipio / Alcaldía
+    const municipio = profMunicipio ? profMunicipio.value.trim().toUpperCase() : "";
+    if (municipio) {
+      setFieldValidationUI(profMunicipio, profMunicipioFeedback, { valid: true }, true);
+    } else {
+      setFieldValidationUI(
+        profMunicipio,
+        profMunicipioFeedback,
+        { valid: false, message: "Ingresa el municipio o alcaldía." },
+        true,
+      );
+      showToast("Ingresa el municipio o alcaldía.", "error");
+      profMunicipio?.focus();
+      return;
+    }
+
+    // 10. Domicilio Fiscal: Estado
+    const estado = profEstado ? profEstado.value.trim().toUpperCase() : "";
+    if (estado) {
+      setFieldValidationUI(profEstado, profEstadoFeedback, { valid: true }, true);
+    } else {
+      setFieldValidationUI(
+        profEstado,
+        profEstadoFeedback,
+        { valid: false, message: "Ingresa el estado de tu domicilio fiscal." },
+        true,
+      );
+      showToast("Ingresa el estado de tu domicilio fiscal.", "error");
+      profEstado?.focus();
+      return;
+    }
+
+    // 11. Strict Email Validation (Para envío directo de PDF y XML)
+    const emailResult = validateEmail(email);
+    setFieldValidationUI(profEmail, profEmailFeedback, emailResult, true);
+    if (!emailResult.valid) {
+      showToast(emailResult.message, "error");
+      profEmail.focus();
+      return;
+    }
+
     const profileData = {
       rfc,
       razonSocial,
@@ -3258,6 +3425,13 @@ document.addEventListener("DOMContentLoaded", () => {
       regimenFiscal,
       usoCfdi,
       formaPago: "2", // Default: Tarjeta
+      calle: profCalle ? profCalle.value.trim().toUpperCase() : "",
+      numExt: profNumExt ? profNumExt.value.trim().toUpperCase() : "",
+      numInt: profNumInt ? profNumInt.value.trim().toUpperCase() : "",
+      colonia: profColonia ? profColonia.value.trim().toUpperCase() : "",
+      municipio: profMunicipio ? profMunicipio.value.trim().toUpperCase() : "",
+      estado: profEstado ? profEstado.value.trim().toUpperCase() : "",
+      localidad: profLocalidad ? profLocalidad.value.trim().toUpperCase() : "",
     };
 
     saveProfile(profileData);
@@ -3805,6 +3979,25 @@ document.addEventListener("DOMContentLoaded", () => {
     if (stationId) {
       canonicalId = stationId;
     } else if (
+      station.includes("lodemo") ||
+      station.includes("zazil") ||
+      rawDomain.includes("lodemo") ||
+      rawUrl.includes("lodemo")
+    ) {
+      canonicalId = "lodemo";
+      canonicalName = "Grupo Lodemo";
+    } else if (
+      station.includes("combustibles de cancun") ||
+      station.includes("litroscompletos") ||
+      station.includes("controlgas") ||
+      station.includes("sandoval") ||
+      rawDomain.includes("litroscompletos") ||
+      rawUrl.includes("litroscompletos") ||
+      rawUrl.includes("dyndns.org")
+    ) {
+      canonicalId = "controlgas";
+      canonicalName = "LitrosCompletos";
+    } else if (
       station.includes("gogas") ||
       station.includes("facturasgas") ||
       station.includes("delfines") ||
@@ -3875,6 +4068,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!urlStr && item.gasStation && item.gasStation.includes(".")) {
       urlStr = item.gasStation;
     }
+    const station = (item.gasStation || "").toLowerCase();
+    const stationId = (item.stationId || "").toLowerCase();
+
+    // Concentradora / Red Holding LitrosCompletos (litroscompletos.mx)
+    if (
+      urlStr.includes("dyndns.org") ||
+      urlStr.includes("litroscompletos") ||
+      urlStr.includes("controlgasfe") ||
+      urlStr.includes("ccae04778") ||
+      stationId === "controlgas" ||
+      station.includes("litroscompletos") ||
+      station.includes("combustibles de cancun") ||
+      station.includes("controlgas") ||
+      station.includes("sandoval")
+    ) {
+      return "litroscompletos.mx";
+    }
+
     if (urlStr) {
       try {
         if (!urlStr.startsWith("http://") && !urlStr.startsWith("https://")) {
@@ -3893,7 +4104,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (match && match[1]) return match[1].toLowerCase();
       }
     }
-    const station = (item.gasStation || "").toLowerCase();
+
+    if (
+      station.includes("lodemo") ||
+      station.includes("zazil")
+    ) {
+      return "lodemored.com.mx";
+    }
     if (
       station.includes("iga") ||
       station.includes("gogas") ||
@@ -4148,6 +4365,39 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     }
 
+    // Fallback: If explicitly Grupo Lodemo / LodemoRed / Zazil Ha
+    if (
+      stationField.includes("lodemo") ||
+      stationField.includes("zazil") ||
+      rawUrl.includes("lodemored") ||
+      rawUrl.includes("lodemo")
+    ) {
+      const lodemoSt = stations.find((s) => s.id === "lodemo");
+      return {
+        isAvailable: lodemoSt ? lodemoSt.status === "active" : true,
+        stationName: "Grupo Lodemo",
+        station: lodemoSt,
+      };
+    }
+
+    // Fallback: If explicitly ControlGas / LitrosCompletos / Combustibles de Cancún
+    if (
+      stationField.includes("combustibles de cancun") ||
+      stationField.includes("litroscompletos") ||
+      stationField.includes("controlgas") ||
+      stationField.includes("sandoval") ||
+      rawUrl.includes("litroscompletos") ||
+      rawUrl.includes("dyndns.org") ||
+      rawUrl.includes("controlgasfe")
+    ) {
+      const controlgasSt = stations.find((s) => s.id === "controlgas");
+      return {
+        isAvailable: controlgasSt ? controlgasSt.status === "active" : true,
+        stationName: "LitrosCompletos",
+        station: controlgasSt,
+      };
+    }
+
     // Any other or unrecognized station is UNAVAILABLE
     return {
       isAvailable: false,
@@ -4267,6 +4517,667 @@ document.addEventListener("DOMContentLoaded", () => {
     return html;
   }
 
+  function renderCustomPaymentSelect(receipt, index) {
+    const selectedMethod = normalizePaymentMethod(receipt.paymentMethod);
+    const selectedIcon = getPaymentMethodIcon(selectedMethod);
+
+    return `
+      <div class="form-group">
+        <label class="form-label">Forma de Pago <span class="req">*</span></label>
+        <div class="custom-select-container custom-payment-select" data-index="${index}">
+          <select class="sr-only" data-field="paymentMethod" data-index="${index}">
+            ${PAYMENT_METHODS.map((pm) => {
+              const isSel = selectedMethod === pm;
+              return `<option value="${escapeHtml(pm)}" ${isSel ? "selected" : ""}>${escapeHtml(pm)}</option>`;
+            }).join("")}
+          </select>
+
+          <button type="button" class="custom-select-trigger font-bold" aria-haspopup="listbox" aria-expanded="false">
+            <div class="custom-select-content">
+              <div class="custom-select-selected-value">
+                <span class="custom-select-icon-wrap">${selectedIcon}</span>
+                <span class="custom-select-label font-bold">${escapeHtml(selectedMethod)}</span>
+              </div>
+            </div>
+            <div class="custom-select-actions">
+              <span class="choice-check-icon" title="Forma de pago seleccionada">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+              <svg class="custom-select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+          </button>
+
+          <div class="custom-select-dropdown hidden">
+            <ul class="custom-select-options" role="listbox">
+              ${PAYMENT_METHODS.map((pm) => {
+                const isSel = selectedMethod === pm;
+                const icon = getPaymentMethodIcon(pm);
+                return `
+                  <li class="custom-select-option ${isSel ? "is-selected" : ""}" role="option" data-value="${escapeHtml(pm)}" aria-selected="${isSel ? "true" : "false"}">
+                    <div class="option-main">
+                      <span class="custom-select-icon-wrap">${icon}</span>
+                      <span class="option-desc font-bold">${escapeHtml(pm)}</span>
+                    </div>
+                    <div class="option-meta">
+                      ${isSel ? '<span class="option-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>' : ""}
+                    </div>
+                  </li>
+                `;
+              }).join("")}
+            </ul>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderCustomPortalSelect(receipt, index) {
+    const rawUrl = (receipt.billingUrl || receipt.portalUrl || "").trim().toLowerCase();
+    const stationId = (receipt.stationId || "").trim().toLowerCase();
+    const stationField = (receipt.gasStation || "").trim().toLowerCase();
+    const stations =
+      Array.isArray(supportedStations) && supportedStations.length > 0
+        ? supportedStations
+        : DEFAULT_FALLBACK_STATIONS;
+
+    let matchedIndex = -1;
+    if (stationId) {
+      matchedIndex = stations.findIndex(
+        (s) => (s.id || "").toLowerCase() === stationId,
+      );
+    }
+    if (matchedIndex === -1 && rawUrl) {
+      matchedIndex = stations.findIndex((s) => {
+        const p = (s.portalUrl || "").toLowerCase();
+        return p && (rawUrl === p || rawUrl.startsWith(p));
+      });
+      if (matchedIndex === -1) {
+        matchedIndex = stations.findIndex((s) => {
+          const d = (s.domain || "").toLowerCase();
+          return d && rawUrl.includes(d);
+        });
+      }
+    }
+    if (matchedIndex === -1 && stationField) {
+      matchedIndex = stations.findIndex((s) => {
+        const sId = (s.id || "").toLowerCase();
+        const sName = (s.name || "").toLowerCase();
+        return stationField === sId || stationField === sName;
+      });
+      if (matchedIndex === -1) {
+        matchedIndex = stations.findIndex((s) => {
+          const sId = (s.id || "").toLowerCase();
+          const sName = (s.name || "").toLowerCase();
+          const sBrand = (s.brandName || "").toLowerCase();
+          return (
+            (sId.length > 2 && stationField.includes(sId)) ||
+            (sName.length > 2 && stationField.includes(sName)) ||
+            (sBrand.length > 3 && stationField.includes(sBrand))
+          );
+        });
+      }
+    }
+    if (
+      matchedIndex === -1 &&
+      (!rawUrl ||
+        rawUrl.includes("facturasgas") ||
+        !stationField ||
+        stationField.includes("gogas"))
+    ) {
+      matchedIndex = stations.findIndex((s) => s.id === "gogas");
+    }
+
+    const selectedStation = matchedIndex >= 0 ? stations[matchedIndex] : null;
+    const displayName = selectedStation ? selectedStation.name : (receipt.gasStation || "Gasolinera Detectada");
+    const displayDomain = selectedStation ? (selectedStation.domain || selectedStation.portalUrl || "") : (receipt.billingUrl || "");
+    const logoHtml = getStationLogoHtml({
+      gasStation: selectedStation ? selectedStation.name : receipt.gasStation,
+      stationId: selectedStation ? selectedStation.id : receipt.stationId,
+    });
+
+    return `
+      <div class="form-group form-group-full">
+        <label class="form-label">Portal de Facturación Detectado <span class="req">*</span></label>
+        <div class="custom-select-container custom-portal-select" data-index="${index}">
+          <select class="sr-only" data-field="billingUrl" data-index="${index}">
+            ${renderPortalChoices(receipt)}
+          </select>
+
+          <button type="button" class="custom-select-trigger font-mono" aria-haspopup="listbox" aria-expanded="false">
+            <div class="custom-select-content">
+              <div class="custom-select-selected-value">
+                <span class="portal-badge-logo">${logoHtml}</span>
+                <span class="custom-select-label font-semibold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${escapeHtml(displayName)} <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">(${escapeHtml(displayDomain)})</span>
+                </span>
+              </div>
+            </div>
+            <div class="custom-select-actions">
+              <span class="choice-check-icon" title="Portal verificado">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+              <svg class="custom-select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+          </button>
+
+          <div class="custom-select-dropdown hidden">
+            <div class="custom-select-search-wrapper">
+              <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="text" class="custom-select-search portal-search-input" placeholder="Buscar gasolinera o portal..." autocomplete="off">
+            </div>
+            <ul class="custom-select-options" role="listbox">
+              ${stations.map((st, sIdx) => {
+                const val = st.portalUrl || `https://${st.domain}`;
+                const isSel = sIdx === matchedIndex;
+                const isAvailable = st.status === "active";
+                const stLogo = getStationLogoHtml({ gasStation: st.name, stationId: st.id });
+                return `
+                  <li class="custom-select-option ${isSel ? "is-selected" : ""}" role="option" data-value="${escapeHtml(val)}" data-station-id="${escapeHtml(st.id)}" data-name="${escapeHtml(st.name)}" data-domain="${escapeHtml(st.domain || val)}" aria-selected="${isSel ? "true" : "false"}">
+                    <div class="option-main">
+                      <span class="portal-badge-logo">${stLogo}</span>
+                      <div style="min-width: 0;">
+                        <div class="option-desc font-semibold">${escapeHtml(st.name)}</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">${escapeHtml(st.domain || val)}</div>
+                      </div>
+                    </div>
+                    <div class="option-meta">
+                      ${isAvailable ? '<span class="persona-tag fisica" style="font-size: 0.65rem;">Activo</span>' : '<span class="persona-tag moral" style="font-size: 0.65rem;">Próximamente</span>'}
+                      ${isSel ? '<span class="option-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>' : ""}
+                    </div>
+                  </li>
+                `;
+              }).join("")}
+            </ul>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function initReviewCustomSelects(container) {
+    if (!container) return;
+
+    // 1. Custom Payment Method Selects
+    container.querySelectorAll(".custom-payment-select").forEach((selectContainer) => {
+      const trigger = selectContainer.querySelector(".custom-select-trigger");
+      const dropdown = selectContainer.querySelector(".custom-select-dropdown");
+      const nativeSelect = selectContainer.querySelector("select");
+      const label = selectContainer.querySelector(".custom-select-label");
+      const iconWrap = selectContainer.querySelector(".custom-select-icon-wrap");
+      const options = selectContainer.querySelectorAll(".custom-select-option");
+
+      trigger?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = selectContainer.classList.contains("open");
+        closeAllReviewSelectDropdowns();
+        if (!isOpen) {
+          selectContainer.classList.add("open");
+          dropdown?.classList.remove("hidden");
+        }
+      });
+
+      options.forEach((opt) => {
+        opt.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const val = opt.getAttribute("data-value");
+          if (nativeSelect) {
+            nativeSelect.value = val;
+            nativeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+          if (label) label.textContent = val;
+          if (iconWrap) iconWrap.innerHTML = getPaymentMethodIcon(val);
+
+          options.forEach((o) => {
+            o.classList.remove("is-selected");
+            o.setAttribute("aria-selected", "false");
+            o.querySelector(".option-check")?.remove();
+          });
+          opt.classList.add("is-selected");
+          opt.setAttribute("aria-selected", "true");
+          const meta = opt.querySelector(".option-meta");
+          if (meta && !meta.querySelector(".option-check")) {
+            meta.insertAdjacentHTML(
+              "beforeend",
+              '<span class="option-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>',
+            );
+          }
+
+          selectContainer.classList.remove("open");
+          dropdown?.classList.add("hidden");
+        });
+      });
+    });
+
+    // 2. Custom Portal Selects with Search Filtering
+    container.querySelectorAll(".custom-portal-select").forEach((selectContainer) => {
+      const trigger = selectContainer.querySelector(".custom-select-trigger");
+      const dropdown = selectContainer.querySelector(".custom-select-dropdown");
+      const nativeSelect = selectContainer.querySelector("select");
+      const searchInput = selectContainer.querySelector(".portal-search-input");
+      const options = selectContainer.querySelectorAll(".custom-select-option");
+
+      trigger?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = selectContainer.classList.contains("open");
+        closeAllReviewSelectDropdowns();
+        if (!isOpen) {
+          selectContainer.classList.add("open");
+          dropdown?.classList.remove("hidden");
+          if (searchInput) {
+            searchInput.value = "";
+            options.forEach((o) => o.classList.remove("hidden"));
+            setTimeout(() => searchInput.focus(), 60);
+          }
+        }
+      });
+
+      searchInput?.addEventListener("input", (e) => {
+        const q = (e.target.value || "").trim().toLowerCase();
+        options.forEach((opt) => {
+          const name = (opt.getAttribute("data-name") || "").toLowerCase();
+          const domain = (opt.getAttribute("data-domain") || "").toLowerCase();
+          if (!q || name.includes(q) || domain.includes(q)) {
+            opt.classList.remove("hidden");
+          } else {
+            opt.classList.add("hidden");
+          }
+        });
+      });
+
+      searchInput?.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+
+      options.forEach((opt) => {
+        opt.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const val = opt.getAttribute("data-value");
+          if (nativeSelect) {
+            nativeSelect.value = val;
+            nativeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+          selectContainer.classList.remove("open");
+          dropdown?.classList.add("hidden");
+        });
+      });
+    });
+  }
+
+  const MONTH_NAMES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  function parseTicketDate(dateStr) {
+    if (!dateStr || typeof dateStr !== "string") return new Date();
+    const parts = dateStr.trim().split(/[\sT]+/);
+    const datePart = parts[0] || "";
+    const timePart = parts[1] || "12:00";
+
+    const dMatch = datePart.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    const tMatch = timePart.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+
+    let year = new Date().getFullYear();
+    let month = new Date().getMonth();
+    let day = new Date().getDate();
+    let hours = 12;
+    let minutes = 0;
+
+    if (dMatch) {
+      day = parseInt(dMatch[1], 10);
+      month = parseInt(dMatch[2], 10) - 1;
+      year = parseInt(dMatch[3], 10);
+    }
+    if (tMatch) {
+      hours = parseInt(tMatch[1], 10);
+      minutes = parseInt(tMatch[2], 10);
+    }
+
+    const d = new Date(year, month, day, hours, minutes);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+
+  function formatTicketDate(d) {
+    if (!d || isNaN(d.getTime())) return "";
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+  }
+
+  function renderCustomDatepicker(receipt, index) {
+    const rawDate = (receipt.date || "").trim();
+
+    return `
+      <div class="form-group">
+        <label class="form-label">Fecha y Hora <span class="req">*</span></label>
+        <div class="custom-datepicker-container" data-index="${index}">
+          <input type="text" class="sr-only" data-field="date" data-index="${index}" value="${escapeHtml(rawDate)}">
+
+          <button type="button" class="custom-datepicker-trigger custom-select-trigger font-mono" aria-haspopup="dialog" aria-expanded="false">
+            <div class="custom-select-content">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent); flex-shrink: 0;">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span class="datepicker-value-display ${rawDate ? "" : "custom-select-placeholder"}">
+                ${escapeHtml(rawDate || "DD/MM/AAAA HH:MM")}
+              </span>
+            </div>
+            <div class="custom-select-actions">
+              <span class="choice-check-icon ${rawDate ? "" : "hidden"}" title="Fecha ingresada">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+              <svg class="custom-select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+          </button>
+
+          <div class="custom-datepicker-dropdown custom-select-dropdown hidden">
+            <!-- Header -->
+            <div class="datepicker-header">
+              <button type="button" class="btn-icon-xs btn-dp-prev-month" title="Mes anterior">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <div class="datepicker-month-year-title font-semibold">Septiembre 2026</div>
+              <button type="button" class="btn-icon-xs btn-dp-next-month" title="Mes siguiente">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+
+            <!-- Quick presets -->
+            <div class="datepicker-quick-presets">
+              <button type="button" class="btn-dp-preset" data-preset="today">Hoy</button>
+              <button type="button" class="btn-dp-preset" data-preset="yesterday">Ayer</button>
+              <button type="button" class="btn-dp-preset" data-preset="now">Ahora</button>
+            </div>
+
+            <!-- Weekdays header -->
+            <div class="datepicker-weekdays">
+              <span>Do</span><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span>
+            </div>
+
+            <!-- Days Matrix -->
+            <div class="datepicker-days-grid"></div>
+
+            <!-- Time Picker and Apply footer -->
+            <div class="datepicker-time-section">
+              <div class="datepicker-time-label">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Hora:</span>
+              </div>
+              <div class="datepicker-time-inputs">
+                <input type="number" min="0" max="23" class="dp-time-input dp-hours font-mono" value="12" maxlength="2">:
+                <input type="number" min="0" max="59" class="dp-time-input dp-minutes font-mono" value="00" maxlength="2">
+              </div>
+              <button type="button" class="btn btn-xs btn-primary btn-dp-apply">Listo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function initReviewDatepickers(container) {
+    if (!container) return;
+
+    container.querySelectorAll(".custom-datepicker-container").forEach((dpContainer) => {
+      const idx = parseInt(dpContainer.getAttribute("data-index"), 10);
+      const nativeInput = dpContainer.querySelector('input[data-field="date"]');
+      const trigger = dpContainer.querySelector(".custom-datepicker-trigger");
+      const dropdown = dpContainer.querySelector(".custom-datepicker-dropdown");
+      const valueDisplay = dpContainer.querySelector(".datepicker-value-display");
+      const checkIcon = dpContainer.querySelector(".choice-check-icon");
+      const titleEl = dpContainer.querySelector(".datepicker-month-year-title");
+      const daysGrid = dpContainer.querySelector(".datepicker-days-grid");
+      const prevBtn = dpContainer.querySelector(".btn-dp-prev-month");
+      const nextBtn = dpContainer.querySelector(".btn-dp-next-month");
+      const hoursInput = dpContainer.querySelector(".dp-hours");
+      const minutesInput = dpContainer.querySelector(".dp-minutes");
+      const applyBtn = dpContainer.querySelector(".btn-dp-apply");
+
+      let activeDate = parseTicketDate(nativeInput?.value);
+      let viewYear = activeDate.getFullYear();
+      let viewMonth = activeDate.getMonth();
+
+      function updateCalendarView() {
+        if (titleEl) {
+          titleEl.textContent = `${MONTH_NAMES[viewMonth]} ${viewYear}`;
+        }
+        if (!daysGrid) return;
+        daysGrid.innerHTML = "";
+
+        const firstDayOfMonth = new Date(viewYear, viewMonth, 1).getDay();
+        const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+        const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+
+        const today = new Date();
+        const isCurrentMonthView = today.getFullYear() === viewYear && today.getMonth() === viewMonth;
+        const isSelectedMonthView = activeDate.getFullYear() === viewYear && activeDate.getMonth() === viewMonth;
+
+        // Previous month trailing days
+        for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "datepicker-day is-other-month";
+          btn.textContent = daysInPrevMonth - i;
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            viewMonth--;
+            if (viewMonth < 0) {
+              viewMonth = 11;
+              viewYear--;
+            }
+            activeDate.setFullYear(viewYear, viewMonth, daysInPrevMonth - i);
+            updateCalendarView();
+          });
+          daysGrid.appendChild(btn);
+        }
+
+        // Current month days
+        for (let day = 1; day <= daysInMonth; day++) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "datepicker-day";
+          if (isCurrentMonthView && today.getDate() === day) {
+            btn.classList.add("is-today");
+          }
+          if (isSelectedMonthView && activeDate.getDate() === day) {
+            btn.classList.add("is-selected");
+          }
+          btn.textContent = day;
+
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            activeDate.setFullYear(viewYear, viewMonth, day);
+            daysGrid.querySelectorAll(".datepicker-day").forEach((d) => d.classList.remove("is-selected"));
+            btn.classList.add("is-selected");
+          });
+
+          // Double click confirms immediately
+          btn.addEventListener("dblclick", (e) => {
+            e.stopPropagation();
+            activeDate.setFullYear(viewYear, viewMonth, day);
+            commitDateTime();
+          });
+
+          daysGrid.appendChild(btn);
+        }
+
+        // Next month leading days to complete grid
+        const totalCells = firstDayOfMonth + daysInMonth;
+        const remainingCells = (7 - (totalCells % 7)) % 7;
+        for (let nextDay = 1; nextDay <= remainingCells; nextDay++) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "datepicker-day is-other-month";
+          btn.textContent = nextDay;
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            viewMonth++;
+            if (viewMonth > 11) {
+              viewMonth = 0;
+              viewYear++;
+            }
+            activeDate.setFullYear(viewYear, viewMonth, nextDay);
+            updateCalendarView();
+          });
+          daysGrid.appendChild(btn);
+        }
+      }
+
+      function syncTimeInputs() {
+        if (hoursInput) hoursInput.value = String(activeDate.getHours()).padStart(2, "0");
+        if (minutesInput) minutesInput.value = String(activeDate.getMinutes()).padStart(2, "0");
+      }
+
+      function commitDateTime() {
+        let h = parseInt(hoursInput?.value || "12", 10);
+        let m = parseInt(minutesInput?.value || "00", 10);
+        if (isNaN(h) || h < 0) h = 0;
+        if (h > 23) h = 23;
+        if (isNaN(m) || m < 0) m = 0;
+        if (m > 59) m = 59;
+
+        activeDate.setHours(h, m, 0, 0);
+        const formatted = formatTicketDate(activeDate);
+
+        if (nativeInput) {
+          nativeInput.value = formatted;
+          nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        if (valueDisplay) {
+          valueDisplay.textContent = formatted;
+          valueDisplay.classList.remove("custom-select-placeholder");
+        }
+        if (checkIcon) checkIcon.classList.remove("hidden");
+        trigger?.classList.remove("is-invalid");
+
+        if (currentScannedReceipts[idx]) {
+          currentScannedReceipts[idx].date = formatted;
+        }
+
+        closeAllReviewSelectDropdowns();
+      }
+
+      trigger?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = dpContainer.classList.contains("open");
+        closeAllReviewSelectDropdowns();
+        if (!isOpen) {
+          dpContainer.classList.add("open");
+          dropdown?.classList.remove("hidden");
+          activeDate = parseTicketDate(nativeInput?.value);
+          viewYear = activeDate.getFullYear();
+          viewMonth = activeDate.getMonth();
+          syncTimeInputs();
+          updateCalendarView();
+        }
+      });
+
+      prevBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        viewMonth--;
+        if (viewMonth < 0) {
+          viewMonth = 11;
+          viewYear--;
+        }
+        updateCalendarView();
+      });
+
+      nextBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        viewMonth++;
+        if (viewMonth > 11) {
+          viewMonth = 0;
+          viewYear++;
+        }
+        updateCalendarView();
+      });
+
+      // Presets
+      dpContainer.querySelectorAll(".btn-dp-preset").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const preset = btn.getAttribute("data-preset");
+          const now = new Date();
+          if (preset === "today") {
+            activeDate.setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
+          } else if (preset === "yesterday") {
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            activeDate.setFullYear(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+          } else if (preset === "now") {
+            activeDate = new Date();
+            syncTimeInputs();
+          }
+          viewYear = activeDate.getFullYear();
+          viewMonth = activeDate.getMonth();
+          updateCalendarView();
+        });
+      });
+
+      applyBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        commitDateTime();
+      });
+
+      dropdown?.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+    });
+  }
+
+  function closeAllReviewSelectDropdowns() {
+    document.querySelectorAll(".custom-payment-select.open, .custom-portal-select.open, .custom-datepicker-container.open").forEach((el) => {
+      el.classList.remove("open");
+      el.querySelector(".custom-select-dropdown, .custom-datepicker-dropdown")?.classList.add("hidden");
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".custom-payment-select") && !e.target.closest(".custom-portal-select") && !e.target.closest(".custom-datepicker-container")) {
+      closeAllReviewSelectDropdowns();
+    }
+  });
+
+  function isControlGasReceipt(receipt) {
+    if (!receipt) return false;
+    const portalUrl = (receipt.billingUrl || "").toLowerCase();
+    const brand = (receipt.gasStation || "").toUpperCase();
+    const station = (receipt.stationNumber || "").toUpperCase();
+    return (
+      portalUrl.includes("controlgas") ||
+      portalUrl.includes("litroscompletos") ||
+      portalUrl.includes("dyndns.org") ||
+      brand.includes("CONTROLGAS") ||
+      brand.includes("ATIO") ||
+      brand.includes("LITROSCOMPLETOS") ||
+      brand.includes("COMBUSTIBLES DE CANCUN") ||
+      station.startsWith("E0") ||
+      Boolean(receipt.webId)
+    );
+  }
+
   function renderReviewCards() {
     if (currentScannedReceipts.length === 0) {
       reviewSection?.classList.add("hidden");
@@ -4317,8 +5228,9 @@ document.addEventListener("DOMContentLoaded", () => {
     currentScannedReceipts.forEach((receipt, index) => {
       totalAmount += Number(receipt.amount || 0);
 
-      const isDuplicate = isTicketDuplicate(receipt.trackingNumber);
+      const isDuplicate = isTicketDuplicate(receipt.trackingNumber || receipt.folio);
       const availability = getStationAvailability(receipt);
+      const isControlGas = isControlGasReceipt(receipt);
 
       const card = document.createElement("div");
       card.className = `receipt-card ${isDuplicate ? "card-duplicate" : ""}`;
@@ -4337,7 +5249,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ? `
           <div class="duplicate-warning-banner">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span><strong>Ticket ya registrado:</strong> Este número de rastreo ya existe en tu historial. Elimínalo para continuar.</span>
+            <span><strong>Ticket ya registrado:</strong> Este número de rastreo/folio ya existe en tu historial. Elimínalo para continuar.</span>
           </div>
         `
           : ""
@@ -4360,53 +5272,81 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         <div class="receipt-card-fields">
-          <div class="form-group">
-            <label class="form-label">No. de Rastreo / Ticket <span class="req">*</span></label>
-            <input type="text" class="form-input font-mono font-bold ${isDuplicate ? "input-duplicate" : ""}" data-field="trackingNumber" data-index="${index}" value="${escapeHtml(receipt.trackingNumber || "")}" placeholder="Código de ticket">
-          </div>
+          ${isControlGas ? `
+            <div class="form-group">
+              <label class="form-label">No. de Estación <span class="req">*</span></label>
+              <input type="text" class="form-input font-mono font-bold" data-field="stationNumber" data-index="${index}" value="${escapeHtml(receipt.stationNumber || "")}" placeholder="Ej. E04778 o E00123">
+            </div>
 
-          <div class="form-group">
-            <label class="form-label">Monto Total ($ MXN) <span class="req">*</span></label>
-            <input type="number" step="0.01" class="form-input font-bold" data-field="amount" data-index="${index}" value="${receipt.amount || 0}">
-          </div>
+            <div class="form-group">
+              <label class="form-label">Folio / No. Despacho <span class="req">*</span></label>
+              <input type="text" class="form-input font-mono font-bold ${isDuplicate ? "input-duplicate" : ""}" data-field="folio" data-index="${index}" value="${escapeHtml(receipt.folio || receipt.trackingNumber || "")}" placeholder="Ej. 17085165 o 0086695638">
+            </div>
 
-          <div class="form-group">
-            <label class="form-label">Fecha y Hora</label>
-            <input type="text" class="form-input font-mono" data-field="date" data-index="${index}" value="${escapeHtml(receipt.date || "")}" placeholder="DD/MM/AAAA HH:MM">
-          </div>
+            <div class="form-group">
+              <label class="form-label">Web ID / Identificador <span class="req">*</span></label>
+              <input type="text" class="form-input font-mono font-bold" data-field="webId" data-index="${index}" value="${escapeHtml(receipt.webId || "")}" placeholder="Ej. 64089134 o 75057">
+            </div>
 
-          <div class="form-group">
-            <label class="form-label">No. de Estación</label>
-            <input type="text" class="form-input font-mono" data-field="stationNumber" data-index="${index}" value="${escapeHtml(receipt.stationNumber || "")}" placeholder="Ej. 14764">
-          </div>
+            <div class="form-group">
+              <label class="form-label">Monto Total ($ MXN) <span class="req">*</span></label>
+              <input type="number" step="0.01" class="form-input font-bold" data-field="amount" data-index="${index}" value="${receipt.amount || 0}">
+            </div>
 
-          <div class="form-group">
-            <label class="form-label">Cajero / Despachador</label>
-            <input type="text" class="form-input" data-field="cashier" data-index="${index}" value="${escapeHtml(receipt.cashier || "")}" placeholder="Nombre o No. de Cajero">
-          </div>
+            ${renderCustomDatepicker(receipt, index)}
 
-          <div class="form-group">
-            <label class="form-label">Forma de Pago <span class="req">*</span></label>
-            <select class="form-select font-bold" data-field="paymentMethod" data-index="${index}">
-              ${PAYMENT_METHODS.map((pm) => {
-          const isSel =
-            normalizePaymentMethod(receipt.paymentMethod) === pm;
-          return `<option value="${escapeHtml(pm)}" ${isSel ? "selected" : ""}>${escapeHtml(pm)}</option>`;
-        }).join("")}
-            </select>
-          </div>
+            <div class="form-group">
+              <label class="form-label">Cajero / Despachador</label>
+              <input type="text" class="form-input" data-field="cashier" data-index="${index}" value="${escapeHtml(receipt.cashier || "")}" placeholder="Nombre o No. de Cajero">
+            </div>
 
-          <div class="form-group form-group-full">
-            <label class="form-label">Dirección / Sucursal</label>
-            <input type="text" class="form-input" data-field="address" data-index="${index}" value="${escapeHtml(receipt.address || "")}" placeholder="Ej. Av. Kabah Mz 1 Lote 2, Benito Juárez, Q. Roo">
-          </div>
+            ${renderCustomPaymentSelect(receipt, index)}
 
-          <div class="form-group form-group-full">
-            <label class="form-label">Portal de Facturación Detectado <span class="req">*</span></label>
-            <select class="form-select font-mono" data-field="billingUrl" data-index="${index}">
-              ${renderPortalChoices(receipt)}
-            </select>
-          </div>
+            <div class="form-group form-group-full">
+              <label class="form-label">Dirección / Sucursal</label>
+              <input type="text" class="form-input" data-field="address" data-index="${index}" value="${escapeHtml(receipt.address || "")}" placeholder="Ej. Av. Labna x Av. Coba y Tanka, SM 35">
+            </div>
+
+            ${renderCustomPortalSelect(receipt, index)}
+          ` : `
+            <div class="form-group">
+              <label class="form-label">No. de Rastreo / Ticket <span class="req">*</span></label>
+              <input type="text" class="form-input font-mono font-bold ${isDuplicate ? "input-duplicate" : ""}" data-field="trackingNumber" data-index="${index}" value="${escapeHtml(receipt.trackingNumber || "")}" placeholder="Código de ticket">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Monto Total ($ MXN) <span class="req">*</span></label>
+              <input type="number" step="0.01" class="form-input font-bold" data-field="amount" data-index="${index}" value="${receipt.amount || 0}">
+            </div>
+
+            ${renderCustomDatepicker(receipt, index)}
+
+            <div class="form-group">
+              <label class="form-label">No. de Estación</label>
+              <input type="text" class="form-input font-mono" data-field="stationNumber" data-index="${index}" value="${escapeHtml(receipt.stationNumber || "")}" placeholder="Ej. 14764">
+            </div>
+
+            ${receipt.webId ? `
+            <div class="form-group">
+              <label class="form-label">Web ID / Identificador</label>
+              <input type="text" class="form-input font-mono font-bold" data-field="webId" data-index="${index}" value="${escapeHtml(receipt.webId || "")}" placeholder="Ej. 75057">
+            </div>
+            ` : ""}
+
+            <div class="form-group">
+              <label class="form-label">Cajero / Despachador</label>
+              <input type="text" class="form-input" data-field="cashier" data-index="${index}" value="${escapeHtml(receipt.cashier || "")}" placeholder="Nombre o No. de Cajero">
+            </div>
+
+            ${renderCustomPaymentSelect(receipt, index)}
+
+            <div class="form-group form-group-full">
+              <label class="form-label">Dirección / Sucursal</label>
+              <input type="text" class="form-input" data-field="address" data-index="${index}" value="${escapeHtml(receipt.address || "")}" placeholder="Ej. Av. Kabah Mz 1 Lote 2, Benito Juárez, Q. Roo">
+            </div>
+
+            ${renderCustomPortalSelect(receipt, index)}
+          `}
         </div>
 
         <div class="receipt-card-actions">
@@ -4420,17 +5360,32 @@ document.addEventListener("DOMContentLoaded", () => {
       receiptsList.appendChild(card);
     });
 
+    // Initialize custom choices dropdowns for payment methods and portals
+    initReviewCustomSelects(receiptsList);
+    // Initialize custom datepicker dropdowns
+    initReviewDatepickers(receiptsList);
+
     // Bind inputs & selects to state
     receiptsList.querySelectorAll("input, select").forEach((element) => {
       const handleFieldChange = (e) => {
         const idx = parseInt(element.getAttribute("data-index"), 10);
         const field = element.getAttribute("data-field");
+        element.classList.remove("is-invalid");
+        if (field === "date") {
+          const dpEl = receiptsList.querySelector(`.custom-datepicker-container[data-index="${idx}"]`);
+          dpEl?.classList.remove("is-invalid");
+          dpEl?.querySelector(".custom-datepicker-trigger")?.classList.remove("is-invalid");
+        }
         if (currentScannedReceipts[idx]) {
           currentScannedReceipts[idx][field] = e.target.value;
-          if (field === "amount") {
-            recalculateTotal();
-          } else if (field === "trackingNumber") {
+          if (field === "folio") {
+            currentScannedReceipts[idx].trackingNumber = e.target.value;
             updateDuplicateValidation();
+          } else if (field === "trackingNumber") {
+            currentScannedReceipts[idx].folio = e.target.value;
+            updateDuplicateValidation();
+          } else if (field === "amount") {
+            recalculateTotal();
           } else if (field === "billingUrl") {
             const stations =
               Array.isArray(supportedStations) && supportedStations.length > 0
@@ -4548,12 +5503,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const profile = getProfile();
-    if (!profile || !profile.rfc) {
+    if (
+      !profile ||
+      !profile.rfc ||
+      !profile.calle ||
+      !profile.numExt ||
+      !profile.colonia ||
+      !profile.email
+    ) {
       showToast(
-        "¡Datos del ticket listos! Configura tus datos fiscales para emitir tu factura.",
+        "¡Datos fiscales pendientes! Configura tu perfil completo para facturar automáticamente.",
         "info",
       );
-      openProfileScreen(false, { pendingInvoicing: true });
+      openProfileScreen(Boolean(profile?.rfc), { pendingInvoicing: true });
       return;
     }
 
@@ -4600,11 +5562,102 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
 
-    // Validate remaining tickets have tracking numbers
+    // Validate required fields for every ticket: trackingNumber/folio, webId (for ControlGas), amount > 0, date
     for (let i = 0; i < currentScannedReceipts.length; i++) {
-      if (!currentScannedReceipts[i].trackingNumber) {
+      const receipt = currentScannedReceipts[i];
+      const cardEl = receiptsList?.children[i];
+      const isControlGas = isControlGasReceipt(receipt);
+
+      if (isControlGas) {
+        // 1a. No. de Estación (required for LitrosCompletos)
+        const station = (receipt.stationNumber || "").toString().trim();
+        if (!station) {
+          const input = cardEl?.querySelector('input[data-field="stationNumber"]');
+          input?.classList.add("is-invalid");
+          input?.focus();
+          input?.scrollIntoView({ behavior: "smooth", block: "center" });
+          showToast(
+            `El ticket #${i + 1} de LitrosCompletos requiere el No. de Estación (ej. E04778 o E00123).`,
+            "error",
+          );
+          return;
+        }
+
+        // 1b. Folio / No. Despacho
+        const folio = (receipt.folio || receipt.trackingNumber || "").toString().trim();
+        if (!folio) {
+          const input = cardEl?.querySelector('input[data-field="folio"], input[data-field="trackingNumber"]');
+          input?.classList.add("is-invalid");
+          input?.focus();
+          input?.scrollIntoView({ behavior: "smooth", block: "center" });
+          showToast(
+            `El ticket #${i + 1} requiere el Folio / No. de Despacho (código numérico del ticket).`,
+            "error",
+          );
+          return;
+        }
+
+        // 1c. Web ID / Identificador
+        const webId = (receipt.webId || "").toString().trim();
+        if (!webId) {
+          const input = cardEl?.querySelector('input[data-field="webId"]');
+          input?.classList.add("is-invalid");
+          input?.focus();
+          input?.scrollIntoView({ behavior: "smooth", block: "center" });
+          showToast(
+            `El ticket #${i + 1} de LitrosCompletos requiere el Web ID (ej. 75057 o 64089134).`,
+            "error",
+          );
+          return;
+        }
+      } else {
+        // Standard ticket: Código de ticket / Rastreo
+        const tracking = (receipt.trackingNumber || "").toString().trim();
+        if (!tracking) {
+          const input = cardEl?.querySelector('input[data-field="trackingNumber"]');
+          input?.classList.add("is-invalid");
+          input?.focus();
+          input?.scrollIntoView({ behavior: "smooth", block: "center" });
+          showToast(
+            `El ticket #${i + 1} requiere el Código de Ticket o Rastreo.`,
+            "error",
+          );
+          return;
+        }
+      }
+
+      // 2. Monto total > 0
+      const rawAmount = receipt.amount;
+      const numAmount = parseFloat(rawAmount);
+      if (
+        rawAmount === undefined ||
+        rawAmount === null ||
+        rawAmount === "" ||
+        isNaN(numAmount) ||
+        numAmount <= 0
+      ) {
+        const input = cardEl?.querySelector('input[data-field="amount"]');
+        input?.classList.add("is-invalid");
+        input?.focus();
+        input?.scrollIntoView({ behavior: "smooth", block: "center" });
         showToast(
-          `El ticket #${i + 1} no tiene Número de Rastreo / Ticket. Por favor ingresa el código del ticket.`,
+          `El ticket #${i + 1} requiere un Monto Total válido mayor a $0.00.`,
+          "error",
+        );
+        return;
+      }
+
+      // 3. Fecha y hora
+      const dateVal = (receipt.date || "").toString().trim();
+      if (!dateVal) {
+        const dpContainer = cardEl?.querySelector(".custom-datepicker-container");
+        const dpTrigger = dpContainer?.querySelector(".custom-datepicker-trigger");
+        dpContainer?.classList.add("is-invalid");
+        dpTrigger?.classList.add("is-invalid");
+        dpTrigger?.focus();
+        dpContainer?.scrollIntoView({ behavior: "smooth", block: "center" });
+        showToast(
+          `El ticket #${i + 1} requiere la Fecha y Hora de consumo. Selecciona la fecha en el calendario.`,
           "error",
         );
         return;
@@ -4918,70 +5971,154 @@ document.addEventListener("DOMContentLoaded", () => {
       uploadCard.classList.add("hidden");
     }
 
-    // Pagination logic (50 items max per page)
+    // Lazy fetch pagination (max 15 items initially, loaded in chunks of 15 on scroll)
     const totalItems = unifiedList.length;
-    const totalPages = Math.ceil(totalItems / historyPageSize) || 1;
-    if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
-    if (historyCurrentPage < 1) historyCurrentPage = 1;
+    if (historyLoadedCount < historyBatchSize) {
+      historyLoadedCount = historyBatchSize;
+    }
+    const displayedCount = Math.min(historyLoadedCount, totalItems);
+    const displayedItems = unifiedList.slice(0, displayedCount);
 
-    const startIndex = (historyCurrentPage - 1) * historyPageSize;
-    const endIndex = Math.min(startIndex + historyPageSize, totalItems);
-    const pageItems = unifiedList.slice(startIndex, endIndex);
-
-    let rowsHtml = '<div class="history-rows-list">';
-    pageItems.forEach((item) => {
+    let rowsHtml = '<div class="history-rows-list" id="history-rows-container">';
+    displayedItems.forEach((item) => {
       rowsHtml += createHistoryRowHtml(item);
     });
     rowsHtml += "</div>";
 
-    historyContent.innerHTML = rowsHtml;
-
-    // Render pagination controls
-    if (historyPagination) {
-      if (totalItems > historyPageSize) {
-        historyPagination.classList.remove("hidden");
-      } else {
-        historyPagination.classList.add("hidden");
-      }
-      if (paginationInfo) {
-        paginationInfo.textContent = `Mostrando ${startIndex + 1} - ${endIndex} de ${totalItems} facturas`;
-      }
-      if (btnPagePrev) {
-        btnPagePrev.disabled = historyCurrentPage <= 1;
-      }
-      if (btnPageNext) {
-        btnPageNext.disabled = historyCurrentPage >= totalPages;
-      }
-      if (paginationPages) {
-        let pagesHtml = "";
-        const maxButtons = 5;
-        let startPage = Math.max(1, historyCurrentPage - 2);
-        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
-        if (endPage - startPage < maxButtons - 1) {
-          startPage = Math.max(1, endPage - maxButtons + 1);
-        }
-        for (let p = startPage; p <= endPage; p++) {
-          pagesHtml += `<button type="button" class="page-num-btn ${p === historyCurrentPage ? "active" : ""}" data-page="${p}">${p}</button>`;
-        }
-        paginationPages.innerHTML = pagesHtml;
-        paginationPages.querySelectorAll(".page-num-btn").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const targetPage = parseInt(btn.getAttribute("data-page"), 10);
-            if (targetPage && targetPage !== historyCurrentPage) {
-              historyCurrentPage = targetPage;
-              renderUnifiedHistory();
-              historyContent.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-            }
-          });
-        });
-      }
+    if (totalItems > displayedCount) {
+      rowsHtml += `
+        <div id="history-skeleton-container" class="hidden">
+          ${createHistorySkeletonHtml(2)}
+        </div>
+        <div id="history-scroll-sentinel" class="history-scroll-sentinel"></div>
+      `;
+    } else if (totalItems > historyBatchSize) {
+      rowsHtml += `
+        <div class="history-end-pill">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Has llegado al final • ${totalItems} facturas en total</span>
+        </div>
+      `;
     }
 
+    historyContent.innerHTML = rowsHtml;
+
+    // Hide classic pagination buttons in favor of lazy fetch infinite scroll
+    if (historyPagination) {
+      historyPagination.classList.add("hidden");
+    }
+
+    // Attach row events
+    attachUnifiedHistoryEvents(historyContent, unifiedList);
+
+    // Setup IntersectionObserver for lazy fetch on scroll
+    setupHistoryScrollObserver(unifiedList);
+  }
+
+  function createHistorySkeletonHtml(count = 2) {
+    let html = '<div class="history-skeleton-list">';
+    for (let i = 0; i < count; i++) {
+      html += `
+        <div class="history-row-skeleton">
+          <div class="history-skeleton-top">
+            <div class="history-skeleton-brand">
+              <div class="history-skeleton-avatar skeleton-shimmer-block"></div>
+              <div class="history-skeleton-lines">
+                <div class="history-skeleton-line-title skeleton-shimmer-block"></div>
+                <div class="history-skeleton-line-sub skeleton-shimmer-block"></div>
+              </div>
+            </div>
+            <div class="history-skeleton-pill skeleton-shimmer-block"></div>
+          </div>
+          <div class="history-skeleton-bottom">
+            <div class="history-skeleton-meta">
+              <div class="history-skeleton-tag skeleton-shimmer-block"></div>
+              <div class="history-skeleton-tag skeleton-shimmer-block"></div>
+              <div class="history-skeleton-tag-sm skeleton-shimmer-block"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    html += "</div>";
+    return html;
+  }
+
+  function setupHistoryScrollObserver(unifiedList) {
+    if (historyScrollObserver) {
+      historyScrollObserver.disconnect();
+      historyScrollObserver = null;
+    }
+
+    const sentinel = document.getElementById("history-scroll-sentinel");
+    const skeletonContainer = document.getElementById("history-skeleton-container");
+    const rowsContainer = document.getElementById("history-rows-container");
+
+    if (!sentinel || !skeletonContainer || !rowsContainer) return;
+
+    historyScrollObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (
+          entry.isIntersecting &&
+          !isLoadingMoreHistory &&
+          historyLoadedCount < unifiedList.length
+        ) {
+          isLoadingMoreHistory = true;
+          skeletonContainer.classList.remove("hidden");
+
+          setTimeout(() => {
+            const nextBatch = unifiedList.slice(
+              historyLoadedCount,
+              historyLoadedCount + historyBatchSize,
+            );
+            historyLoadedCount += nextBatch.length;
+
+            let newRowsHtml = "";
+            nextBatch.forEach((item) => {
+              newRowsHtml += createHistoryRowHtml(item);
+            });
+
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = newRowsHtml;
+            const newElements = Array.from(tempDiv.children);
+            newElements.forEach((el) => {
+              rowsContainer.appendChild(el);
+            });
+
+            attachUnifiedHistoryEvents(rowsContainer, unifiedList);
+            skeletonContainer.classList.add("hidden");
+            isLoadingMoreHistory = false;
+
+            if (historyLoadedCount >= unifiedList.length) {
+              if (historyScrollObserver) {
+                historyScrollObserver.disconnect();
+                historyScrollObserver = null;
+              }
+              sentinel.remove();
+              const endPill = document.createElement("div");
+              endPill.className = "history-end-pill";
+              endPill.innerHTML = `
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Has llegado al final • ${unifiedList.length} facturas en total</span>
+              `;
+              historyContent.appendChild(endPill);
+            }
+          }, 350);
+        }
+      },
+      { rootMargin: "150px" },
+    );
+
+    historyScrollObserver.observe(sentinel);
+  }
+
+  function attachUnifiedHistoryEvents(container, unifiedList) {
+    if (!container) return;
+
     // Row click: open full-page receipt viewer
-    historyContent.querySelectorAll(".history-row").forEach((row) => {
+    container.querySelectorAll(".history-row:not([data-bound='true'])").forEach((row) => {
+      row.setAttribute("data-bound", "true");
       row.addEventListener("click", (e) => {
         if (
           e.target.closest("button") ||
@@ -5008,7 +6145,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Cancel in-progress buttons
-    historyContent.querySelectorAll(".btn-cancel-history").forEach((btn) => {
+    container.querySelectorAll(".btn-cancel-history:not([data-bound='true'])").forEach((btn) => {
+      btn.setAttribute("data-bound", "true");
       btn.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -5037,7 +6175,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Delete completed/failed buttons
-    historyContent.querySelectorAll(".btn-delete-history").forEach((btn) => {
+    container.querySelectorAll(".btn-delete-history:not([data-bound='true'])").forEach((btn) => {
+      btn.setAttribute("data-bound", "true");
       btn.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -5511,7 +6650,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         trendsRangePills.querySelectorAll(".range-pill").forEach((p) => p.classList.remove("active"));
         pill.classList.add("active");
-        trendsSelectedDays = parseInt(days, 10) || 15;
+        if (days === "all") {
+          trendsSelectedDays = 0;
+        } else {
+          trendsSelectedDays = parseInt(days, 10) || 15;
+        }
         trendsCustomFrom = "";
         trendsCustomTo = "";
         trendsActiveCustomRange?.classList.add("hidden");
@@ -5678,8 +6821,10 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           kpiPeriodLabel.textContent = `Hasta ${formatRangeDate(trendsCustomTo)}`;
         }
-      } else {
+      } else if (trendsSelectedDays > 0) {
         kpiPeriodLabel.textContent = `Últimos ${trendsSelectedDays} días`;
+      } else {
+        kpiPeriodLabel.textContent = `Todo el histórico`;
       }
     }
 
@@ -5688,7 +6833,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (trendsCustomFrom || trendsCustomTo) {
         if (trendsCustomFrom) url += `&from=${encodeURIComponent(trendsCustomFrom)}`;
         if (trendsCustomTo) url += `&to=${encodeURIComponent(trendsCustomTo)}`;
-      } else {
+      } else if (trendsSelectedDays > 0) {
         url += `&days=${trendsSelectedDays}`;
       }
 

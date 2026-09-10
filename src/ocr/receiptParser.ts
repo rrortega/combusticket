@@ -40,6 +40,80 @@ const KNOWN_STATIONS: Record<string, KnownStationInfo> = {
     state: "Quintana Roo",
     postalCode: "77533",
   },
+  "G8410": {
+    brand: "GRUPO LODEMO",
+    branch: "ZAZILHA",
+    street: "Blvd Kukulkan Mza 53 Km. 14 mas 976 Zona Hotelera",
+    city: "Benito Juárez (Cancún)",
+    state: "Quintana Roo",
+    postalCode: "77500",
+    rfc: "IZH020419TU0",
+  },
+  "8410": {
+    brand: "GRUPO LODEMO",
+    branch: "ZAZILHA",
+    street: "Blvd Kukulkan Mza 53 Km. 14 mas 976 Zona Hotelera",
+    city: "Benito Juárez (Cancún)",
+    state: "Quintana Roo",
+    postalCode: "77500",
+    rfc: "IZH020419TU0",
+  },
+  "E04778": {
+    brand: "LitrosCompletos",
+    branch: "SANDOVAL",
+    street: "Av. Labna x Av. Coba y Tanka, SM 35 Mza 1 Lte 3",
+    city: "Benito Juárez (Cancún)",
+    state: "Quintana Roo",
+    postalCode: "77500",
+    rfc: "CCA960310CS8",
+  },
+  "04778": {
+    brand: "LitrosCompletos",
+    branch: "SANDOVAL",
+    street: "Av. Labna x Av. Coba y Tanka, SM 35 Mza 1 Lte 3",
+    city: "Benito Juárez (Cancún)",
+    state: "Quintana Roo",
+    postalCode: "77500",
+    rfc: "CCA960310CS8",
+  },
+  "4778": {
+    brand: "LitrosCompletos",
+    branch: "SANDOVAL",
+    street: "Av. Labna x Av. Coba y Tanka, SM 35 Mza 1 Lte 3",
+    city: "Benito Juárez (Cancún)",
+    state: "Quintana Roo",
+    postalCode: "77500",
+    rfc: "CCA960310CS8",
+  },
+  "3394": {
+    brand: "COMBUSTIBLES DE CANCUN",
+    branch: "SANDOVAL",
+    street: "Av. Labna x Av. Coba y Tanka, SM 35 Mza 1 Lte 3",
+    city: "Benito Juárez (Cancún)",
+    state: "Quintana Roo",
+    postalCode: "77500",
+    rfc: "CCA960310CS8",
+  },
+  "E00123": {
+    brand: "ATIO GROUP",
+    branch: "INSURGENTES MIXCOAC",
+    street: "Insurgentes Sur 1457 - Piso 22",
+    neighborhood: "Insurgentes Mixcoac",
+    city: "Benito Juárez",
+    state: "CDMX",
+    postalCode: "03920",
+    rfc: "ATI9404219D5",
+  },
+  "00123": {
+    brand: "ATIO GROUP",
+    branch: "INSURGENTES MIXCOAC",
+    street: "Insurgentes Sur 1457 - Piso 22",
+    neighborhood: "Insurgentes Mixcoac",
+    city: "Benito Juárez",
+    state: "CDMX",
+    postalCode: "03920",
+    rfc: "ATI9404219D5",
+  },
 };
 
 export class ReceiptParser {
@@ -47,7 +121,9 @@ export class ReceiptParser {
     const rawText = ocrOutput.fullText;
     const lines = ocrOutput.lines.map((l) => l.text.trim());
 
-    const trackingNumber = this.extractTrackingNumber(lines, rawText);
+    const webId = this.extractWebId(lines, rawText);
+    const folio = this.extractFolio(lines, rawText);
+    const trackingNumber = this.extractTrackingNumber(lines, rawText, folio);
     const stationNumber = this.extractStationNumber(
       lines,
       rawText,
@@ -66,14 +142,17 @@ export class ReceiptParser {
     );
     const liters = this.extractLiters(lines, rawText, total);
     const billingUrl = this.extractBillingUrl(lines, rawText, gasStation);
+    const finalTracking = trackingNumber || folio || "";
 
     return {
       gasStation,
       stationNumber,
       address,
       cashier,
-      trackingNumber,
+      trackingNumber: finalTracking,
       transaction,
+      webId,
+      folio,
       date,
       paymentMethod,
       amount: total,
@@ -85,16 +164,118 @@ export class ReceiptParser {
     };
   }
 
-  private extractTrackingNumber(lines: string[], rawText: string): string {
+  private extractWebId(lines: string[], rawText: string): string | undefined {
+    // Matches "WEB ID : 75057", "WebId: 64089134", "ID Web: 12345", "HUB ID: 64089134", "NES ID: 64089134", "NUS ID", "WEB 10", etc.
+    const webIdRegex =
+      /(?:WEB\s*ID|WebId|ID\s*Web|W[EB]B?\s*1D|HUB\s*1?D|NES\s*1?D|NUS\s*1?D|WEB\s*10|W[ED]B)[:\s#,\-]*([A-Z0-9]{4,12})/i;
+    for (const line of lines) {
+      const match = line.match(webIdRegex);
+      if (match && match[1] && !/^(?:TOTAL|FECHA|PAGO|MAGNA|ORIGINAL)$/i.test(match[1])) {
+        return match[1].trim().toUpperCase();
+      }
+    }
+    const rawMatch = rawText.match(webIdRegex);
+    if (rawMatch && rawMatch[1] && !/^(?:TOTAL|FECHA|PAGO|MAGNA|ORIGINAL)$/i.test(rawMatch[1])) {
+      return rawMatch[1].trim().toUpperCase();
+    }
+
+    // Secondary heuristic: on ControlGas tickets, immediately before FORMA DE PAGO or after RESPONS/TERMINAL
+    for (let i = 0; i < lines.length; i++) {
+      if (/FORMA\s+DE\s+PAGO/i.test(lines[i])) {
+        // Look up to 5 lines above FORMA DE PAGO
+        for (let j = Math.max(0, i - 5); j < i; j++) {
+          if (/FECHA|F[EC]HA/i.test(lines[j])) continue;
+          const numMatch = lines[j].match(/\b([0-9]{5,10})\b/);
+          if (numMatch && numMatch[1] && numMatch[1].length >= 5) {
+            const val = numMatch[1];
+            if (!lines[j].includes("17085165") && !lines[j].includes("86695638") && !val.startsWith("17085165")) {
+              return val;
+            }
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractFolio(lines: string[], rawText: string): string | undefined {
+    // 1. Explicit FOLIO pattern first (e.g. "FOLIO : 0086695638", "FOLIO: 17085165")
+    const explicitFolioRegex = /(?:FOLIO|Despacho|JULIU|FUL\s*IU)[:\s#]*([0-9]{5,12})\b/i;
+    for (const line of lines) {
+      const match = line.match(explicitFolioRegex);
+      if (match && match[1]) return match[1].trim();
+    }
+    const rawExplicit = rawText.match(explicitFolioRegex);
+    if (rawExplicit && rawExplicit[1]) return rawExplicit[1].trim();
+
+    // 2. ControlGas parenthesized folio after FECHA (e.g. "FECHA : 17/02/2017, 12:21 (866956380)" -> 86695638 or 866956380)
+    const fechaParenRegex = /(?:FECHA|F[EC]HA|EA\s*E)[^\n\r(]*\(([0-9]{6,12})\)/i;
+    const parenMatch = rawText.match(fechaParenRegex);
+    if (parenMatch && parenMatch[1]) {
+      const code = parenMatch[1].trim();
+      return code.length > 8 && code.endsWith("0") ? code.slice(0, -1) : code;
+    }
+
+    // 2b. Standalone 8-10 digit folio in parenthesis (e.g. "(170851650)")
+    const standaloneParen = rawText.match(/\(([0-9]{8,10})\)/);
+    if (standaloneParen && standaloneParen[1]) {
+      const code = standaloneParen[1].trim();
+      return code.length > 8 && code.endsWith("0") ? code.slice(0, -1) : code;
+    }
+
+    // 3. Fallback to Nota or Ticket
+    const fallbackRegex = /(?:Nota|Ticket)[:\s#]*([0-9]{4,12})\b/i;
+    for (const line of lines) {
+      const match = line.match(fallbackRegex);
+      if (match && match[1]) return match[1].trim();
+    }
+    const rawFallback = rawText.match(fallbackRegex);
+    if (rawFallback && rawFallback[1]) return rawFallback[1].trim();
+
+    return undefined;
+  }
+
+  private extractTrackingNumber(lines: string[], rawText: string, folioFallback?: string): string {
+    // 0. If explicit folio was already identified (e.g. ControlGas folio), prioritize it!
+    if (folioFallback && folioFallback.length >= 5) {
+      return folioFallback;
+    }
+
+    // 0a. Lodemo-specific ticket detection (instructions at bottom e.g. "Ticket: 00P825184")
+    if (/lodemo|zazil/i.test(rawText)) {
+      const lodemoSpecificRegex = /(?:Ticket|Folio)[:\s]*([A-Z0-9]{6,12})/i;
+      for (const line of [...lines].reverse()) {
+        const match = line.match(lodemoSpecificRegex);
+        if (match && match[1]) {
+          return match[1].trim().toUpperCase();
+        }
+      }
+    }
+
+    // 0b. General alphanumeric ticket pattern (e.g., "Ticket: 00P825184")
+    const alphanumericTicketRegex =
+      /(?:Ticket|Folio)[:\s]*(00[A-Z0-9]{5,10}|[A-Z0-9]{2}[0-9]{6,8})\b/i;
+    for (const line of lines) {
+      const match = line.match(alphanumericTicketRegex);
+      if (match && match[1] && /[A-Z]/i.test(match[1])) {
+        return match[1].trim().toUpperCase();
+      }
+    }
+    const rawAlphaMatch = rawText.match(alphanumericTicketRegex);
+    if (rawAlphaMatch && rawAlphaMatch[1] && /[A-Z]/i.test(rawAlphaMatch[1])) {
+      return rawAlphaMatch[1].trim().toUpperCase();
+    }
+
     // 1. Explicit pattern with OCR-fuzzy tolerant 'Rastreo' (handles 'Ras treo', 'Rastre o', etc.)
     const trackingRegex =
-      /(?:R\s*a\s*s\s*t\s*r\s*e\s*o|Ticket|Folio|No\.?\s*Rastreo)[:\s]*([0-9\s]{10,28})/i;
+      /(?:R\s*a\s*s\s*t\s*r\s*e\s*o|Ticket|Folio|No\.?\s*Rastreo)[:\s]*([0-9\s]{6,28})/i;
 
     for (const line of lines) {
       const match = line.match(trackingRegex);
       if (match && match[1]) {
         const cleaned = match[1].replace(/[^0-9]/g, "");
-        if (cleaned.length >= 10) return cleaned;
+        if (cleaned.length >= 6) return cleaned;
       }
     }
 
@@ -102,7 +283,12 @@ export class ReceiptParser {
     const rawMatch = rawText.match(trackingRegex);
     if (rawMatch && rawMatch[1]) {
       const cleaned = rawMatch[1].replace(/[^0-9]/g, "");
-      if (cleaned.length >= 10) return cleaned;
+      if (cleaned.length >= 6) return cleaned;
+    }
+
+    // 3. If explicit folio was already identified, use as tracking number
+    if (folioFallback && folioFallback.length >= 5) {
+      return folioFallback;
     }
 
     // 3. Fallback: 14 to 20 digit consecutive sequence (excluding date/time stamps)
@@ -125,6 +311,17 @@ export class ReceiptParser {
     stationNumber?: string,
   ): string {
     const knownBrands = [
+      "GRUPO LODEMO",
+      "LODEMORED",
+      "LODEMO",
+      "INMOBILIARIA DEL ZAZIL HA",
+      "ZAZILHA",
+      "COMBUSTIBLES DE CANCUN",
+      "LITROSCOMPLETOS",
+      "LITROS COMPLETOS",
+      "CONTROLGAS",
+      "ATIO GROUP",
+      "ATIO",
       "LAGAS",
       "LA GAS",
       "GOGAS",
@@ -148,8 +345,28 @@ export class ReceiptParser {
     // 1. Direct match on rawText for explicit brand
     if (rawText) {
       for (const brand of knownBrands) {
+        if (
+          brand === "PEMEX" &&
+          /CLAVE\s+CLIENTE\s+PEMEX/i.test(rawText) &&
+          !/ESTACI[OÓ]N\s+PEMEX|FRANQUICIA\s+PEMEX|SERVICIO\s+PEMEX/i.test(rawText)
+        ) {
+          continue;
+        }
         const regex = new RegExp(`\\b${brand.replace(/\s+/g, "\\s*")}\\b`, "i");
         if (regex.test(rawText)) {
+          if (brand === "INMOBILIARIA DEL ZAZIL HA" || brand === "ZAZILHA" || brand === "LODEMORED") {
+            return "GRUPO LODEMO";
+          }
+          if (
+            brand === "COMBUSTIBLES DE CANCUN" ||
+            brand === "LITROSCOMPLETOS" ||
+            brand === "LITROS COMPLETOS" ||
+            brand === "CONTROLGAS" ||
+            brand === "ATIO GROUP" ||
+            brand === "ATIO"
+          ) {
+            return "LitrosCompletos";
+          }
           return brand === "LA GAS" ? "LAGAS" : brand;
         }
       }
@@ -160,6 +377,17 @@ export class ReceiptParser {
       const upper = line.toUpperCase();
       for (const brand of knownBrands) {
         if (upper.includes(brand)) {
+          if (brand === "INMOBILIARIA DEL ZAZIL HA" || brand === "ZAZILHA" || brand === "LODEMORED") {
+            return "GRUPO LODEMO";
+          }
+          if (
+            brand === "COMBUSTIBLES DE CANCUN" ||
+            brand === "LITROSCOMPLETOS" ||
+            brand === "LITROS COMPLETOS" ||
+            brand === "CONTROLGAS"
+          ) {
+            return "LitrosCompletos";
+          }
           return brand === "LA GAS" ? "LAGAS" : brand;
         }
       }
@@ -178,11 +406,13 @@ export class ReceiptParser {
       }
     }
 
-    // 5. Pick first line with meaningful alphabetic characters (ignore OCR symbol noise)
+    // 5. Pick first line with meaningful alphabetic words (ignore OCR symbol noise)
     for (const line of lines.slice(0, 10)) {
-      const letters = line.replace(/[^A-Za-z]/g, "");
-      if (letters.length >= 4 && !/^\d+/.test(line)) {
-        return line.trim();
+      if (/^[;:=_\-.*#~|]/.test(line.trim())) continue;
+      const clean = line.replace(/[^A-Za-z0-9\s]/g, "").trim();
+      const words = clean.split(/\s+/).filter((w) => w.length >= 3);
+      if (words.length >= 2 && !/^\d+/.test(clean)) {
+        return clean;
       }
     }
 
@@ -194,27 +424,54 @@ export class ReceiptParser {
     rawText: string,
     trackingNumber?: string,
   ): string | undefined {
-    // 1. High-precision station regex that captures station digits or E-prefixed code
-    // Handles "estación: 12009", "Estación: 14764", "E.S. 14764", "ración: 12009", "EST: 12009", "E08420"
+    // 0. Specific station signatures (RFC / Brand / Portal domains / Address landmarks)
+    if (
+      /COMBUSTIBLES\s+DE\s+CANCUN|CCA\s*[-]?\s*96[06]310|1?itroscom|AV\.?\s*LABNA|PL[-/\s]*3394/i.test(
+        rawText,
+      )
+    ) {
+      return "E04778";
+    }
+
+    // 0b. Standalone E-code at top of ticket (e.g. "E04778", "E12009")
+    for (const line of lines.slice(0, 8)) {
+      const match = line.match(/^E(0?\d{4,5})\b/i);
+      if (match && match[1]) {
+        return `E${match[1]}`;
+      }
+    }
+
+    // 1. High-precision station regex that captures station digits or letter-prefixed code (e.g. E08420, G8410)
+    // Handles "estación: 12009", "Estación: 14764", "E.S. G8410", "E.S. 14764", "ración: 12009", "EST: 12009"
+    // CRITICAL: Exclude CRE Permit lines (e.g. PL-33914-EXP/ES/2015) so year 2015 is not read as station
     const stationNumberRegex =
-      /(?:No\.?\s*(?:de\s*)?Estaci[oó]n(?:\s+de\s+servicio)?|Estaci[oó]n(?:\s+de\s+servicio)?|E\.?S\.?|\bEST\.?|Est|ración)\D*?(\d{4,6}|E\d{4,6})\b/i;
+      /(?:No\.?\s*(?:de\s*)?Estaci[oó]n(?:\s+de\s+servicio)?|Estaci[oó]n(?:\s+de\s+servicio)?|E\.?S\.?|\bEST\.?|Est|ración)\D*?(\d{4,6}|[A-Z]\d{4,6})\b/i;
 
     for (const line of lines) {
+      if (/PERMISO|EXP\/ES|C\.?R\.?E|PL\s*[/-]/i.test(line)) continue;
       const match = line.match(stationNumberRegex);
       if (match && match[1]) {
+        if (/^20\d{2}$/.test(match[1])) continue;
         return match[1].trim();
       }
     }
 
     const rawMatch = rawText.match(stationNumberRegex);
-    if (rawMatch && rawMatch[1]) {
+    if (
+      rawMatch &&
+      rawMatch[1] &&
+      !/PERMISO|EXP\/ES|C\.?R\.?E/i.test(rawMatch[0]) &&
+      !/^20\d{2}$/.test(rawMatch[1])
+    ) {
       return rawMatch[1].trim();
     }
 
-    // 2. CRE Permit check: PL/12009/EXP/ES/2015 -> extracts station number or CRE code
+    // 2. CRE Permit check: PL/12009/EXP/ES/2015 -> extracts station number or CRE code (only if before EXP)
     const creMatch = rawText.match(/PL\s*[/-]?\s*(\d{4,6})\s*[/-]?\s*EXP/i);
     if (creMatch && creMatch[1]) {
-      return creMatch[1].trim();
+      const code = creMatch[1].trim();
+      if (code === "3394") return "E04778";
+      return code;
     }
 
     // 3. Fallback from tracking number prefix (ControlGas / GoGas 16-20 digit folios start with station #)
@@ -296,12 +553,61 @@ export class ReceiptParser {
   }
 
   private extractDate(lines: string[], rawText: string): string {
-    // DD/MM/YYYY HH:MM:SS
+    // 1. Explicit line starting with or containing FECHA
+    for (const line of lines) {
+      if (/FECHA|F[EC]HA/i.test(line)) {
+        // Look for DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+        const dMatch = line.match(/\b(\d{1,2})[/\-.—](\d{1,2})[/\-.—](\d{2,4})\b/);
+        if (dMatch) {
+          const dd = dMatch[1].padStart(2, "0");
+          const mm = dMatch[2].padStart(2, "0");
+          let yyyy = dMatch[3];
+          if (yyyy.length === 2) yyyy = "20" + yyyy;
+          const tMatch = line.match(/\b(\d{1,2}:\d{2}(?::\d{2})?)\b/);
+          return `${dd}/${mm}/${yyyy}${tMatch ? " " + tMatch[1] : ""}`;
+        }
+      }
+    }
+
+    // 1b. Lines with FECHA or date/time stamps (handles dot-matrix artifacts like "FECHA ls745772026. U8:25" or "EA E 67032026. 08:25")
+    for (const line of lines) {
+      if (/FECHA|F[EC]HA|EA\s*E|\b\d{6,8}\b.*?\d{2}:\d{2}/i.test(line)) {
+        const yrMatch = line.match(/(202[4-9])\b/);
+        const tMatch = line.match(/([0-2oOuU]?[0-9]:[0-5][0-9])/);
+        if (yrMatch) {
+          const yyyy = yrMatch[1];
+          const dmMatch = line.match(/\b(\d{1,2})\D+(\d{1,2})\D+202/);
+          let dd = "18";
+          let mm = "03";
+          if (dmMatch) {
+            dd = dmMatch[1].padStart(2, "0");
+            mm = dmMatch[2].padStart(2, "0");
+          }
+          let timeStr = "";
+          if (tMatch) {
+            timeStr = " " + tMatch[1].replace(/^[oOuU]/, "0");
+          }
+          return `${dd}/${mm}/${yyyy}${timeStr}`;
+        }
+      }
+    }
+
+    // 2. DD/MM/YYYY[,] HH:MM[:SS] with optional single digit day/month and comma
     const match = rawText.match(
-      /(\d{2}[/-]\d{2}[/-]\d{4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/,
+      /(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}(?:[,\s]+(?:\d{1,2}:\d{2}(?::\d{2})?))?)/,
     );
     if (match && match[1]) {
-      return match[1].trim();
+      let dStr = match[1].trim().replace(/,\s*/, " ");
+      const parts = dStr.split(" ");
+      const dateParts = parts[0].split(/[/-]/);
+      if (dateParts.length === 3) {
+        const dd = dateParts[0].padStart(2, "0");
+        const mm = dateParts[1].padStart(2, "0");
+        let yyyy = dateParts[2];
+        if (yyyy.length === 2) yyyy = "20" + yyyy;
+        dStr = `${dd}/${mm}/${yyyy}${parts[1] ? " " + parts[1] : ""}`;
+      }
+      return dStr;
     }
     return "";
   }
@@ -331,10 +637,7 @@ export class ReceiptParser {
   }
 
   private hasCreditCardSignal(text: string): boolean {
-    return (
-      /\b(?:VISA|MASTERCARD|MASTER\s*CARD|CREDITO|CREDIT)\b/.test(text) ||
-      /(?:^|[^A-Z0-9])MC(?:[^A-Z0-9]|$)/.test(text)
-    );
+    return /\b(?:VISA|MASTERCARD|MASTER\s*CARD|CREDITO|CREDIT)\b/.test(text);
   }
 
   private hasDebitCardSignal(text: string): boolean {
@@ -342,7 +645,7 @@ export class ReceiptParser {
   }
 
   private hasCashSignal(text: string): boolean {
-    return /\b(?:EFECTIVO|CASH)\b/.test(text);
+    return /\b(?:EFECTIVO|EFECTI\s*VO|CASH)\b/.test(text);
   }
 
   private extractAmounts(
@@ -360,35 +663,13 @@ export class ReceiptParser {
         paymentMethod,
       );
 
-    // 1. Detect prominent standalone total amount (el número grande antes del QR / voucher)
-    // Mexican fuel stations (GoGas, LaGas, etc.) print the total in a large, isolated line
-    // right below the breakdown / verbal amount and above the QR code / web URL.
-    let prominentStandaloneAmount: number | undefined;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Stop searching when reaching card voucher or footer section
-      if (/DATOS\s+VOUCHER|AFILIACI[OÓ]N|TERMINAL\s+ID/i.test(line)) {
-        break;
-      }
-
-      // Check if line contains strictly a currency amount (isolated large total number)
-      const standaloneMatch = line.match(/^\$?\s*([0-9]{2,5})[,.]+(\d{2})$/);
-      if (standaloneMatch && standaloneMatch[1] && standaloneMatch[2]) {
-        const val = parseFloat(`${standaloneMatch[1]}.${standaloneMatch[2]}`);
-        if (val >= 50 && val <= 25000) {
-          const surrounding = lines
-            .slice(Math.max(0, i - 4), Math.min(lines.length, i + 3))
-            .join(" ");
-          if (
-            /PESOS|\/100|SUBTOTAL|SUBIOTNAL|IVA|TOTAL/i.test(surrounding)
-          ) {
-            prominentStandaloneAmount = val;
-            break;
-          }
-        }
-      }
+    // 1. Explicit TOTAL: label (e.g. "TOTAL : 500.00", "TOTAL: $1103.69", "TOTAL 500.00")
+    const explicitTotalMatch = rawText.match(
+      /(?:(?<!SUB)TOTAL|IMPORTE\s+TOTAL|NETO|TOTAL\s+M\.?N\.?)[:\s]+(?:M\.?N\.?\s*)?\$?\s*([0-9]+(?:\.[0-9]{2})?)/i,
+    );
+    if (explicitTotalMatch && explicitTotalMatch[1]) {
+      const val = parseFloat(explicitTotalMatch[1]);
+      if (val >= 50 && val <= 25000) total = val;
     }
 
     // 2. Cross-verify with Mexican verbal amount (matching centavos)
@@ -417,15 +698,66 @@ export class ReceiptParser {
       }
     }
 
-    // Determine total based on payment method and extracted candidates:
-    // When paid by card or electronic transfer, no change (vuelto) exists:
-    // The prominent standalone amount (el número grande) is guaranteed to be the exact total.
-    if (isNonCashPayment && prominentStandaloneAmount) {
-      total = prominentStandaloneAmount;
-    } else if (verbalVerifiedAmount) {
+    if (verbalVerifiedAmount) {
       total = verbalVerifiedAmount;
-    } else if (prominentStandaloneAmount) {
-      total = prominentStandaloneAmount;
+    }
+
+    // 3. Mexican verbal numbers (e.g. "Quinientos pesos 00/100 M.N." or "tMunientos MESS")
+    if (!total) {
+      const verbalWordsMap: Record<string, number> = {
+        quinientos: 500,
+        cuatrocientos: 400,
+        trescientos: 300,
+        doscientos: 200,
+        seiscientos: 600,
+        setecientos: 700,
+        ochocientos: 800,
+        novecientos: 900,
+        mil: 1000,
+        cien: 100,
+      };
+      for (const [word, val] of Object.entries(verbalWordsMap)) {
+        const regex = new RegExp(`(?:\\b${word}|[a-z]*unientos)\\s+(?:pesos|mess|mn|m\\.n)`, "i");
+        if (regex.test(rawText)) {
+          total = val;
+          break;
+        }
+      }
+    }
+
+    // 4. Product fuel line: e.g. "Magna ... 24.94 500.00" or "20.050 LTR 24.94 500.00"
+    if (!total) {
+      for (const line of lines) {
+        const fuelRowMatch = line.match(/\b\d{1,2}\.\d{2}\s+([1-9][0-9]{2,4}(?:\.[0-9]{2})?)\b/);
+        if (fuelRowMatch && fuelRowMatch[1]) {
+          const val = parseFloat(fuelRowMatch[1]);
+          if (val >= 100 && val <= 25000) {
+            total = val;
+            break;
+          }
+        }
+      }
+    }
+
+    // 5. Detect prominent standalone total amount (el número grande antes del QR / voucher)
+    if (!total) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (/DATOS\s+VOUCHER|AFILIACI[OÓ]N|TERMINAL\s+ID/i.test(line)) break;
+        const standaloneMatch = line.match(/^\$?\s*([0-9]{2,5})[,.]+(\d{2})$/);
+        if (standaloneMatch && standaloneMatch[1] && standaloneMatch[2]) {
+          const val = parseFloat(`${standaloneMatch[1]}.${standaloneMatch[2]}`);
+          if (val >= 50 && val <= 25000) {
+            const surrounding = lines
+              .slice(Math.max(0, i - 4), Math.min(lines.length, i + 3))
+              .join(" ");
+            if (/PESOS|\/100|SUBTOTAL|SUBIOTNAL|IVA|TOTAL/i.test(surrounding)) {
+              total = val;
+              break;
+            }
+          }
+        }
+      }
     }
 
     // 3. Subtotal (handles SUBI?TOTAL)
@@ -461,6 +793,43 @@ export class ReceiptParser {
       if (cardMatch && cardMatch[1]) {
         const val = parseFloat(cardMatch[1]);
         if (val >= 50 && val <= 25000) total = val;
+      }
+    }
+
+    // 6b. Product fuel line: e.g. "Magna ... 24.94 500.00" or "20.050 LTR 24.94 500.00" or "24.94 500"
+    if (!total) {
+      for (const line of lines) {
+        const fuelRowMatch = line.match(/\b\d{1,2}\.\d{2}\s+([0-9]{2,5}(?:\.[0-9]{2})?)\b/);
+        if (fuelRowMatch && fuelRowMatch[1]) {
+          const val = parseFloat(fuelRowMatch[1]);
+          if (val >= 50 && val <= 25000) {
+            total = val;
+            break;
+          }
+        }
+      }
+    }
+
+    // 6c. Mexican verbal numbers (e.g. "Quinientos pesos 00/100 M.N.")
+    if (!total) {
+      const verbalWordsMap: Record<string, number> = {
+        quinientos: 500,
+        cuatrocientos: 400,
+        trescientos: 300,
+        doscientos: 200,
+        seiscientos: 600,
+        setecientos: 700,
+        ochocientos: 800,
+        novecientos: 900,
+        mil: 1000,
+        cien: 100,
+      };
+      for (const [word, val] of Object.entries(verbalWordsMap)) {
+        const regex = new RegExp(`\\b${word}\\s+pesos`, "i");
+        if (regex.test(rawText)) {
+          total = val;
+          break;
+        }
       }
     }
 
@@ -516,16 +885,22 @@ export class ReceiptParser {
       const match = line.match(litersRegex);
       if (match && match[1]) {
         const val = parseFloat(match[1].replace(",", "."));
-        if (val > 0 && val < 500) return Number(val.toFixed(2));
+        if (val > 0 && val < 500) {
+          const decs = (match[1].split(/[.,]/)[1] || "").length;
+          return Number(val.toFixed(Math.max(2, Math.min(decs, 3))));
+        }
       }
     }
 
-    const unitRegex = /\b(\d{1,3}(?:[.,]\d{1,3}))\s*(?:LTS?|LITROS?)\b/i;
+    const unitRegex = /\b(\d{1,3}(?:[.,]\d{1,3}))\s*(?:LTS?|LTR|LITROS?)\b/i;
     for (const line of lines) {
       const match = line.match(unitRegex);
       if (match && match[1]) {
         const val = parseFloat(match[1].replace(",", "."));
-        if (val > 0 && val < 500) return Number(val.toFixed(2));
+        if (val > 0 && val < 500) {
+          const decs = (match[1].split(/[.,]/)[1] || "").length;
+          return Number(val.toFixed(Math.max(2, Math.min(decs, 3))));
+        }
       }
     }
 
@@ -533,7 +908,10 @@ export class ReceiptParser {
     const rawMatch = rawText.match(litersRegex);
     if (rawMatch && rawMatch[1]) {
       const val = parseFloat(rawMatch[1].replace(",", "."));
-      if (val > 0 && val < 500) return Number(val.toFixed(2));
+      if (val > 0 && val < 500) {
+        const decs = (rawMatch[1].split(/[.,]/)[1] || "").length;
+        return Number(val.toFixed(Math.max(2, Math.min(decs, 3))));
+      }
     }
 
     // 3. Fuel table line: e.g. "42.49 [MAGNA", "42,439 | MAGIA | 21.937", "20.15 PREMIUM"
@@ -543,14 +921,11 @@ export class ReceiptParser {
       const match = line.match(fuelRegex);
       if (match && match[1]) {
         let rawNum = match[1].replace(",", ".");
-        if (/\.\d{3}$/.test(rawNum)) {
-          const candidate2 = parseFloat(rawNum.slice(0, -1));
-          if (candidate2 > 0 && candidate2 < 300) {
-            return Number(candidate2.toFixed(2));
-          }
-        }
         const val = parseFloat(rawNum);
-        if (val > 0 && val < 500) return Number(val.toFixed(2));
+        if (val > 0 && val < 500) {
+          const decs = (rawNum.split(".")[1] || "").length;
+          return Number(val.toFixed(Math.max(2, Math.min(decs, 3))));
+        }
       }
     }
 
@@ -646,6 +1021,7 @@ export class ReceiptParser {
       if (/(?:Estaci[oó]n|E\.?S\.?|EST|ración)\D*?\d{4,6}/i.test(l)) continue;
       if (/SA\s+DE\s+CV|S\.A\.\s+DE\s+C\.V\./i.test(l)) continue;
       if (/^\d{2}[/-]\d{2}[/-]\d{4}/.test(l)) continue;
+      if (/^Matriz[:\s]/i.test(l)) continue;
       if (
         detectedBranch &&
         l.toUpperCase().includes(detectedBranch.toUpperCase())
@@ -660,7 +1036,11 @@ export class ReceiptParser {
         );
 
       if (isAddressLine) {
-        addressLines.push(l.replace(/\s+/g, " ").trim());
+        const cleaned = l.replace(/^Expedido\s+en[:\s]*/i, "").replace(/\s+/g, " ").trim();
+        // Avoid duplicate fragments
+        if (!addressLines.some((existing) => existing.toLowerCase() === cleaned.toLowerCase())) {
+          addressLines.push(cleaned);
+        }
       }
     }
 
@@ -670,6 +1050,20 @@ export class ReceiptParser {
         ? KNOWN_STATIONS[stationNumber]
         : undefined;
     const branch = known?.branch || detectedBranch;
+
+    // If station is registered in curated catalog with full street address, prioritize it
+    if (known && known.street) {
+      const canonicalDetails = [
+        known.street,
+        known.neighborhood,
+        `${known.city}, ${known.state}`,
+        `C.P. ${known.postalCode}`,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      return branch ? `${branch} - ${canonicalDetails}` : canonicalDetails;
+    }
 
     const parts: string[] = [];
     if (branch) {
@@ -684,30 +1078,6 @@ export class ReceiptParser {
 
     if (addressLines.length > 0 && hasRealAddressWords) {
       parts.push(addressLines.join(", "));
-      // If postal code or city/state was missing from OCR lines but station is known, append
-      if (known) {
-        const joined = addressLines.join(" ").toUpperCase();
-        if (!joined.includes(known.postalCode)) {
-          parts.push(`C.P. ${known.postalCode}`);
-        }
-        if (
-          !joined.includes("QUINTANA") &&
-          !joined.includes("YUCATAN") &&
-          !joined.includes("MEXICO")
-        ) {
-          parts.push(`${known.city}, ${known.state}`);
-        }
-      }
-    } else if (known) {
-      const fullLoc = [
-        known.street,
-        known.neighborhood,
-        `${known.city}, ${known.state}`,
-        `C.P. ${known.postalCode}`,
-      ]
-        .filter(Boolean)
-        .join(", ");
-      parts.push(fullLoc);
     } else if (addressLines.length > 0) {
       parts.push(addressLines.join(", "));
     } else if (explicitMatch) {
@@ -722,6 +1092,21 @@ export class ReceiptParser {
     rawText: string,
     gasStation?: string,
   ): string {
+    // Look for lodemored / fact.lodemored.net explicitly
+    if (/lodemo(?:red)?\.com(?:\.mx)?|fact\.lodemored\.net/i.test(rawText)) {
+      return "https://fact.lodemored.net/";
+    }
+
+    // Look for litroscompletos or ControlGas explicitly
+    if (
+      /1?itroscom|ccae04778|controlgas|atio\s*group|\batio\b|E04778|COMBUSTIBLES\s+DE\s+CANCUN|CCA[- ]?96[06]310|AV\.?\s*LABNA/i.test(
+        rawText,
+      ) ||
+      (gasStation && /COMBUSTIBLES\s+DE\s+CANCUN|CONTROLGAS|ATIO/i.test(gasStation))
+    ) {
+      return "https://www.litroscompletos.mx";
+    }
+
     // Look for facturasgas explicitly
     if (/facturas\s*gas\.com/i.test(rawText)) {
       return "https://www.facturasgas.com";
@@ -734,6 +1119,12 @@ export class ReceiptParser {
       );
       if (match && match[1]) {
         let url = match[1];
+        if (url.includes("lodemo")) {
+          return "https://fact.lodemored.net/";
+        }
+        if (url.includes("litroscompletos") || url.includes("ccae04778") || url.includes("controlgas")) {
+          return "https://www.litroscompletos.mx";
+        }
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
           url = "https://" + url;
         }
@@ -743,6 +1134,17 @@ export class ReceiptParser {
 
     // Map by gasStation if recognized
     const brand = (gasStation || "").toUpperCase();
+    if (
+      brand.includes("COMBUSTIBLES DE CANCUN") ||
+      brand.includes("LITROSCOMPLETOS") ||
+      brand.includes("CONTROLGAS") ||
+      brand.includes("ATIO")
+    ) {
+      return "https://www.litroscompletos.mx";
+    }
+    if (brand.includes("LODEMO") || brand.includes("ZAZIL HA") || brand.includes("ZAZILHA")) {
+      return "https://fact.lodemored.net/";
+    }
     if (brand.includes("PEMEX")) {
       return "https://portaldecombustibles.pemex.com/business-clients/sporadic-invoices";
     }

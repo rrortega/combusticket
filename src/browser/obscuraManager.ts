@@ -44,7 +44,13 @@ export class ObscuraManager implements IBrowserManager {
     let args: string[] = [];
 
     // On macOS, prefer obscura binary if present; otherwise fallback to system Chromium/Chrome (essential for Docker)
-    const isObscuraExecutable = fs.existsSync(this.binaryPath) && process.platform === 'darwin';
+    const preferSystemChrome =
+      process.env.USE_SYSTEM_CHROME === 'true' ||
+      process.env.BROWSER_TYPE === 'chrome';
+    const isObscuraExecutable =
+      !preferSystemChrome &&
+      fs.existsSync(this.binaryPath) &&
+      process.platform === 'darwin';
 
     if (isObscuraExecutable) {
       args = ['serve', '--port', String(this.port), '--allow-private-network'];

@@ -192,6 +192,15 @@ export async function createHttpServer(
             statusText: "Disponible",
             description: "Red FacturasGas / GoGas",
           },
+          {
+            id: "lodemo",
+            name: "Grupo Lodemo",
+            domain: "lodemored.com.mx",
+            portalUrl: "https://fact.lodemored.net/",
+            status: "active",
+            statusText: "Disponible",
+            description: "Grupo Lodemo / LodemoRed / Zazil Ha",
+          },
         ],
       });
     } catch (err: any) {
@@ -725,6 +734,20 @@ export async function createHttpServer(
         });
       }
 
+      // Safety check: Never allow invoicing to generic public RFC (XAXX010101000 / XEXX010101000 / PUBLICO EN GENERAL)
+      const targetRfc = (billingProfile.rfc || "").trim().toUpperCase();
+      if (
+        !targetRfc ||
+        targetRfc === "XAXX010101000" ||
+        targetRfc === "XEXX010101000" ||
+        /PUBLICO\s*(?:EN\s*)?GENERAL/i.test(billingProfile.razonSocial || "")
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: "Operación bloqueada por seguridad: Está estrictamente prohibido facturar a Público General (XAXX010101000). Los tickets son reales y deben facturarse únicamente a nombre del titular.",
+        });
+      }
+
       // Verify all items belong to an active station
       const stationsPath = path.resolve(
         process.cwd(),
@@ -745,6 +768,18 @@ export async function createHttpServer(
       if (activeStationDescriptors.length === 0) {
         activeStationDescriptors = [
           { id: "gogas", domain: "facturasgas.com", status: "active" },
+          {
+            id: "lodemo",
+            domain: "lodemored.com.mx",
+            portalUrl: "https://fact.lodemored.net/",
+            status: "active",
+          },
+          {
+            id: "controlgas",
+            domain: "litroscompletos.mx",
+            portalUrl: "https://www.litroscompletos.mx",
+            status: "active",
+          },
         ];
       }
 
@@ -765,7 +800,21 @@ export async function createHttpServer(
               (url.includes("facturasgas") ||
                 station.includes("gogas") ||
                 station.includes("facturasgas") ||
-                station.includes("lagas")))
+                station.includes("lagas"))) ||
+            (st.id === "lodemo" &&
+              (url.includes("lodemo") ||
+                url.includes("lodemored") ||
+                station.includes("lodemo") ||
+                station.includes("zazil") ||
+                station.includes("inmobiliaria del zazil ha"))) ||
+            (st.id === "controlgas" &&
+              (url.includes("litroscompletos") ||
+                url.includes("controlgas") ||
+                url.includes("ccae04778") ||
+                station.includes("combustibles de cancun") ||
+                station.includes("litroscompletos") ||
+                station.includes("controlgas") ||
+                station.includes("sandoval")))
           );
         });
 

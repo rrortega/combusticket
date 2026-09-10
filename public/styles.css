@@ -1589,7 +1589,7 @@ html.no-profile:not(.app-initialized) #screen-welcome {
 
 /* 2. ONBOARDING / PROFILE FORM */
 .form-container-card {
-  max-width: 680px;
+  max-width: 1000px;
   margin: 1.5rem auto;
   background: var(--bg-panel);
   border: 1px solid var(--border-color);
@@ -1601,7 +1601,7 @@ html.no-profile:not(.app-initialized) #screen-welcome {
 
 .form-card-header {
   margin-bottom: 2rem;
-  text-align: center;
+  text-align: left;
 }
 
 .step-indicator {
@@ -2294,13 +2294,17 @@ html.no-profile:not(.app-initialized) #screen-welcome {
 }
 
 .custom-select-container.is-invalid .custom-select-trigger,
-.custom-select-trigger.is-invalid {
+.custom-select-trigger.is-invalid,
+.custom-datepicker-container.is-invalid .custom-datepicker-trigger,
+.custom-datepicker-trigger.is-invalid {
   border-color: #ef4444 !important;
   background: rgba(239, 68, 68, 0.05);
 }
 
 .custom-select-container.is-invalid .custom-select-trigger:focus,
-.custom-select-trigger.is-invalid:focus {
+.custom-select-trigger.is-invalid:focus,
+.custom-datepicker-container.is-invalid .custom-datepicker-trigger:focus,
+.custom-datepicker-trigger.is-invalid:focus {
   border-color: #ef4444 !important;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25) !important;
 }
@@ -2388,6 +2392,34 @@ html.no-profile:not(.app-initialized) #screen-welcome {
 .custom-select-container.open .custom-select-arrow {
   transform: rotate(180deg);
   color: var(--accent);
+}
+
+.portal-badge-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+.portal-badge-logo svg,
+.portal-badge-logo img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.custom-select-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 /* Floating Dropdown Panel */
@@ -2655,6 +2687,176 @@ html.no-profile:not(.app-initialized) #screen-welcome {
   font-size: 0.82rem;
   text-align: center;
   gap: 0.5rem;
+}
+
+/* Custom Datepicker Component */
+.custom-datepicker-container {
+  position: relative;
+  width: 100%;
+}
+
+.custom-datepicker-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 295px;
+  max-width: calc(100vw - 2rem);
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  padding: 0.85rem;
+  box-sizing: border-box;
+  animation: dropdownAppear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.datepicker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+  padding: 0 0.2rem;
+}
+
+.datepicker-month-year-title {
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.datepicker-quick-presets {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.btn-dp-preset {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-dp-preset:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--accent-light);
+}
+
+.datepicker-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.datepicker-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 0.75rem;
+}
+
+.datepicker-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  transition: all 0.15s ease;
+  font-family: var(--font-mono);
+}
+
+.datepicker-day:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.datepicker-day.is-today {
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: var(--accent-light);
+}
+
+.datepicker-day.is-selected {
+  background: var(--accent) !important;
+  color: #0f172a !important;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+.datepicker-day.is-other-month {
+  color: rgba(255, 255, 255, 0.22);
+}
+
+.datepicker-time-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.datepicker-time-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.datepicker-time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.dp-time-input {
+  width: 38px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  text-align: center;
+  font-size: 0.82rem;
+  padding: 0;
+  outline: none;
+}
+
+.dp-time-input:focus {
+  border-color: var(--accent);
+}
+
+.dp-time-input::-webkit-outer-spin-button,
+.dp-time-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.dp-time-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.btn-dp-apply {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
 }
 
 /* 3. WORKBENCH / UPLOAD / REVIEW */
@@ -3718,6 +3920,132 @@ html.no-profile:not(.app-initialized) #screen-welcome {
   padding: 0.55rem 0.85rem;
   font-size: 0.82rem;
   color: #fca5a5;
+}
+
+/* Lazy Fetch Skeleton Loader & Infinite Scroll */
+.history-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.85rem;
+}
+
+.history-row-skeleton {
+  background: #0d1527;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.15rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer-block {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: historySkeletonShimmer 1.5s infinite linear;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes historySkeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.history-skeleton-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.history-skeleton-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.history-skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+}
+
+.history-skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.history-skeleton-line-title {
+  width: 140px;
+  height: 15px;
+}
+
+.history-skeleton-line-sub {
+  width: 90px;
+  height: 12px;
+}
+
+.history-skeleton-pill {
+  width: 85px;
+  height: 26px;
+  border-radius: 9999px;
+}
+
+.history-skeleton-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.history-skeleton-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.history-skeleton-tag {
+  width: 80px;
+  height: 22px;
+  border-radius: 9999px;
+}
+
+.history-skeleton-tag-sm {
+  width: 65px;
+  height: 22px;
+  border-radius: 9999px;
+}
+
+.history-scroll-sentinel {
+  height: 20px;
+  width: 100%;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.history-end-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
 }
 
 /* Buttons */
@@ -7370,4 +7698,68 @@ body.viewer-open {
   background: rgba(245, 158, 11, 0.15) !important;
   border-color: rgba(245, 158, 11, 0.4) !important;
   color: #fbbf24 !important;
+}
+
+/* ==========================================================================
+   Grouped Profile Form Sections (Fiscal, Address, Contact)
+   ========================================================================== */
+.profile-form-section {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.35rem;
+  margin-bottom: 1.25rem;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.profile-form-section:hover {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.02);
+}
+
+.profile-section-header {
+  margin-bottom: 1.15rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.25rem;
+}
+
+.section-badge-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1.5px solid #10b981;
+  color: #34d399;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.section-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.profile-form-section .form-grid {
+  margin-top: 0.25rem;
 }

@@ -8,6 +8,8 @@ import { ReceiptParser } from '../ocr/receiptParser.js';
 import { OcrEngineFactory } from '../ocr/ocrFactory.js';
 import { ObscuraManager } from '../browser/obscuraManager.js';
 import { FacturasGasAdapter } from '../adapters/facturasGas/FacturasGasAdapter.js';
+import { LodemoGasAdapter } from '../adapters/lodemo/LodemoGasAdapter.js';
+import { ControlGasAdapter } from '../adapters/controlgas/ControlGasAdapter.js';
 import { GenericGasAdapter } from '../adapters/generic/GenericGasAdapter.js';
 import { ENV } from '../config/env.js';
 import { IStorageService } from '../core/interfaces/IStorageService.js';
@@ -48,6 +50,8 @@ export class GasInvoiceService {
 
     // Register supported portal adapters
     registry.register(new FacturasGasAdapter());
+    registry.register(new LodemoGasAdapter());
+    registry.register(new ControlGasAdapter());
     registry.register(new GenericGasAdapter());
 
     return new GasInvoiceService(ocrEngine, browserManager, registry, new ReceiptParser(), options);
@@ -183,7 +187,19 @@ export class GasInvoiceService {
     Logger.info('PortalResolver', `Resolved adapter: ${adapter.descriptor.name} [id: ${adapter.descriptor.id}]`);
     Logger.debug('PortalResolver', `Target billing portal: ${receiptData.billingUrl || 'N/A'}`);
 
-    const rawRfc = (profile?.rfc || 'GENERAL').toString().trim().toUpperCase();
+    const rawRfc = (profile?.rfc || '').toString().trim().toUpperCase();
+
+    // Strict safety check: Never invoice to generic public (XAXX010101000 / XEXX010101000 / PUBLICO EN GENERAL)
+    if (
+      !rawRfc ||
+      rawRfc === 'XAXX010101000' ||
+      rawRfc === 'XEXX010101000' ||
+      /PUBLICO\s*(?:EN\s*)?GENERAL/i.test(profile.razonSocial || '')
+    ) {
+      throw new Error(
+        'Operación bloqueada por seguridad: Está estrictamente prohibido facturar a Público General (XAXX010101000). Los tickets son reales y deben facturarse únicamente a nombre del titular legítimo.'
+      );
+    }
     const rfcFolder = rawRfc.replace(/[^A-Z0-9&Ñ]/g, '') || 'GENERAL';
     const rfcBaseDir = path.resolve(ENV.SCREENSHOT_DIR, rfcFolder);
     const rfcScreenshotDir = path.join(rfcBaseDir, 'screenshots');

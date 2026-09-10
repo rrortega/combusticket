@@ -3,8 +3,15 @@
   "razonSocial": "REYNOL MARTINEZ DIAZ",
   "email": "martinezdiazreynol@gmail.com",
   "emailConfirm": "martinezdiazreynol@gmail.com",
-  "codigoPostal": "77536",
+  "codigoPostal": "77535",
   "regimenFiscal": "625",
   "formaPago": "2",
-  "usoCfdi": "G03"
+  "usoCfdi": "G03",
+  "calle": "PRECIADOS FRACC RESIDENCIAL ANDRIA",
+  "numExt": "L14",
+  "numInt": "14",
+  "colonia": "SUPERMQANZANA 315",
+  "municipio": "BENITO JUAREZ",
+  "estado": "QUINTANA ROO",
+  "localidad": "CANCUN"
 }

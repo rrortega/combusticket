@@ -12,6 +12,30 @@
     "ticketExample": "Requiere No. Estación y No. de Rastreo (código de barras/ticket)."
   },
   {
+    "id": "lodemo",
+    "name": "Grupo Lodemo",
+    "brandName": "LodemoRed / LaGas Yucatán & Q.Roo",
+    "logoEmoji": "⛽",
+    "domain": "lodemored.com.mx",
+    "portalUrl": "https://fact.lodemored.net/",
+    "status": "active",
+    "statusText": "Disponible",
+    "description": "Estaciones de servicio Grupo Lodemo, Zazil Ha y LaGas en Yucatán y Quintana Roo.",
+    "ticketExample": "Requiere No. Estación (ej. G8410) y No. de Ticket (ej. 00P825184)."
+  },
+  {
+    "id": "controlgas",
+    "name": "LitrosCompletos",
+    "brandName": "LitrosCompletos",
+    "logoEmoji": "⛽",
+    "domain": "litroscompletos.mx",
+    "portalUrl": "https://www.litroscompletos.mx",
+    "status": "active",
+    "statusText": "Disponible",
+    "description": "Estaciones de servicio de la red LitrosCompletos (Combustibles de Cancún, Sandoval, E04778).",
+    "ticketExample": "Requiere Folio (ej. 17085165) y Web ID (ej. 64089134)."
+  },
+  {
     "id": "pemex",
     "name": "PEMEX",
     "brandName": "Petróleos Mexicanos",
