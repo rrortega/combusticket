@@ -370,6 +370,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Workbench
   const dropzone = document.getElementById("dropzone");
   const fileInput = document.getElementById("file-input");
+  const cameraInput = document.getElementById("camera-input");
+  const uploadActionSheet = document.getElementById("upload-action-sheet");
+  const btnOptCamera = document.getElementById("btn-opt-camera");
+  const btnOptGallery = document.getElementById("btn-opt-gallery");
+  const btnOptCancel = document.getElementById("btn-opt-cancel");
   const dropzonePrompt = document.getElementById("dropzone-prompt");
   const dropzoneScanning = document.getElementById("dropzone-scanning");
   const btnLoadDemoReceipt = document.getElementById("btn-load-demo-receipt");
@@ -487,6 +492,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const receiptViewerSubtitle = document.getElementById(
     "receipt-viewer-subtitle",
   );
+  const receiptViewerLogo = document.getElementById("receipt-viewer-logo");
   const receiptViewerCanvas = document.getElementById("receipt-viewer-canvas");
   const receiptViewerStage = document.getElementById("receipt-viewer-stage");
   const receiptViewerImg = document.getElementById("receipt-viewer-img");
@@ -2482,14 +2488,55 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Welcome start: directly triggers camera / file browser without intermediate empty workbench friction
+    // Upload action sheet: open/close helpers
+    function openUploadActionSheet() {
+      if (!uploadActionSheet) {
+        fileInput?.click();
+        return;
+      }
+      uploadActionSheet.classList.remove("hidden");
+      requestAnimationFrame(() => {
+        uploadActionSheet.classList.add("active");
+      });
+    }
+
+    function closeUploadActionSheet() {
+      if (!uploadActionSheet) return;
+      uploadActionSheet.classList.remove("active");
+      setTimeout(() => {
+        uploadActionSheet.classList.add("hidden");
+      }, 220);
+    }
+
+    // Welcome start / Camera FAB: triggers camera/file chooser action sheet on mobile
     function handleWelcomeStart() {
-      if (fileInput) {
+      if (uploadActionSheet) {
+        openUploadActionSheet();
+      } else if (fileInput) {
         fileInput.click();
       } else {
         openUploadWorkbench();
       }
     }
+
+    btnOptCamera?.addEventListener("click", () => {
+      closeUploadActionSheet();
+      setTimeout(() => {
+        cameraInput?.click();
+      }, 120);
+    });
+
+    btnOptGallery?.addEventListener("click", () => {
+      closeUploadActionSheet();
+      setTimeout(() => {
+        fileInput?.click();
+      }, 120);
+    });
+
+    btnOptCancel?.addEventListener("click", closeUploadActionSheet);
+    uploadActionSheet?.addEventListener("click", (e) => {
+      if (e.target === uploadActionSheet) closeUploadActionSheet();
+    });
 
     btnWelcomeStart?.addEventListener("click", handleWelcomeStart);
     btnMobileCameraFab?.addEventListener("click", handleWelcomeStart);
@@ -2631,6 +2678,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Dropzone events
     fileInput?.addEventListener("change", handleFileSelect);
+    cameraInput?.addEventListener("change", handleFileSelect);
 
     dropzone?.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -3690,7 +3738,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function triggerLoadAnother() {
-    fileInput.click();
+    if (uploadActionSheet) {
+      openUploadActionSheet();
+    } else if (fileInput) {
+      fileInput.click();
+    }
   }
 
   // --- RECEIPT SCANNING (OCR ON-THE-FLY) ---
@@ -3700,13 +3752,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const file = e.target.files[0];
       if (!file.type.startsWith("image/")) {
         showToast("Solo se aceptan imágenes (JPG, PNG, WEBP).", "error");
-        fileInput.value = "";
+        if (fileInput) fileInput.value = "";
+        if (cameraInput) cameraInput.value = "";
         return;
       }
       const dt = new DataTransfer();
       dt.items.add(file);
       uploadFilesForScan(dt.files);
-      fileInput.value = ""; // Reset input
+      if (fileInput) fileInput.value = "";
+      if (cameraInput) cameraInput.value = "";
     }
   }
 
@@ -7075,6 +7129,12 @@ document.addEventListener("DOMContentLoaded", () => {
         "warning",
       );
       return;
+    }
+
+    const logoContainer =
+      receiptViewerLogo || document.querySelector(".viewer-station-badge");
+    if (logoContainer) {
+      logoContainer.innerHTML = getStationLogoHtml(item);
     }
 
     if (receiptViewerTitle) {

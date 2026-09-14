@@ -6226,16 +6226,30 @@ body.viewer-open {
 }
 
 .viewer-station-badge {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
-  background: rgba(6, 182, 212, 0.15);
-  color: var(--accent);
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  max-width: 40px;
+  max-height: 40px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid rgba(6, 182, 212, 0.3);
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.viewer-station-badge svg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+  flex-shrink: 0;
 }
 
 .viewer-info {
@@ -7643,6 +7657,132 @@ body.viewer-open {
     min-height: 48px;
     font-size: 0.95rem;
   }
+}
+
+/* ============================================================
+   Upload Source Action Sheet (Camera vs Gallery)
+   ============================================================ */
+.action-sheet-drawer {
+  max-width: 440px;
+  padding: 1.35rem 1.25rem 1.5rem;
+  gap: 1.1rem;
+}
+
+.action-sheet-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.action-sheet-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main, #f8fafc);
+  margin: 0;
+}
+
+.action-sheet-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.action-sheet-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0.25rem 0;
+}
+
+.action-sheet-opt-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-main, #f8fafc);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+  width: 100%;
+}
+
+.action-sheet-opt-btn:hover,
+.action-sheet-opt-btn:active {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
+.action-sheet-opt-icon {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-sheet-opt-icon.opt-camera {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.2);
+}
+
+.action-sheet-opt-icon.opt-gallery {
+  background: rgba(6, 182, 212, 0.15);
+  color: #06b6d4;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.15);
+}
+
+.action-sheet-opt-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.action-sheet-opt-title {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--text-main, #f8fafc);
+}
+
+.action-sheet-opt-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.action-sheet-opt-arrow {
+  color: var(--text-muted, #64748b);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.action-sheet-opt-btn:hover .action-sheet-opt-arrow {
+  transform: translateX(2px);
+  color: #10b981;
+}
+
+.action-sheet-footer {
+  width: 100%;
+}
+
+.action-sheet-footer .btn {
+  width: 100%;
+  border-radius: 12px;
+  padding: 0.72rem;
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 /* ============================================================

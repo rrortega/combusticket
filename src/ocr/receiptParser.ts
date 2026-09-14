@@ -123,16 +123,27 @@ export class ReceiptParser {
 
     const webId = this.extractWebId(lines, rawText);
     const folio = this.extractFolio(lines, rawText);
-    const trackingNumber = this.extractTrackingNumber(lines, rawText, folio);
-    const stationNumber = this.extractStationNumber(
+    const transaction = this.extractTransaction(lines, rawText);
+    let stationNumber = this.extractStationNumber(lines, rawText);
+    let gasStation = this.extractGasStation(lines, rawText, stationNumber);
+    const trackingNumber = this.extractTrackingNumber(
       lines,
       rawText,
-      trackingNumber,
+      folio,
+      stationNumber,
+      gasStation,
+      transaction,
     );
-    const gasStation = this.extractGasStation(lines, rawText, stationNumber);
+    if (!stationNumber) {
+      stationNumber = this.extractStationNumber(
+        lines,
+        rawText,
+        trackingNumber,
+      );
+      gasStation = this.extractGasStation(lines, rawText, stationNumber);
+    }
     const address = this.extractAddress(lines, rawText, stationNumber);
     const cashier = this.extractCashier(lines, rawText);
-    const transaction = this.extractTransaction(lines, rawText);
     const date = this.extractDate(lines, rawText);
     const paymentMethod = this.extractPaymentMethod(lines, rawText);
     const { total, subtotal, iva } = this.extractAmounts(
@@ -236,13 +247,64 @@ export class ReceiptParser {
     return undefined;
   }
 
-  private extractTrackingNumber(lines: string[], rawText: string, folioFallback?: string): string {
-    // 0. If explicit folio was already identified (e.g. ControlGas folio), prioritize it!
-    if (folioFallback && folioFallback.length >= 5) {
+  private extractTrackingNumber(
+    lines: string[],
+    rawText: string,
+    folioFallback?: string,
+    stationNumber?: string,
+    gasStation?: string,
+    transaction?: string,
+  ): string {
+    const isFacturasGas =
+      /GOGAS|FACTURASGAS|LA\s*GAS|LAGAS|facturasgas\.com/i.test(rawText) ||
+      Boolean(gasStation && /GOGAS|FACTURASGAS|LA\s*GAS|LAGAS/i.test(gasStation));
+
+    // 0. For GoGas / FacturasGas, the required ticket is ALWAYS the 'No. de Rastreo'
+    // It is typically 15-18 digits and starts with the station number (e.g. 14764...).
+    if (isFacturasGas) {
+      const stationDigits = (stationNumber || "").replace(/\D/g, "");
+
+      // 0a. Explicit Rastreo pattern with OCR fault tolerance
+      const facturasRastreoRegex =
+        /(?:R\s*a\s*[sz]\s*t\s*r\s*[eo0a@]+|R\s*a\s*s\s*i\s*r\s*[eo0a@]+|No\.?\s*Rastreo|Rastre)[:\s#]*([0-9\s]{12,28})/i;
+
+      for (const line of lines) {
+        if (/Transacci[oó]n|Trans\b/i.test(line)) continue;
+        const match = line.match(facturasRastreoRegex);
+        if (match && match[1]) {
+          const cleaned = match[1].replace(/[^0-9]/g, "");
+          if (cleaned.length >= 12) return cleaned;
+        }
+      }
+
+      const rawRastreoMatch = rawText.match(facturasRastreoRegex);
+      if (rawRastreoMatch && rawRastreoMatch[1]) {
+        const cleaned = rawRastreoMatch[1].replace(/[^0-9]/g, "");
+        if (cleaned.length >= 12) return cleaned;
+      }
+
+      // 0b. If station code is known (e.g. 14764), look for 14-22 digit sequence starting with it
+      if (stationDigits.length >= 4) {
+        for (const line of lines) {
+          if (/Transacci[oó]n|Trans\b/i.test(line)) continue;
+          const digitsOnly = line.replace(/[^0-9]/g, "");
+          if (
+            digitsOnly.startsWith(stationDigits) &&
+            digitsOnly.length >= 14 &&
+            digitsOnly.length <= 22
+          ) {
+            return digitsOnly;
+          }
+        }
+      }
+    }
+
+    // 0c. If explicit folio was already identified (e.g. ControlGas folio), prioritize it!
+    if (folioFallback && folioFallback.length >= 5 && !isFacturasGas) {
       return folioFallback;
     }
 
-    // 0a. Lodemo-specific ticket detection (instructions at bottom e.g. "Ticket: 00P825184")
+    // 0d. Lodemo-specific ticket detection (instructions at bottom e.g. "Ticket: 00P825184")
     if (/lodemo|zazil/i.test(rawText)) {
       const lodemoSpecificRegex = /(?:Ticket|Folio)[:\s]*([A-Z0-9]{6,12})/i;
       for (const line of [...lines].reverse()) {
@@ -253,7 +315,7 @@ export class ReceiptParser {
       }
     }
 
-    // 0b. General alphanumeric ticket pattern (e.g., "Ticket: 00P825184")
+    // 0e. General alphanumeric ticket pattern (e.g., "Ticket: 00P825184")
     const alphanumericTicketRegex =
       /(?:Ticket|Folio)[:\s]*(00[A-Z0-9]{5,10}|[A-Z0-9]{2}[0-9]{6,8})\b/i;
     for (const line of lines) {
@@ -272,6 +334,7 @@ export class ReceiptParser {
       /(?:R\s*a\s*s\s*t\s*r\s*e\s*o|Ticket|Folio|No\.?\s*Rastreo)[:\s]*([0-9\s]{6,28})/i;
 
     for (const line of lines) {
+      if (/Transacci[oó]n|Trans\b/i.test(line)) continue;
       const match = line.match(trackingRegex);
       if (match && match[1]) {
         const cleaned = match[1].replace(/[^0-9]/g, "");
@@ -291,12 +354,16 @@ export class ReceiptParser {
       return folioFallback;
     }
 
-    // 3. Fallback: 14 to 20 digit consecutive sequence (excluding date/time stamps)
+    // 4. Fallback: 14 to 20 digit consecutive sequence (excluding date/time stamps and transaction lines)
     for (const line of lines) {
+      if (/Transacci[oó]n|Trans\b|PC\s*:|Terminal|Autorizaci[oó]n|Tarjeta|Venta/i.test(line)) {
+        continue;
+      }
       const digitsOnly = line.replace(/[^0-9]/g, "");
-      if (digitsOnly.length >= 15 && digitsOnly.length <= 22) {
+      if (digitsOnly.length >= 14 && digitsOnly.length <= 22) {
         // Exclude lines that are timestamps (e.g. 21082026145728)
         if (!/^\d{2}(?:0[1-9]|1[0-2])\d{4}/.test(digitsOnly)) {
+          if (transaction && digitsOnly === transaction) continue;
           return digitsOnly;
         }
       }

@@ -928,6 +928,7 @@
           <!-- Dropzone -->
           <div class="dropzone" id="dropzone">
             <input type="file" id="file-input" accept="image/*" class="file-input">
+            <input type="file" id="camera-input" accept="image/*" capture="environment" class="file-input" style="display:none;">
 
             <div class="dropzone-content" id="dropzone-prompt">
               <div class="dropzone-icon-wrap">
@@ -1944,7 +1945,7 @@
     aria-label="Visor Completo de Recibo">
     <div class="receipt-viewer-topbar">
       <div class="viewer-meta">
-        <div class="viewer-station-badge">
+        <div class="viewer-station-badge" id="receipt-viewer-logo">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 22v-8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v8" />
             <path d="M15 22v-5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v5" />
@@ -2023,6 +2024,52 @@
         </svg>
         Arrastra con el mouse para mover • Rueda o botones para zoom • Botón rotar (90°) • Tecla Esc para salir
       </span>
+    </div>
+  </div>
+
+  <!-- Upload Source Action Sheet (Mobile Camera / Gallery Chooser) -->
+  <div class="custom-modal-overlay hidden" id="upload-action-sheet" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="custom-confirm-drawer action-sheet-drawer" id="upload-action-sheet-drawer">
+      <div class="drawer-handle-bar">
+        <div class="drawer-handle"></div>
+      </div>
+      <div class="action-sheet-header">
+        <h3 class="action-sheet-title">Escanear Ticket</h3>
+        <p class="action-sheet-desc">¿Cómo deseas capturar tu ticket de gasolina?</p>
+      </div>
+      <div class="action-sheet-options">
+        <button type="button" class="action-sheet-opt-btn" id="btn-opt-camera">
+          <div class="action-sheet-opt-icon opt-camera">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          </div>
+          <div class="action-sheet-opt-text">
+            <strong class="action-sheet-opt-title">Tomar foto con la cámara</strong>
+            <span class="action-sheet-opt-subtitle">Abre la cámara del teléfono directamente</span>
+          </div>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" class="action-sheet-opt-arrow"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+
+        <button type="button" class="action-sheet-opt-btn" id="btn-opt-gallery">
+          <div class="action-sheet-opt-icon opt-gallery">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+          </div>
+          <div class="action-sheet-opt-text">
+            <strong class="action-sheet-opt-title">Elegir de la galería / archivos</strong>
+            <span class="action-sheet-opt-subtitle">Selecciona una foto o imagen guardada</span>
+          </div>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" class="action-sheet-opt-arrow"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="action-sheet-footer">
+        <button type="button" class="btn btn-outline btn-block" id="btn-opt-cancel">Cancelar</button>
+      </div>
     </div>
   </div>
 
