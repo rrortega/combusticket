@@ -2488,11 +2488,31 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    function isMobileDevice() {
+      return (
+        window.innerWidth <= 768 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent || "",
+        ) ||
+        Boolean(navigator.maxTouchPoints && navigator.maxTouchPoints > 1)
+      );
+    }
+
     // Upload action sheet: open/close helpers
     function openUploadActionSheet() {
       if (!uploadActionSheet) {
         fileInput?.click();
         return;
+      }
+      const isMobile = isMobileDevice();
+      if (btnOptCamera) {
+        if (isMobile) {
+          btnOptCamera.classList.remove("hidden");
+          btnOptCamera.style.display = "";
+        } else {
+          btnOptCamera.classList.add("hidden");
+          btnOptCamera.style.display = "none";
+        }
       }
       uploadActionSheet.classList.remove("hidden");
       requestAnimationFrame(() => {
@@ -2508,14 +2528,25 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 220);
     }
 
-    // Welcome start / Camera FAB: triggers camera/file chooser action sheet on mobile
-    function handleWelcomeStart() {
-      if (uploadActionSheet) {
-        openUploadActionSheet();
-      } else if (fileInput) {
-        fileInput.click();
+    // Unified upload trigger for outside CTA, inside floating FAB, and mobile nav:
+    // Only presents camera option if on mobile; on desktop directly opens file picker.
+    function handleUnifiedUploadTrigger() {
+      if (isMobileDevice()) {
+        if (uploadActionSheet) {
+          openUploadActionSheet();
+        } else if (cameraInput) {
+          cameraInput.click();
+        } else if (fileInput) {
+          fileInput.click();
+        } else {
+          openUploadWorkbench();
+        }
       } else {
-        openUploadWorkbench();
+        if (fileInput) {
+          fileInput.click();
+        } else {
+          openUploadWorkbench();
+        }
       }
     }
 
@@ -2538,8 +2569,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.target === uploadActionSheet) closeUploadActionSheet();
     });
 
-    btnWelcomeStart?.addEventListener("click", handleWelcomeStart);
-    btnMobileCameraFab?.addEventListener("click", handleWelcomeStart);
+    btnWelcomeStart?.addEventListener("click", handleUnifiedUploadTrigger);
+    btnMobileCameraFab?.addEventListener("click", handleUnifiedUploadTrigger);
 
     btnHeaderOnboard?.addEventListener("click", () => openProfileScreen(false));
     profilePill?.addEventListener("click", () => openProfileScreen(true));
@@ -2766,16 +2797,8 @@ document.addEventListener("DOMContentLoaded", () => {
       switchScreen(screenWorkbench);
     }
 
-    const handleNewReceiptTrigger = () => {
-      if (fileInput) {
-        fileInput.click();
-      } else {
-        openUploadWorkbench();
-      }
-    };
-
-    btnNewFromHistory?.addEventListener("click", handleNewReceiptTrigger);
-    btnMobileNewReceipt?.addEventListener("click", handleNewReceiptTrigger);
+    btnNewFromHistory?.addEventListener("click", handleUnifiedUploadTrigger);
+    btnMobileNewReceipt?.addEventListener("click", handleUnifiedUploadTrigger);
 
     btnBackToHistory?.addEventListener("click", () => {
       const profile = getProfile();
@@ -3738,11 +3761,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function triggerLoadAnother() {
-    if (uploadActionSheet) {
-      openUploadActionSheet();
-    } else if (fileInput) {
-      fileInput.click();
-    }
+    handleUnifiedUploadTrigger();
   }
 
   // --- RECEIPT SCANNING (OCR ON-THE-FLY) ---
@@ -6257,6 +6276,37 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     });
+
+    // Retry failed tickets
+    container.querySelectorAll(".btn-retry-history:not([data-bound='true'])").forEach((btn) => {
+      btn.setAttribute("data-bound", "true");
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        const entryId = btn.getAttribute("data-entry-id");
+        const jobId = btn.getAttribute("data-job-id");
+        const item = redisHistoryItems.find(
+          (h) => h.id === entryId || h.jobId === jobId || h.id === `hist_${jobId}`,
+        );
+        const ticketNum = item?.trackingNumber || jobId || entryId || "";
+
+        const confirmed = await showCustomConfirm({
+          title: "¿Reenviar ticket a facturación?",
+          message: ticketNum
+            ? `¿Estás seguro de que deseas reenviar el ticket #${ticketNum} a la cola para intentar facturarlo nuevamente?`
+            : "¿Estás seguro de que deseas reenviar este ticket a la cola para intentar facturarlo nuevamente?",
+          confirmText: "Sí, reenviar",
+          cancelText: "Cancelar",
+          isDanger: false,
+          type: "retry",
+        });
+
+        if (confirmed) {
+          await handleRetryHistoryItem(entryId, jobId);
+        }
+      });
+    });
   }
 
   function createHistoryRowHtml(item) {
@@ -6384,6 +6434,14 @@ document.addEventListener("DOMContentLoaded", () => {
               </button>
             `
         : `
+              ${isFailed
+            ? `
+                <button type="button" class="btn-icon-xs text-primary btn-retry-history" data-entry-id="${escapeHtml(item.id || "")}" data-job-id="${escapeHtml(item.jobId || "")}" title="Reenviar ticket para facturación">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+              `
+            : ""
+          }
               <button type="button" class="btn-icon-xs text-danger btn-delete-history" data-entry-id="${escapeHtml(item.id || "")}" data-job-id="${escapeHtml(item.jobId || "")}" title="Eliminar del historial">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
               </button>
@@ -6464,6 +6522,40 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function handleRetryHistoryItem(entryId, jobId) {
+    const profile = getProfile();
+    if (!profile || !profile.rfc) {
+      showToast("Se requiere tener un perfil fiscal activo.", "warning");
+      return;
+    }
+
+    try {
+      const idToRetry = entryId || jobId;
+      if (!idToRetry) return;
+
+      showToast("Reenviando ticket a la cola de facturación...", "info");
+
+      const res = await fetch(
+        `/api/history/${encodeURIComponent(idToRetry)}/retry`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rfc: profile.rfc, billingProfile: profile }),
+        },
+      );
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "No se pudo reenviar el ticket.");
+      }
+
+      showToast(data.message || "Ticket reenviado a la cola con éxito.", "success");
+      await loadHistory();
+    } catch (err) {
+      showToast(`Error al reenviar: ${err.message}`, "error");
+    }
+  }
+
   /**
    * Promisified custom confirmation dialog (Desktop Modal / Mobile Bottom Sheet Drawer)
    */
@@ -6494,6 +6586,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const trashSvg = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
       const whatsappSvg = `<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>`;
+      const retryModalSvg = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;
 
       if (type === "whatsapp") {
         btnAccept.className = "btn btn-whatsapp btn-action-modal";
@@ -6504,6 +6597,16 @@ document.addEventListener("DOMContentLoaded", () => {
           iconContainer.style.color = "#25d366";
           iconContainer.style.borderColor = "rgba(37, 211, 102, 0.35)";
           iconContainer.style.boxShadow = "0 0 20px rgba(37, 211, 102, 0.25)";
+        }
+      } else if (type === "retry") {
+        btnAccept.className = "btn btn-primary btn-action-modal";
+        btnAccept.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg><span>${escapeHtml(confirmText)}</span>`;
+        if (iconContainer) {
+          iconContainer.innerHTML = retryModalSvg;
+          iconContainer.style.background = "rgba(16, 185, 129, 0.15)";
+          iconContainer.style.color = "#34d399";
+          iconContainer.style.borderColor = "rgba(16, 185, 129, 0.35)";
+          iconContainer.style.boxShadow = "0 0 20px rgba(16, 185, 129, 0.25)";
         }
       } else if (type === "danger" || isDanger) {
         btnAccept.className = "btn btn-danger btn-action-modal";

@@ -153,7 +153,28 @@ export class ReceiptParser {
     );
     const liters = this.extractLiters(lines, rawText, total);
     const billingUrl = this.extractBillingUrl(lines, rawText, gasStation);
-    const finalTracking = trackingNumber || folio || "";
+    let finalTracking = trackingNumber || folio || "";
+
+    // Post-reconciliation: ensure FacturasGas tracking number prefix matches resolved station
+    if (
+      finalTracking &&
+      /GOGAS|FACTURASGAS|LA\s*GAS|LAGAS|facturasgas\.com/i.test(rawText) &&
+      stationNumber
+    ) {
+      const stationDigits = stationNumber.replace(/\D/g, "");
+      if (stationDigits.length >= 4 && !finalTracking.startsWith(stationDigits)) {
+        const prefix = finalTracking.slice(0, stationDigits.length);
+        if (prefix.length === stationDigits.length) {
+          let diffCount = 0;
+          for (let i = 0; i < stationDigits.length; i++) {
+            if (prefix[i] !== stationDigits[i]) diffCount++;
+          }
+          if (diffCount <= 2) {
+            finalTracking = stationDigits + finalTracking.slice(stationDigits.length);
+          }
+        }
+      }
+    }
 
     return {
       gasStation,
@@ -264,6 +285,23 @@ export class ReceiptParser {
     if (isFacturasGas) {
       const stationDigits = (stationNumber || "").replace(/\D/g, "");
 
+      const reconcileWithStation = (val: string): string => {
+        if (!stationDigits || stationDigits.length < 4) return val;
+        if (val.startsWith(stationDigits)) return val;
+
+        const prefix = val.slice(0, stationDigits.length);
+        if (prefix.length === stationDigits.length) {
+          let diffCount = 0;
+          for (let i = 0; i < stationDigits.length; i++) {
+            if (prefix[i] !== stationDigits[i]) diffCount++;
+          }
+          if (diffCount <= 2) {
+            return stationDigits + val.slice(stationDigits.length);
+          }
+        }
+        return val;
+      };
+
       // 0a. Explicit Rastreo pattern with OCR fault tolerance
       const facturasRastreoRegex =
         /(?:R\s*a\s*[sz]\s*t\s*r\s*[eo0a@]+|R\s*a\s*s\s*i\s*r\s*[eo0a@]+|No\.?\s*Rastreo|Rastre)[:\s#]*([0-9\s]{12,28})/i;
@@ -273,14 +311,14 @@ export class ReceiptParser {
         const match = line.match(facturasRastreoRegex);
         if (match && match[1]) {
           const cleaned = match[1].replace(/[^0-9]/g, "");
-          if (cleaned.length >= 12) return cleaned;
+          if (cleaned.length >= 12) return reconcileWithStation(cleaned);
         }
       }
 
       const rawRastreoMatch = rawText.match(facturasRastreoRegex);
       if (rawRastreoMatch && rawRastreoMatch[1]) {
         const cleaned = rawRastreoMatch[1].replace(/[^0-9]/g, "");
-        if (cleaned.length >= 12) return cleaned;
+        if (cleaned.length >= 12) return reconcileWithStation(cleaned);
       }
 
       // 0b. If station code is known (e.g. 14764), look for 14-22 digit sequence starting with it
@@ -505,6 +543,19 @@ export class ReceiptParser {
       const match = line.match(/^E(0?\d{4,5})\b/i);
       if (match && match[1]) {
         return `E${match[1]}`;
+      }
+    }
+
+    // 0c. Match known stations by RFC or branch name (e.g. BUQUE DE VELA -> 14764)
+    for (const [sCode, info] of Object.entries(KNOWN_STATIONS)) {
+      if (info.rfc && new RegExp(`\\b${info.rfc}\\b`, "i").test(rawText)) {
+        return sCode;
+      }
+      if (
+        info.branch &&
+        new RegExp(`\\b${info.branch.replace(/\s+/g, "\\s*")}\\b`, "i").test(rawText)
+      ) {
+        return sCode;
       }
     }
 

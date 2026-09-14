@@ -510,21 +510,42 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       }
     }
 
-    // Step 3: Fill ticket number
-    if (receipt.trackingNumber) {
+    // Step 3: Fill ticket number (with station prefix reconciliation if needed)
+    let trackingToUse = receipt.trackingNumber;
+    if (receipt.stationNumber && trackingToUse) {
+      const stationDigits = receipt.stationNumber.replace(/\D/g, "");
+      if (stationDigits.length >= 4 && !trackingToUse.startsWith(stationDigits)) {
+        const prefix = trackingToUse.slice(0, stationDigits.length);
+        if (prefix.length === stationDigits.length) {
+          let diffCount = 0;
+          for (let i = 0; i < stationDigits.length; i++) {
+            if (prefix[i] !== stationDigits[i]) diffCount++;
+          }
+          if (diffCount <= 2) {
+            Logger.warn(
+              "FacturasGas",
+              `Reconciled tracking number prefix from "${trackingToUse}" to start with station "${stationDigits}" (${stationDigits}${trackingToUse.slice(stationDigits.length)})`,
+            );
+            trackingToUse = stationDigits + trackingToUse.slice(stationDigits.length);
+          }
+        }
+      }
+    }
+
+    if (trackingToUse) {
       await page.evaluate(`
         (() => {
           const el = document.querySelector('#Ticket');
           if (el) {
             el.focus();
-            el.value = ${JSON.stringify(receipt.trackingNumber)};
-            el.setAttribute('value', ${JSON.stringify(receipt.trackingNumber)});
+            el.value = ${JSON.stringify(trackingToUse)};
+            el.setAttribute('value', ${JSON.stringify(trackingToUse)});
             el.dispatchEvent(new Event('input', { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
           }
         })()
       `);
-      Logger.debug("FacturasGas", `Filled Ticket (#Ticket): "${receipt.trackingNumber}"`);
+      Logger.debug("FacturasGas", `Filled Ticket (#Ticket): "${trackingToUse}"`);
       await page.waitForTimeout(400);
     }
 
@@ -541,7 +562,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     await page.waitForTimeout(400);
 
     // Step 4: Click "Agregar" to register ticket
-    Logger.info("FacturasGas", `Registering ticket: ${receipt.trackingNumber}...`);
+    Logger.info("FacturasGas", `Registering ticket: ${trackingToUse}...`);
     await page.click("#Button_Add", { timeout: options.timeoutMs || 30000 });
     await page.waitForTimeout(2500);
   }

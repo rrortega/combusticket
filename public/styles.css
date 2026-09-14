@@ -4166,6 +4166,17 @@ html.no-profile:not(.app-initialized) #screen-welcome {
   background: rgba(255, 255, 255, 0.1);
 }
 
+.btn-retry-history {
+  color: #34d399;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-retry-history:hover {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.18);
+  transform: rotate(180deg);
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;
@@ -6079,7 +6090,8 @@ select.sr-only,
     padding: 0.5rem 0.6rem;
   }
 
-  .history-row-actions .btn-delete-history {
+  .history-row-actions .btn-delete-history,
+  .history-row-actions .btn-retry-history {
     flex: 0 0 auto;
   }
 
@@ -7709,6 +7721,10 @@ body.viewer-open {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: left;
   width: 100%;
+}
+
+.action-sheet-opt-btn.hidden {
+  display: none !important;
 }
 
 .action-sheet-opt-btn:hover,

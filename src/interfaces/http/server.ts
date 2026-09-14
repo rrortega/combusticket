@@ -829,13 +829,13 @@ export async function createHttpServer(
       }
 
       // Verify duplicate tracking number against existing history.
-      // Entries with status 'scanned' are pre-submission artifacts and must NOT block invoicing.
+      // Entries with status 'scanned' or 'failed' must NOT block invoicing.
       const existingHistory = await RedisHistoryService.getHistoryByRfc(
         billingProfile.rfc,
       );
       const registeredTickets = new Set(
         existingHistory
-          .filter((h) => h.status !== "scanned")
+          .filter((h) => h.status !== "scanned" && h.status !== "failed")
           .map((h) => (h.trackingNumber || "").trim().toUpperCase())
           .filter((t) => t.length > 0),
       );
@@ -1517,6 +1517,153 @@ export async function createHttpServer(
         success: Boolean(deleted),
         artifactsDeleted: artifactDeletion.deletedKeys,
         artifactsMissing: artifactDeletion.missing,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Retry / re-enqueue failed invoice
+  app.post("/api/history/:id/retry", async (req: Request, res: Response) => {
+    try {
+      const id = String(req.params.id || "");
+      const rfc = String(req.body?.rfc || req.query.rfc || "")
+        .trim()
+        .toUpperCase();
+      if (!rfc) {
+        return res.status(400).json({
+          success: false,
+          error: "RFC es requerido para reenviar el ticket.",
+        });
+      }
+
+      const history = await RedisHistoryService.getHistoryByRfc(rfc);
+      const entry = history.find(
+        (h) =>
+          h.id === id ||
+          h.jobId === id ||
+          `hist_${h.jobId}` === id ||
+          h.trackingNumber === id,
+      );
+
+      if (!entry) {
+        return res.status(404).json({
+          success: false,
+          error: "Entrada de historial no encontrada.",
+        });
+      }
+
+      // Reconstruct billingProfile from body or local config
+      let billingProfile = req.body?.billingProfile;
+      if (!billingProfile || !billingProfile.rfc) {
+        const configPath = path.resolve(
+          process.cwd(),
+          "config",
+          "billing_profile.json",
+        );
+        if (fs.existsSync(configPath)) {
+          try {
+            billingProfile = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+          } catch {}
+        }
+      }
+      if (!billingProfile || !billingProfile.rfc) {
+        billingProfile = {
+          rfc,
+          razonSocial: entry.razonSocial || "",
+          regimenFiscal: "601",
+          codigoPostal: "77500",
+          usoCfdi: "G03",
+          formaPago: "04",
+        };
+      }
+
+      // Look up full ticket metadata from disk if available
+      const localDir = ReceiptMetadataService.getLocalReceiptsDir(rfc);
+      let rawTicketData: ParsedReceiptData | null = null;
+      if (entry.receiptBaseName || entry.jsonFileName) {
+        const jsonFile = entry.jsonFileName || `${entry.receiptBaseName}.json`;
+        const fullPath = path.join(localDir, jsonFile);
+        if (fs.existsSync(fullPath)) {
+          try {
+            const record = JSON.parse(fs.readFileSync(fullPath, "utf-8"));
+            if (record.ticket) {
+              rawTicketData = record.ticket;
+            }
+          } catch {}
+        }
+      }
+
+      const receiptData: ParsedReceiptData = rawTicketData || {
+        gasStation: entry.gasStation || "GOGAS",
+        stationNumber: entry.stationNumber,
+        address: entry.address,
+        cashier: entry.cashier,
+        trackingNumber: entry.trackingNumber || "",
+        amount: entry.amount || 0,
+        liters: entry.liters,
+        date: entry.date || new Date().toISOString(),
+        paymentMethod: entry.paymentMethod || "TARJETA",
+        billingUrl: entry.billingUrl || "https://facturasgas.com",
+        rawText: "",
+        fileHash: entry.fileHash,
+        receiptBaseName: entry.receiptBaseName,
+        receiptImageUrl: entry.receiptImageUrl,
+        imageFileName: entry.imageFileName,
+      };
+
+      // Reconcile tracking number prefix if station is known (e.g. 14704 -> 14764)
+      if (receiptData.stationNumber && receiptData.trackingNumber) {
+        const stationDigits = receiptData.stationNumber.replace(/\D/g, "");
+        if (
+          stationDigits.length >= 4 &&
+          !receiptData.trackingNumber.startsWith(stationDigits)
+        ) {
+          const prefix = receiptData.trackingNumber.slice(
+            0,
+            stationDigits.length,
+          );
+          if (prefix.length === stationDigits.length) {
+            let diffCount = 0;
+            for (let i = 0; i < stationDigits.length; i++) {
+              if (prefix[i] !== stationDigits[i]) diffCount++;
+            }
+            if (diffCount <= 2) {
+              receiptData.trackingNumber =
+                stationDigits +
+                receiptData.trackingNumber.slice(stationDigits.length);
+            }
+          }
+        }
+      }
+
+      const newJob = await addInvoiceJob({
+        receiptData,
+        billingProfile,
+        recordVideo: req.body?.recordVideo ?? false,
+        dryRun: req.body?.dryRun ?? false,
+        takeScreenshot: req.body?.takeScreenshot ?? true,
+      });
+
+      // Update Redis entry with new job ID and reset status to waiting
+      await RedisHistoryService.upsertEntry({
+        ...entry,
+        id: entry.id,
+        jobId: String(newJob.id),
+        trackingNumber: receiptData.trackingNumber,
+        status: "waiting",
+        progress: 15,
+        submitted: false,
+        message: "Esperando turno en cola para facturación...",
+        error: undefined,
+        timestamp: new Date().toISOString(),
+      });
+
+      return res.json({
+        success: true,
+        jobId: String(newJob.id),
+        trackingNumber: receiptData.trackingNumber,
+        message: `Ticket #${receiptData.trackingNumber} reenviado a la cola con éxito.`,
       });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
