@@ -160,23 +160,59 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       }
     }
 
+    // STRICT PRE-CHECK: Fail-closed if ticket was not registered in the portal grid
+    const hasTicketsRegistered = Boolean(
+      ticketStatus.ticketsVal && ticketStatus.ticketsVal.trim().length > 0,
+    );
+    if (!hasTicketsRegistered || Boolean(ticketStatus.ticketHelp)) {
+      const rejectReason =
+        ticketStatus.ticketHelp ||
+        `El portal no admitió el ticket '${receipt.trackingNumber}'. Verifique que el número de rastreo sea correcto y corresponda al mes en curso.`;
+      Logger.warn(
+        "FacturasGas",
+        `Pre-submit validation failed: "${rejectReason}"`,
+      );
+
+      return {
+        success: false,
+        portalId: this.descriptor.id,
+        receipt,
+        billingProfile: profile,
+        formFilled: true,
+        submitted: false,
+        screenshotPath: filledScreenshot,
+        message: rejectReason,
+        extraData: {
+          ...ticketStatus,
+          rejected: true,
+          rejectionReason: rejectReason,
+        },
+      };
+    }
+
     let submitted = false;
-    let isSuccess = true;
-    let finalMessage = `Formulario verificado para ticket ${receipt.trackingNumber}.`;
+    let isSuccess = false;
+    let finalMessage = `Formulario y ticket verificados para ${receipt.trackingNumber}.`;
     let evidenceScreenshot: string | undefined = filledScreenshot;
     let downloadedPdfPath: string | undefined;
 
-    if (!dryRun) {
+    if (dryRun) {
+      submitted = false;
+      isSuccess = true;
+      finalMessage = `Simulación completada con éxito. Formulario y ticket verificados para ${receipt.trackingNumber}.`;
+    } else {
       Logger.info(
         "FacturasGas",
         'Submitting invoice: Clicking "Solicitar Factura" (#Button_Insert)...',
       );
 
-      // Automatically accept any confirmation dialog
+      let dialogMessageReceived: string | undefined;
+      // Capture any confirmation or alert dialog
       page.on("dialog", async (dialog) => {
+        dialogMessageReceived = dialog.message();
         Logger.info(
           "FacturasGas",
-          `Dialog detected: "${dialog.message()}". Accepting...`,
+          `Dialog detected: "${dialogMessageReceived}". Accepting...`,
         );
         await dialog.accept().catch(() => {});
       });
@@ -211,6 +247,14 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
         .catch(() => null);
       await page.waitForLoadState("load", { timeout: 30000 }).catch(() => null);
       await page.waitForTimeout(3000);
+
+      // Re-apply style to ensure alerts on the new page are unhidden
+      await page
+        .addStyleTag({
+          content:
+            ".alert, .alert-success, .alert-danger, .alert-warning, .alert-info { display: block !important; opacity: 1 !important; visibility: visible !important; }",
+        })
+        .catch(() => {});
 
       if (takeScreenshot) {
         const submittedScreenshot = path.join(
@@ -259,6 +303,14 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
               (document.querySelector('a[href*=".xml"]') as HTMLAnchorElement)
                 ?.href || null;
 
+            // Positive confirmation signals
+            const successRegex =
+              /factura\s*(?:generada|emitida|creada|enviada|con\s*éxito)|se\s*(?:ha\s*)?enviado\s*(?:a\s*su\s*correo|satisfactoriamente)|comprobante\s*fiscal\s*(?:digital\s*)?generado|folio\s*fiscal|uuid/i;
+            const isExplicitSuccess =
+              successRegex.test(bodyText) ||
+              alerts.some((a) => successRegex.test(a)) ||
+              Boolean(pdfLink || xmlLink);
+
             // Check for specific rejection / already-billed patterns
             const alreadyBilledRegex =
               /ya\s*(?:fue|se\s*encuentra|est[aá])\s*facturado|\(743\)|ya\s*ha\s*sido\s*facturado/i;
@@ -266,6 +318,8 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
               /ticket.*(?:no\s*es\s*v[aá]lido|no\s*existe|incorrecto|inv[aá]lido)|\(901\)|\(902\)|\(903\)/i;
             const expiredRegex =
               /periodo.*(?:vencido|cerrado)|fuera\s*de\s*tiempo|mes\s*en\s*curso/i;
+            const fiscalErrorRegex =
+              /c[oó]digo\s*postal|r[eé]gimen|rfc\s*no\s*v[aá]lido|error\s*al\s*timbrar|pac/i;
 
             const isAlreadyBilled =
               alreadyBilledRegex.test(bodyText) ||
@@ -276,6 +330,9 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
             const isExpired =
               expiredRegex.test(bodyText) ||
               alerts.some((a) => expiredRegex.test(a));
+            const isFiscalError =
+              fiscalErrorRegex.test(bodyText) ||
+              alerts.some((a) => fiscalErrorRegex.test(a));
 
             // Locate any explicit alert text matching the rejection
             let rejectionMessage = "";
@@ -283,7 +340,8 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
               if (
                 alreadyBilledRegex.test(alert) ||
                 invalidTicketRegex.test(alert) ||
-                expiredRegex.test(alert)
+                expiredRegex.test(alert) ||
+                fiscalErrorRegex.test(alert)
               ) {
                 rejectionMessage = alert;
                 break;
@@ -306,9 +364,11 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
 
             return {
               alerts,
+              isExplicitSuccess,
               isAlreadyBilled,
               isInvalid,
               isExpired,
+              isFiscalError,
               rejectionMessage,
               formStillActive,
               pdfLink,
@@ -327,8 +387,6 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
 
       Logger.info("FacturasGas", "Resulting outcome evaluation:", pageOutcome);
 
-      let downloadedPdfPath: string | undefined;
-
       if (!pageOutcome) {
         submitted = false;
         isSuccess = false;
@@ -341,16 +399,29 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       } else if (
         pageOutcome.isAlreadyBilled ||
         pageOutcome.isInvalid ||
-        pageOutcome.isExpired
+        pageOutcome.isExpired ||
+        pageOutcome.isFiscalError
       ) {
         submitted = false;
         isSuccess = false;
         finalMessage = pageOutcome.isAlreadyBilled
           ? "Este ticket ya había sido facturado"
-          : (pageOutcome.rejectionMessage || `El ticket '${receipt.trackingNumber}' fue rechazado por el portal.`);
+          : (pageOutcome.rejectionMessage || `El portal rechazó la solicitud del ticket '${receipt.trackingNumber}'.`);
         Logger.warn(
           "FacturasGas",
           `Portal rejection detected: "${finalMessage}"`,
+        );
+      } else if (
+        dialogMessageReceived &&
+        !pageOutcome.isExplicitSuccess &&
+        !dialogMessageReceived.includes("¿Desea crear la Factura")
+      ) {
+        submitted = false;
+        isSuccess = false;
+        finalMessage = `Alerta del portal: ${dialogMessageReceived}`;
+        Logger.warn(
+          "FacturasGas",
+          `Portal dialog rejected submission: "${finalMessage}"`,
         );
       } else if (
         pageOutcome.formStillActive &&
@@ -368,7 +439,7 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
           "FacturasGas",
           `Submission did not complete: "${finalMessage}"`,
         );
-      } else {
+      } else if (pageOutcome.isExplicitSuccess) {
         submitted = true;
         isSuccess = true;
         finalMessage =
@@ -404,6 +475,18 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
             );
           }
         }
+      } else {
+        // Fail-closed fallback: Form navigated away or changed, but no positive proof of invoice generation
+        submitted = false;
+        isSuccess = false;
+        finalMessage =
+          pageOutcome.alerts.length > 0
+            ? pageOutcome.alerts.join(" | ")
+            : "El portal no devolvió confirmación ni comprobante descargable de la factura.";
+        Logger.warn(
+          "FacturasGas",
+          `Fail-closed fallback: No positive invoice confirmation found: "${finalMessage}"`,
+        );
       }
     }
 
@@ -564,7 +647,27 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     // Step 4: Click "Agregar" to register ticket
     Logger.info("FacturasGas", `Registering ticket: ${trackingToUse}...`);
     await page.click("#Button_Add", { timeout: options.timeoutMs || 30000 });
-    await page.waitForTimeout(2500);
+
+    // Wait for AJAX validation (data_check.php) or ticket list to settle
+    const startWait = Date.now();
+    let isSettled = false;
+    while (Date.now() - startWait < 8000) {
+      const state = await page.evaluate(() => {
+        const ticketHelp = document.querySelector("#Ticket_help")?.textContent?.trim() || "";
+        const ticketsVal = (document.querySelector("#Tickets") as HTMLInputElement)?.value || "";
+        return { ticketHelp, ticketsVal };
+      });
+      if (state.ticketHelp.length > 0 || state.ticketsVal.length > 0) {
+        // Extra pause so removeTicket has time to run if AJAX resulted in an error
+        await page.waitForTimeout(1200);
+        isSettled = true;
+        break;
+      }
+      await page.waitForTimeout(300);
+    }
+    if (!isSettled) {
+      await page.waitForTimeout(2500);
+    }
   }
 
   private resolvePaymentMethodCode(
