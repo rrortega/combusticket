@@ -6312,9 +6312,15 @@ document.addEventListener("DOMContentLoaded", () => {
   function createHistoryRowHtml(item) {
     const isWaiting = item.status === "waiting";
     const isActive = item.status === "active";
-    const isCompleted = item.status === "completed";
-    const isFailed = item.status === "failed";
-    const isDryRun = item.status === "dry_run";
+    const hasRejectionOrError = Boolean(
+      item.error ||
+      item.failedReason ||
+      (item.message &&
+        /rechaz[oó]|inv[aá]lido|error|fall[oó]|no\s*se\s*pudo\s*confirmar/i.test(item.message))
+    );
+    const isCompleted = item.status === "completed" && !hasRejectionOrError;
+    const isFailed = item.status === "failed" || hasRejectionOrError;
+    const isDryRun = item.status === "dry_run" && !hasRejectionOrError;
     const isPending = isWaiting || isActive;
 
     let statusClass = "waiting";

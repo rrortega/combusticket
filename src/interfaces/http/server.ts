@@ -1360,8 +1360,22 @@ export async function createHttpServer(
                   item.message = "Navegando y facturando en portal...";
                 }
               } else if (state === "completed") {
-                item.status = "completed";
+                const jobRet = bJob.returnvalue;
+                const isActuallySuccess = jobRet
+                  ? Boolean(jobRet.success && (jobRet.submitted || bJob.data?.dryRun))
+                  : !item.error;
+
+                item.status = isActuallySuccess
+                  ? (bJob.data?.dryRun ? "dry_run" : "completed")
+                  : "failed";
                 item.progress = 100;
+                item.submitted = Boolean(jobRet?.submitted || (isActuallySuccess && !bJob.data?.dryRun));
+                if (jobRet?.message) {
+                  item.message = jobRet.message;
+                }
+                if (!isActuallySuccess) {
+                  item.error = jobRet?.message || item.message || "La facturación fue rechazada por el portal.";
+                }
                 const jobRfc = (
                   bJob.data?.billingProfile?.rfc ||
                   rfc ||
@@ -1404,6 +1418,22 @@ export async function createHttpServer(
               "[History] Could not sync BullMQ job state:",
               syncErr.message,
             );
+          }
+        }
+      }
+
+      // Sanitize status: any item with an explicit rejection or error cannot be marked completed
+      for (const item of history) {
+        const hasRejectionOrError = Boolean(
+          item.error ||
+          (item.message &&
+            /rechaz[oó]|inv[aá]lido|error|fall[oó]|no\s*se\s*pudo\s*confirmar/i.test(item.message))
+        );
+        if (hasRejectionOrError && item.status === "completed") {
+          item.status = "failed";
+          item.submitted = false;
+          if (!item.error) {
+            item.error = item.message;
           }
         }
       }

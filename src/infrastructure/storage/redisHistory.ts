@@ -167,23 +167,41 @@ export class RedisHistoryService {
         const existing = result[existingIndex];
         const statusPriority: Record<string, number> = {
           completed: 4,
-          failed: 3,
+          failed: 4,
+          dry_run: 4,
           active: 2,
           waiting: 1,
-          dry_run: 4,
         };
 
         const existingPriority = statusPriority[existing.status] || 0;
         const newPriority = statusPriority[entry.status] || 0;
-        const preferredStatus =
-          newPriority >= existingPriority ? entry.status : existing.status;
+
+        const isRetry =
+          entry.status === "waiting" &&
+          Boolean(entry.jobId && entry.jobId !== existing.jobId);
+        const hasRejectionOrError = Boolean(
+          entry.error ||
+          (entry.message &&
+            /rechaz[oó]|inv[aá]lido|error|fall[oó]|no\s*se\s*pudo\s*confirmar/i.test(entry.message))
+        );
+
+        let preferredStatus: InvoiceHistoryEntry["status"];
+        if (isRetry) {
+          preferredStatus = "waiting";
+        } else if (entry.status === "failed" || hasRejectionOrError) {
+          preferredStatus = "failed";
+        } else {
+          preferredStatus = (newPriority >= existingPriority ? entry.status : existing.status) as any;
+        }
+
+        const isActuallyFailed = preferredStatus === "failed";
 
         result[existingIndex] = {
           ...existing,
           ...entry,
           status: preferredStatus,
           progress: Math.max(existing.progress || 0, entry.progress || 0),
-          submitted: existing.submitted || !!entry.submitted,
+          submitted: isActuallyFailed ? Boolean(entry.submitted) : existing.submitted || !!entry.submitted,
           screenshotUrl: entry.screenshotUrl || existing.screenshotUrl,
           videoUrl: entry.videoUrl || existing.videoUrl,
           pdfUrl: entry.pdfUrl || existing.pdfUrl,
@@ -194,7 +212,7 @@ export class RedisHistoryService {
           imageFileName: entry.imageFileName || existing.imageFileName,
           jsonFileName: entry.jsonFileName || existing.jsonFileName,
           message: entry.message || existing.message,
-          error: entry.error || existing.error,
+          error: entry.error || (isActuallyFailed ? entry.message || existing.error : existing.error),
         };
       } else {
         result.push(entry);
