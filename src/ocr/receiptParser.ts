@@ -40,6 +40,15 @@ const KNOWN_STATIONS: Record<string, KnownStationInfo> = {
     state: "Quintana Roo",
     postalCode: "77533",
   },
+  "10549": {
+    brand: "GOGAS",
+    branch: "SERVICIO DELFINES",
+    street: "Blvd. Kukulcan Km. 17 Lote 52-03, Zona Hotelera",
+    city: "Benito Juárez (Cancún)",
+    state: "Quintana Roo",
+    postalCode: "77500",
+    rfc: "SDE070824885",
+  },
   "G8410": {
     brand: "GRUPO LODEMO",
     branch: "ZAZILHA",
@@ -197,6 +206,11 @@ export class ReceiptParser {
   }
 
   private extractWebId(lines: string[], rawText: string): string | undefined {
+    // GoGas / FacturasGas and Grupo Lodemo do not use Web ID
+    if (/GOGAS|FACTURASGAS|facturasgas\.com|LODEMO|lodemored/i.test(rawText)) {
+      return undefined;
+    }
+
     // Matches "WEB ID : 75057", "WebId: 64089134", "ID Web: 12345", "HUB ID: 64089134", "NES ID: 64089134", "NUS ID", "WEB 10", etc.
     const webIdRegex =
       /(?:WEB\s*ID|WebId|ID\s*Web|W[EB]B?\s*1D|HUB\s*1?D|NES\s*1?D|NUS\s*1?D|WEB\s*10|W[ED]B)[:\s#,\-]*([A-Z0-9]{4,12})/i;
@@ -216,7 +230,13 @@ export class ReceiptParser {
       if (/FORMA\s+DE\s+PAGO/i.test(lines[i])) {
         // Look up to 5 lines above FORMA DE PAGO
         for (let j = Math.max(0, i - 5); j < i; j++) {
-          if (/FECHA|F[EC]HA/i.test(lines[j])) continue;
+          if (
+            /FECHA|F[EC]HA|Rastreo|Transacci|Estaci|RFC|\bOriginal\b|Ticket/i.test(
+              lines[j],
+            )
+          ) {
+            continue;
+          }
           const numMatch = lines[j].match(/\b([0-9]{5,10})\b/);
           if (numMatch && numMatch[1] && numMatch[1].length >= 5) {
             const val = numMatch[1];
@@ -524,6 +544,42 @@ export class ReceiptParser {
     return "GASOLINERA DESCONOCIDA";
   }
 
+  private buildFuzzyRfcRegex(rfc: string): RegExp {
+    const pattern = rfc
+      .split("")
+      .map((ch) => {
+        const u = ch.toUpperCase();
+        if (u === "9") return "[9O0]";
+        if (u === "0" || u === "O") return "[0O9]";
+        if (u === "8" || u === "B") return "[8B]";
+        if (u === "5" || u === "S") return "[5S]";
+        if (u === "1" || u === "I") return "[1I]";
+        return u.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      })
+      .join("[\\s-]*");
+    return new RegExp(`\\b${pattern}\\b`, "i");
+  }
+
+  private snapToKnownFiveDigitStation(candidate: string): string {
+    if (!/^\d{5}$/.test(candidate)) return candidate;
+    if (KNOWN_STATIONS[candidate]) return candidate;
+
+    let bestMatch: string | undefined;
+    let bestDist = 99;
+    for (const key of Object.keys(KNOWN_STATIONS)) {
+      if (!/^\d{5}$/.test(key) || key.startsWith("0")) continue;
+      let dist = 0;
+      for (let i = 0; i < 5; i++) {
+        if (candidate[i] !== key[i]) dist++;
+      }
+      if (dist <= 2 && dist < bestDist) {
+        bestDist = dist;
+        bestMatch = key;
+      }
+    }
+    return bestMatch || candidate;
+  }
+
   private extractStationNumber(
     lines: string[],
     rawText: string,
@@ -546,9 +602,9 @@ export class ReceiptParser {
       }
     }
 
-    // 0c. Match known stations by RFC or branch name (e.g. BUQUE DE VELA -> 14764)
+    // 0c. Match known stations by RFC (with OCR character swap tolerance) or branch name (e.g. BUQUE DE VELA -> 14764)
     for (const [sCode, info] of Object.entries(KNOWN_STATIONS)) {
-      if (info.rfc && new RegExp(`\\b${info.rfc}\\b`, "i").test(rawText)) {
+      if (info.rfc && this.buildFuzzyRfcRegex(info.rfc).test(rawText)) {
         return sCode;
       }
       if (
@@ -570,7 +626,7 @@ export class ReceiptParser {
       const match = line.match(stationNumberRegex);
       if (match && match[1]) {
         if (/^20\d{2}$/.test(match[1])) continue;
-        return match[1].trim();
+        return this.snapToKnownFiveDigitStation(match[1].trim());
       }
     }
 
@@ -581,7 +637,7 @@ export class ReceiptParser {
       !/PERMISO|EXP\/ES|C\.?R\.?E/i.test(rawMatch[0]) &&
       !/^20\d{2}$/.test(rawMatch[1])
     ) {
-      return rawMatch[1].trim();
+      return this.snapToKnownFiveDigitStation(rawMatch[1].trim());
     }
 
     // 2. CRE Permit check: PL/12009/EXP/ES/2015 -> extracts station number or CRE code (only if before EXP)
@@ -589,19 +645,23 @@ export class ReceiptParser {
     if (creMatch && creMatch[1]) {
       const code = creMatch[1].trim();
       if (code === "3394") return "E04778";
-      return code;
+      return this.snapToKnownFiveDigitStation(code);
     }
 
     // 3. Fallback from tracking number prefix (ControlGas / GoGas 16-20 digit folios start with station #)
     if (trackingNumber && trackingNumber.length >= 14) {
       const candidate5 = trackingNumber.slice(0, 5);
       const candidate4 = trackingNumber.slice(0, 4);
+      const snapped5 = this.snapToKnownFiveDigitStation(candidate5);
+      if (snapped5 !== candidate5) {
+        return snapped5;
+      }
       for (const line of lines.slice(0, 10)) {
-        if (line.includes(candidate5)) return candidate5;
+        if (line.includes(candidate5)) return snapped5;
         if (line.includes(candidate4)) return candidate4;
       }
       if (/^\d{4,5}$/.test(candidate5)) {
-        return candidate5;
+        return snapped5;
       }
     }
 

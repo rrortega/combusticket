@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -21,8 +21,48 @@ import {
   FormasPagoCatalog,
 } from "../../../config/catalogs/index.js";
 import { StorageFactory } from "../../infrastructure/storage/storageFactory.js";
+import { S3StorageService } from "../../infrastructure/storage/S3StorageService.js";
 import { PushNotificationService } from "../../infrastructure/notifications/pushNotificationService.js";
 import { ReceiptMetadataService } from "../../services/receiptMetadataService.js";
+
+const REJECTION_MESSAGE_REGEX =
+  /rechaz[oó]|inv[aá]lido|incorrecto|no\s*admiti[oó]|no\s*existe|no\s*encontrado|ya\s*(?:fue|hab[ií]a\s*sido|se\s*encuentra)\s*facturado|no\s*avanz[oó]|no\s*devolvi[oó]\s*confirmaci[oó]n|no\s*se\s*pudo\s*confirmar|error|fall[oó]|alerta\s*del\s*portal|demasiados\s*intentos|fuera\s*de\s*tiempo|vencido|faltan\s*datos/i;
+
+const POSITIVE_SUCCESS_MESSAGE_REGEX =
+  /factura\s*(?:solicitada|generada|emitida|creada|enviada|registrada)|comprobante\s*fiscal|simulaci[oó]n\s*completada/i;
+
+function normalizePublicMediaUrl(url?: string): string | undefined {
+  return S3StorageService.normalizePublicUrl(
+    url,
+    ENV.S3_BUCKET,
+    ENV.S3_PUBLIC_URL,
+  );
+}
+
+function getContentTypeForExtension(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".png":
+      return "image/png";
+    case ".webp":
+      return "image/webp";
+    case ".webm":
+      return "video/webm";
+    case ".mp4":
+      return "video/mp4";
+    case ".pdf":
+      return "application/pdf";
+    case ".xml":
+      return "application/xml";
+    case ".json":
+      return "application/json";
+    default:
+      return "application/octet-stream";
+  }
+}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -38,13 +78,44 @@ export async function createHttpServer(
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+  const storageService = StorageFactory.getStorageService();
+
+  // Service Worker must never be cached by browser HTTP cache so byte changes trigger instant updates
+  app.get("/sw.js", (_req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Content-Type", "application/javascript");
+    return res.sendFile(path.resolve(process.cwd(), "public", "sw.js"));
+  });
+
   // Serve static assets: Web Application, screenshots, videos, and fixtures
   app.use(express.static(path.resolve(process.cwd(), "public")));
   app.use("/output", express.static(ENV.SCREENSHOT_DIR));
   app.use("/output/videos", express.static(ENV.VIDEO_DIR));
+  app.use("/output", async (req: Request, res: Response, next: NextFunction) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      return next();
+    }
+    try {
+      let key = decodeURIComponent(req.path || "").replace(/^\/+/, "");
+      const bucketPrefix = `${(ENV.S3_BUCKET || "combusticket").trim().toLowerCase()}/`;
+      if (key.toLowerCase().startsWith(bucketPrefix)) {
+        key = key.slice(bucketPrefix.length);
+      }
+      if (!key) {
+        return res.status(404).end();
+      }
+      const buffer = await storageService.download(key);
+      res.setHeader("Content-Type", getContentTypeForExtension(key));
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      return res.send(buffer);
+    } catch {
+      return res.status(404).end();
+    }
+  });
   app.use("/fixtures", express.static(path.resolve(process.cwd(), "fixtures")));
 
-  const storageService = StorageFactory.getStorageService();
   const service = await GasInvoiceService.createDefault({
     storageService,
   });
@@ -528,7 +599,8 @@ export async function createHttpServer(
               contentType: file.mimetype || "image/png",
             });
             if (uploadResult?.url) {
-              receiptImageUrl = uploadResult.url;
+              receiptImageUrl =
+                normalizePublicMediaUrl(uploadResult.url) || receiptImageUrl;
             }
           } catch (storageErr: any) {
             console.warn(
@@ -558,15 +630,16 @@ export async function createHttpServer(
           const oldUrl = existingUrls[j];
           if (!oldUrl || typeof oldUrl !== "string") continue;
           try {
+            const normalizedOldUrl = normalizePublicMediaUrl(oldUrl) || oldUrl;
             // If already in this RFC's folder, keep it
-            if (oldUrl.includes(`/${rfcFolder}/receipts/`)) {
+            if (normalizedOldUrl.includes(`/${rfcFolder}/receipts/`)) {
               const receiptBaseName = path.basename(
-                oldUrl,
-                path.extname(oldUrl),
+                normalizedOldUrl,
+                path.extname(normalizedOldUrl),
               );
               migratedFiles.push({
                 originalUrl: oldUrl,
-                receiptImageUrl: oldUrl,
+                receiptImageUrl: normalizedOldUrl,
                 receiptBaseName,
                 receiptJsonUrl: `/output/${rfcFolder}/receipts/${receiptBaseName}.json`,
               });
@@ -574,9 +647,9 @@ export async function createHttpServer(
             }
 
             // Check if local file exists
-            const relativePath = oldUrl.startsWith("/output/")
-              ? oldUrl.replace("/output/", "")
-              : oldUrl.split("/output/")[1] || path.basename(oldUrl);
+            const relativePath = normalizedOldUrl.startsWith("/output/")
+              ? normalizedOldUrl.replace("/output/", "")
+              : normalizedOldUrl.split("/output/")[1] || path.basename(normalizedOldUrl);
 
             const sourcePath = path.resolve(ENV.SCREENSHOT_DIR, relativePath);
             if (fs.existsSync(sourcePath)) {
@@ -596,7 +669,8 @@ export async function createHttpServer(
                   contentType: "image/png",
                 });
                 if (uploadResult?.url) {
-                  receiptImageUrl = uploadResult.url;
+                  receiptImageUrl =
+                    normalizePublicMediaUrl(uploadResult.url) || receiptImageUrl;
                 }
               } catch (storageErr: any) {
                 console.warn(
@@ -894,7 +968,10 @@ export async function createHttpServer(
         const fileHash = item.receiptData.fileHash || "";
 
         // Promote temporary staging image to permanent RFC receipts storage on enqueue
-        const currentImgUrl = item.receiptData.receiptImageUrl || item.receiptData.previewUrl || "";
+        const currentImgUrl =
+          normalizePublicMediaUrl(
+            item.receiptData.receiptImageUrl || item.receiptData.previewUrl,
+          ) || "";
         let finalImageUrl = currentImgUrl;
         let savedFileName = item.receiptData.imageFileName || "";
 
@@ -955,7 +1032,8 @@ export async function createHttpServer(
                   },
                 );
                 if (uploadResult?.url) {
-                  finalImageUrl = uploadResult.url;
+                  finalImageUrl =
+                    normalizePublicMediaUrl(uploadResult.url) || finalImageUrl;
                 }
               } catch (storageErr: any) {
                 console.warn(
@@ -996,7 +1074,9 @@ export async function createHttpServer(
               parsed: item.receiptData,
               status: "waiting",
             });
-          item.receiptData.receiptJsonUrl = metadataRecord.jsonUrl;
+          item.receiptData.receiptJsonUrl =
+            normalizePublicMediaUrl(metadataRecord.jsonUrl) ||
+            metadataRecord.jsonUrl;
         } catch (metaErr: any) {
           console.warn(
             "[Server] Could not save permanent metadata record:",
@@ -1079,7 +1159,7 @@ export async function createHttpServer(
         });
       }
 
-      const state = await job.getState();
+      const rawState = await job.getState();
       const progress = job.progress;
 
       const rawRfc = (job.data?.billingProfile?.rfc || "GENERAL")
@@ -1088,9 +1168,9 @@ export async function createHttpServer(
         .toUpperCase();
       const rfcFolder = rawRfc.replace(/[^A-Z0-9&Ñ]/g, "") || "GENERAL";
 
-      let screenshotUrl = job.returnvalue?.screenshotUrl;
-      let videoUrl = job.returnvalue?.videoUrl;
-      let pdfUrl = job.returnvalue?.pdfUrl;
+      let screenshotUrl = normalizePublicMediaUrl(job.returnvalue?.screenshotUrl);
+      let videoUrl = normalizePublicMediaUrl(job.returnvalue?.videoUrl);
+      let pdfUrl = normalizePublicMediaUrl(job.returnvalue?.pdfUrl);
 
       if (!screenshotUrl && job.returnvalue?.screenshotPath) {
         const filename = job.returnvalue.screenshotPath.split("/").pop();
@@ -1105,6 +1185,21 @@ export async function createHttpServer(
       if (!pdfUrl && job.returnvalue?.pdfPath) {
         const filename = job.returnvalue.pdfPath.split("/").pop();
         pdfUrl = `/output/${rfcFolder}/invoices/${filename}`;
+      }
+
+      let state: string = rawState;
+      let failedReason: string | null = job.failedReason || null;
+      if (rawState === "completed" && job.returnvalue) {
+        const retMsg = job.returnvalue.message || "";
+        const isRejected =
+          !job.returnvalue.success ||
+          (!job.returnvalue.submitted && !job.data?.dryRun) ||
+          REJECTION_MESSAGE_REGEX.test(retMsg);
+        if (isRejected) {
+          state = "failed";
+          failedReason =
+            retMsg || failedReason || "La facturación fue rechazada por el portal.";
+        }
       }
 
       res.json({
@@ -1124,15 +1219,60 @@ export async function createHttpServer(
               ...job.returnvalue,
               screenshotUrl,
               videoUrl,
-              xmlUrl: job.returnvalue.xmlUrl,
+              pdfUrl,
+              xmlUrl: normalizePublicMediaUrl(job.returnvalue.xmlUrl),
             }
           : null,
-        failedReason: job.failedReason || null,
+        failedReason,
       });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }
   });
+
+  function sanitizeAndNormalizeHistoryItems(items: any[]) {
+    for (const item of items) {
+      item.receiptImageUrl =
+        normalizePublicMediaUrl(item.receiptImageUrl) || item.receiptImageUrl;
+      if (item.previewUrl) {
+        item.previewUrl =
+          normalizePublicMediaUrl(item.previewUrl) || item.previewUrl;
+      }
+      if (item.imageUrl) {
+        item.imageUrl =
+          normalizePublicMediaUrl(item.imageUrl) || item.imageUrl;
+      }
+      item.screenshotUrl =
+        normalizePublicMediaUrl(item.screenshotUrl) || item.screenshotUrl;
+      item.videoUrl = normalizePublicMediaUrl(item.videoUrl) || item.videoUrl;
+      item.pdfUrl = normalizePublicMediaUrl(item.pdfUrl) || item.pdfUrl;
+      item.receiptJsonUrl =
+        normalizePublicMediaUrl(item.receiptJsonUrl) || item.receiptJsonUrl;
+
+      if (item.status === "waiting" || item.status === "active") {
+        continue;
+      }
+      const msg = item.message || "";
+      const err = item.error || "";
+      const hasRejectionOrError = Boolean(
+        err ||
+          (msg && REJECTION_MESSAGE_REGEX.test(msg)) ||
+          (item.status === "completed" &&
+            !item.submitted &&
+            !item.pdfUrl &&
+            !/simulaci[oó]n/i.test(msg) &&
+            !POSITIVE_SUCCESS_MESSAGE_REGEX.test(msg)),
+      );
+      if (hasRejectionOrError && item.status !== "failed") {
+        item.status = "failed";
+        item.submitted = false;
+        if (!item.error) {
+          item.error =
+            item.message || "La facturación fue rechazada por el portal.";
+        }
+      }
+    }
+  }
 
   function parseFlexibleDate(dateStr?: string): Date | null {
     if (!dateStr) return null;
@@ -1168,6 +1308,8 @@ export async function createHttpServer(
       // 1. Storage is Single Source of Truth: ensure Redis read-model is reconciled
       await ReceiptMetadataService.rehydrateRedisIndex(rfc);
       let history = await RedisHistoryService.getHistoryByRfc(rfc);
+      sanitizeAndNormalizeHistoryItems(history);
+      history = RedisHistoryService.deduplicateList(history);
 
       // 3. Filter by date range if provided
       let filtered = [...history];
@@ -1361,8 +1503,16 @@ export async function createHttpServer(
                 }
               } else if (state === "completed") {
                 const jobRet = bJob.returnvalue;
+                const retMsg = jobRet?.message || "";
+                const hasRetRejection = Boolean(
+                  retMsg && REJECTION_MESSAGE_REGEX.test(retMsg),
+                );
                 const isActuallySuccess = jobRet
-                  ? Boolean(jobRet.success && (jobRet.submitted || bJob.data?.dryRun))
+                  ? Boolean(
+                      jobRet.success &&
+                        !hasRetRejection &&
+                        (jobRet.submitted || bJob.data?.dryRun),
+                    )
                   : !item.error;
 
                 item.status = isActuallySuccess
@@ -1388,21 +1538,27 @@ export async function createHttpServer(
                   jobRfc.replace(/[^A-Z0-9&Ñ]/g, "") || "GENERAL";
 
                 if (bJob.returnvalue?.screenshotUrl) {
-                  item.screenshotUrl = bJob.returnvalue.screenshotUrl;
+                  item.screenshotUrl = normalizePublicMediaUrl(
+                    bJob.returnvalue.screenshotUrl,
+                  );
                 } else if (bJob.returnvalue?.screenshotPath) {
                   const fn = bJob.returnvalue.screenshotPath.split("/").pop();
                   item.screenshotUrl = `/output/${jobRfcFolder}/screenshots/${fn}`;
                 }
 
                 if (bJob.returnvalue?.videoUrl) {
-                  item.videoUrl = bJob.returnvalue.videoUrl;
+                  item.videoUrl = normalizePublicMediaUrl(
+                    bJob.returnvalue.videoUrl,
+                  );
                 } else if (bJob.returnvalue?.videoPath) {
                   const fn = bJob.returnvalue.videoPath.split("/").pop();
                   item.videoUrl = `/output/${jobRfcFolder}/videos/${fn}`;
                 }
 
                 if (bJob.returnvalue?.pdfUrl) {
-                  item.pdfUrl = bJob.returnvalue.pdfUrl;
+                  item.pdfUrl = normalizePublicMediaUrl(
+                    bJob.returnvalue.pdfUrl,
+                  );
                 } else if (bJob.returnvalue?.pdfPath) {
                   const fn = bJob.returnvalue.pdfPath.split("/").pop();
                   item.pdfUrl = `/output/${jobRfcFolder}/invoices/${fn}`;
@@ -1422,23 +1578,11 @@ export async function createHttpServer(
         }
       }
 
-      // Sanitize status: any item with an explicit rejection or error cannot be marked completed
-      for (const item of history) {
-        const hasRejectionOrError = Boolean(
-          item.error ||
-          (item.message &&
-            /rechaz[oó]|inv[aá]lido|error|fall[oó]|no\s*se\s*pudo\s*confirmar/i.test(item.message))
-        );
-        if (hasRejectionOrError && item.status === "completed") {
-          item.status = "failed";
-          item.submitted = false;
-          if (!item.error) {
-            item.error = item.message;
-          }
-        }
-      }
+      // Sanitize status and normalize any legacy internal MinIO URLs
+      sanitizeAndNormalizeHistoryItems(history);
 
       const cleanHistory = RedisHistoryService.deduplicateList(history);
+      sanitizeAndNormalizeHistoryItems(cleanHistory);
 
       res.json({
         success: true,
@@ -1610,9 +1754,19 @@ export async function createHttpServer(
 
       // Look up full ticket metadata from disk if available
       const localDir = ReceiptMetadataService.getLocalReceiptsDir(rfc);
-      let rawTicketData: ParsedReceiptData | null = null;
-      if (entry.receiptBaseName || entry.jsonFileName) {
-        const jsonFile = entry.jsonFileName || `${entry.receiptBaseName}.json`;
+      let rawTicketData: Partial<ParsedReceiptData> | null = null;
+      let recordRawText = "";
+      let recordFileHash: string | undefined;
+      let recordId: string | undefined;
+      let recordImageUrl: string | undefined;
+      let recordImageFileName: string | undefined;
+      let recordJsonUrl: string | undefined;
+
+      const candidateBaseName =
+        entry.receiptBaseName ||
+        (entry.id && entry.id.startsWith("receipt_") ? entry.id : undefined);
+      if (candidateBaseName || entry.jsonFileName) {
+        const jsonFile = entry.jsonFileName || `${candidateBaseName}.json`;
         const fullPath = path.join(localDir, jsonFile);
         if (fs.existsSync(fullPath)) {
           try {
@@ -1620,48 +1774,98 @@ export async function createHttpServer(
             if (record.ticket) {
               rawTicketData = record.ticket;
             }
+            recordRawText = record.rawText || record.ticket?.rawText || "";
+            recordFileHash = record.fileHash;
+            recordId = record.id;
+            recordImageUrl = record.imageUrl;
+            recordImageFileName = record.imageFileName;
+            recordJsonUrl = record.jsonUrl;
           } catch {}
         }
       }
 
-      const receiptData: ParsedReceiptData = rawTicketData || {
-        gasStation: entry.gasStation || "GOGAS",
-        stationNumber: entry.stationNumber,
-        address: entry.address,
-        cashier: entry.cashier,
-        trackingNumber: entry.trackingNumber || "",
-        amount: entry.amount || 0,
-        liters: entry.liters,
-        date: entry.date || new Date().toISOString(),
-        paymentMethod: entry.paymentMethod || "TARJETA",
-        billingUrl: entry.billingUrl || "https://facturasgas.com",
-        rawText: "",
-        fileHash: entry.fileHash,
-        receiptBaseName: entry.receiptBaseName,
-        receiptImageUrl: entry.receiptImageUrl,
-        imageFileName: entry.imageFileName,
+      const receiptData: ParsedReceiptData = {
+        gasStation: rawTicketData?.gasStation || entry.gasStation || "GOGAS",
+        stationNumber: rawTicketData?.stationNumber || entry.stationNumber,
+        address: rawTicketData?.address || entry.address,
+        cashier: rawTicketData?.cashier || entry.cashier,
+        trackingNumber:
+          rawTicketData?.trackingNumber || entry.trackingNumber || "",
+        transaction: rawTicketData?.transaction,
+        webId: rawTicketData?.webId,
+        folio: rawTicketData?.folio,
+        amount: rawTicketData?.amount ?? entry.amount ?? 0,
+        liters: rawTicketData?.liters ?? entry.liters,
+        subtotal: rawTicketData?.subtotal,
+        iva: rawTicketData?.iva,
+        date: rawTicketData?.date || entry.date || new Date().toISOString(),
+        paymentMethod:
+          rawTicketData?.paymentMethod || entry.paymentMethod || "TARJETA",
+        billingUrl:
+          rawTicketData?.billingUrl ||
+          entry.billingUrl ||
+          "https://facturasgas.com",
+        rawText: recordRawText || rawTicketData?.rawText || "",
+        fileHash: entry.fileHash || recordFileHash,
+        receiptBaseName: entry.receiptBaseName || recordId,
+        receiptImageUrl: normalizePublicMediaUrl(
+          entry.receiptImageUrl || recordImageUrl,
+        ),
+        imageFileName: entry.imageFileName || recordImageFileName,
+        receiptJsonUrl: normalizePublicMediaUrl(
+          entry.receiptJsonUrl || recordJsonUrl,
+        ),
       };
 
-      // Reconcile tracking number prefix if station is known (e.g. 14704 -> 14764)
-      if (receiptData.stationNumber && receiptData.trackingNumber) {
-        const stationDigits = receiptData.stationNumber.replace(/\D/g, "");
+      // Reconcile station and tracking number prefix if station is known or matches a known GoGas 5-digit station (e.g. 14704 -> 14764)
+      const textCtx = `${receiptData.address || ""} ${receiptData.rawText || ""}`;
+      if (/BUQUE\s*DE\s*VELA|BVE190821/i.test(textCtx)) {
+        receiptData.stationNumber = "14764";
+      } else if (/DELFINES|SDE070824/i.test(textCtx)) {
+        receiptData.stationNumber = "10549";
+      } else if (/AN[EÉ]MONAS|SSA120627/i.test(textCtx)) {
+        receiptData.stationNumber = "12009";
+      } else if (/KABAH/i.test(textCtx)) {
+        receiptData.stationNumber = "11001";
+      }
+
+      if (receiptData.trackingNumber && receiptData.trackingNumber.length >= 14) {
+        const KNOWN_GOGAS_5DIGIT = ["14764", "12009", "11001", "10549"];
+        let targetStationDigits = (receiptData.stationNumber || "").replace(
+          /\D/g,
+          "",
+        );
+        const prefix5 = receiptData.trackingNumber.slice(0, 5);
+        if (!targetStationDigits || !KNOWN_GOGAS_5DIGIT.includes(targetStationDigits)) {
+          for (const st of KNOWN_GOGAS_5DIGIT) {
+            let dist = 0;
+            for (let i = 0; i < 5; i++) {
+              if (prefix5[i] !== st[i]) dist++;
+            }
+            if (dist <= 2) {
+              targetStationDigits = st;
+              receiptData.stationNumber = st;
+              break;
+            }
+          }
+        }
         if (
-          stationDigits.length >= 4 &&
-          !receiptData.trackingNumber.startsWith(stationDigits)
+          targetStationDigits.length >= 4 &&
+          !receiptData.trackingNumber.startsWith(targetStationDigits)
         ) {
           const prefix = receiptData.trackingNumber.slice(
             0,
-            stationDigits.length,
+            targetStationDigits.length,
           );
-          if (prefix.length === stationDigits.length) {
+          if (prefix.length === targetStationDigits.length) {
             let diffCount = 0;
-            for (let i = 0; i < stationDigits.length; i++) {
-              if (prefix[i] !== stationDigits[i]) diffCount++;
+            for (let i = 0; i < targetStationDigits.length; i++) {
+              if (prefix[i] !== targetStationDigits[i]) diffCount++;
             }
             if (diffCount <= 2) {
               receiptData.trackingNumber =
-                stationDigits +
-                receiptData.trackingNumber.slice(stationDigits.length);
+                targetStationDigits +
+                receiptData.trackingNumber.slice(targetStationDigits.length);
             }
           }
         }

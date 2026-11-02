@@ -3678,8 +3678,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (Array.isArray(data.files) && data.files.length > 0) {
           data.files.forEach((f, idx) => {
             if (currentScannedReceipts[idx] && f.receiptImageUrl) {
-              currentScannedReceipts[idx].receiptImageUrl = f.receiptImageUrl;
-              currentScannedReceipts[idx].previewUrl = f.receiptImageUrl;
+              const normalizedImg = normalizeMediaUrl(f.receiptImageUrl);
+              currentScannedReceipts[idx].receiptImageUrl = normalizedImg;
+              currentScannedReceipts[idx].previewUrl = normalizedImg;
             }
           });
         }
@@ -3688,10 +3689,13 @@ document.addEventListener("DOMContentLoaded", () => {
             currentScannedReceipts.forEach((r) => {
               if (
                 r.receiptImageUrl === m.originalUrl ||
-                r.previewUrl === m.originalUrl
+                r.previewUrl === m.originalUrl ||
+                r.receiptImageUrl === normalizeMediaUrl(m.originalUrl) ||
+                r.previewUrl === normalizeMediaUrl(m.originalUrl)
               ) {
-                r.receiptImageUrl = m.receiptImageUrl;
-                r.previewUrl = m.receiptImageUrl;
+                const normalizedMigrated = normalizeMediaUrl(m.receiptImageUrl);
+                r.receiptImageUrl = normalizedMigrated;
+                r.previewUrl = normalizedMigrated;
               }
             });
           });
@@ -3713,11 +3717,29 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  const REJECTION_MESSAGE_REGEX =
+    /rechaz[oó]|inv[aá]lido|incorrecto|no\s*admiti[oó]|no\s*existe|no\s*encontrado|ya\s*(?:fue|hab[ií]a\s*sido|se\s*encuentra)\s*facturado|no\s*avanz[oó]|no\s*devolvi[oó]\s*confirmaci[oó]n|no\s*se\s*pudo\s*confirmar|error|fall[oó]|alerta\s*del\s*portal|demasiados\s*intentos|fuera\s*de\s*tiempo|vencido|faltan\s*datos/i;
+
+  function normalizeMediaUrl(url) {
+    if (!url || typeof url !== "string") return url;
+    const trimmed = url.trim();
+    if (!trimmed || trimmed.startsWith("blob:") || trimmed.startsWith("data:")) {
+      return trimmed;
+    }
+    const internalMatch = trimmed.match(
+      /^https?:\/\/(?:127\.0\.0\.1|localhost|0\.0\.0\.0|[a-zA-Z0-9_-]+|[^/]+:900\d)(?::\d+)?\/(?:combusticket\/)?(?:output\/)?(.+)$/i,
+    );
+    if (internalMatch && internalMatch[1]) {
+      const rel = internalMatch[1].replace(/^\/+/, "").replace(/^output\//i, "");
+      return `/output/${rel}`;
+    }
+    return trimmed;
+  }
 
   // --- FULLSCREEN SCANNER OVERLAY ---
   function showScanner(imageSrc, statusMsg = "Escaneando ticket con IA...") {
     if (scannerReceiptImg && imageSrc) {
-      scannerReceiptImg.src = imageSrc;
+      scannerReceiptImg.src = normalizeMediaUrl(imageSrc);
     }
     if (scannerStatusText && statusMsg) {
       scannerStatusText.textContent = statusMsg;
@@ -3749,10 +3771,13 @@ document.addEventListener("DOMContentLoaded", () => {
       // Update fullwidth scanned image
       const firstReceipt = currentScannedReceipts[0];
       if (fullwidthScannedImg && firstReceipt) {
-        if (firstReceipt.previewUrl) {
-          fullwidthScannedImg.src = firstReceipt.previewUrl;
+        const previewSrc = normalizeMediaUrl(
+          firstReceipt.previewUrl || firstReceipt.receiptImageUrl,
+        );
+        if (previewSrc) {
+          fullwidthScannedImg.src = previewSrc;
           fullwidthScannedImg.onclick = () =>
-            window.viewMedia(firstReceipt.previewUrl, "Recibo Escaneado");
+            window.viewMedia(previewSrc, "Recibo Escaneado");
         } else {
           fullwidthScannedImg.src = "";
         }
@@ -3828,8 +3853,9 @@ document.addEventListener("DOMContentLoaded", () => {
             } catch { }
           }
 
-          const serverReceiptImg =
-            item.receipt?.receiptImageUrl || item.receiptImageUrl;
+          const serverReceiptImg = normalizeMediaUrl(
+            item.receipt?.receiptImageUrl || item.receiptImageUrl,
+          );
           if (item.success && item.receipt) {
             currentScannedReceipts.push({
               ...item.receipt,
@@ -3924,8 +3950,9 @@ document.addEventListener("DOMContentLoaded", () => {
         currentScannedReceipts = [];
         for (let i = 0; i < data.results.length; i++) {
           const item = data.results[i];
-          const demoReceiptImg =
-            item.receipt?.receiptImageUrl || item.receiptImageUrl || demoImgUrl;
+          const demoReceiptImg = normalizeMediaUrl(
+            item.receipt?.receiptImageUrl || item.receiptImageUrl || demoImgUrl,
+          );
           if (item.success && item.receipt) {
             currentScannedReceipts.push({
               ...item.receipt,
@@ -4492,7 +4519,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let photoUrl = "";
     if (receipt.previewUrl || receipt.receiptImageUrl) {
-      const rawUrl = receipt.previewUrl || receipt.receiptImageUrl;
+      const rawUrl = normalizeMediaUrl(
+        receipt.previewUrl || receipt.receiptImageUrl,
+      );
       photoUrl = rawUrl.startsWith("http")
         ? rawUrl
         : window.location.origin + rawUrl;
@@ -5289,10 +5318,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Update fullwidth scanned image
     const firstReceipt = currentScannedReceipts[0];
     if (fullwidthScannedImg && firstReceipt) {
-      if (firstReceipt.previewUrl) {
-        fullwidthScannedImg.src = firstReceipt.previewUrl;
+      const previewSrc = normalizeMediaUrl(
+        firstReceipt.previewUrl || firstReceipt.receiptImageUrl,
+      );
+      if (previewSrc) {
+        fullwidthScannedImg.src = previewSrc;
         fullwidthScannedImg.onclick = () =>
-          window.viewMedia(firstReceipt.previewUrl, "Recibo Escaneado");
+          window.viewMedia(previewSrc, "Recibo Escaneado");
       } else {
         fullwidthScannedImg.src = "";
       }
@@ -5918,7 +5950,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Work directly with Redis-backed history and deduplicate defensively
     const seenMap = new Map();
-    for (const item of redisHistoryItems) {
+    for (const rawItem of redisHistoryItems) {
+      const item = {
+        ...rawItem,
+        receiptImageUrl: normalizeMediaUrl(rawItem.receiptImageUrl),
+        previewUrl: normalizeMediaUrl(rawItem.previewUrl),
+        screenshotUrl: normalizeMediaUrl(rawItem.screenshotUrl),
+        videoUrl: normalizeMediaUrl(rawItem.videoUrl),
+        pdfUrl: normalizeMediaUrl(rawItem.pdfUrl),
+      };
+      const isUnsubmittedCompleted =
+        item.status === "completed" &&
+        item.submitted === false &&
+        !item.pdfUrl &&
+        !/simulaci[oó]n/i.test(item.message || "");
+      if (
+        item.status === "completed" &&
+        (item.error ||
+          item.failedReason ||
+          REJECTION_MESSAGE_REGEX.test(item.message || "") ||
+          isUnsubmittedCompleted)
+      ) {
+        item.status = "failed";
+        if (!item.error) {
+          item.error =
+            item.failedReason ||
+            item.message ||
+            "El portal no devolvió confirmación de factura emitida.";
+        }
+      }
+
       const trk =
         item.trackingNumber && item.trackingNumber !== "---"
           ? `trk_${String(item.trackingNumber).trim().toUpperCase()}`
@@ -5962,16 +6023,35 @@ document.addEventListener("DOMContentLoaded", () => {
         const existing = seenMap.get(matchedKey);
         const statusPriority = {
           completed: 4,
-          failed: 3,
+          failed: 4,
           active: 2,
           waiting: 1,
           dry_run: 4,
         };
-        const preferredStatus =
+        const itemHasError = Boolean(
+          item.status === "failed" ||
+            item.error ||
+            item.failedReason ||
+            REJECTION_MESSAGE_REGEX.test(item.message || ""),
+        );
+        const existingHasError = Boolean(
+          existing.status === "failed" ||
+            existing.error ||
+            existing.failedReason ||
+            REJECTION_MESSAGE_REGEX.test(existing.message || ""),
+        );
+        let preferredStatus =
           (statusPriority[item.status] || 0) >=
             (statusPriority[existing.status] || 0)
             ? item.status
             : existing.status;
+        if (
+          preferredStatus === "completed" &&
+          (itemHasError || existingHasError) &&
+          !(item.status === "completed" && !itemHasError && item.submitted === true)
+        ) {
+          preferredStatus = "failed";
+        }
 
         seenMap.set(matchedKey, {
           ...existing,
@@ -6312,11 +6392,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function createHistoryRowHtml(item) {
     const isWaiting = item.status === "waiting";
     const isActive = item.status === "active";
+    const isUnsubmittedCompleted =
+      item.status === "completed" &&
+      item.submitted === false &&
+      !item.pdfUrl &&
+      !/simulaci[oó]n/i.test(item.message || "");
     const hasRejectionOrError = Boolean(
       item.error ||
       item.failedReason ||
-      (item.message &&
-        /rechaz[oó]|inv[aá]lido|error|fall[oó]|no\s*se\s*pudo\s*confirmar/i.test(item.message))
+      isUnsubmittedCompleted ||
+      (item.message && REJECTION_MESSAGE_REGEX.test(item.message))
     );
     const isCompleted = item.status === "completed" && !hasRejectionOrError;
     const isFailed = item.status === "failed" || hasRejectionOrError;
@@ -6472,8 +6557,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   window.downloadComprobante = (pdfUrl, trackingNumber, entryId) => {
+    const normalizedPdfUrl = normalizeMediaUrl(pdfUrl);
     const url =
-      pdfUrl ||
+      normalizedPdfUrl ||
       `/api/invoices/${encodeURIComponent(trackingNumber || entryId)}/pdf?ticket=${encodeURIComponent(trackingNumber || "")}`;
     const a = document.createElement("a");
     a.href = url;
@@ -7230,8 +7316,9 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   function openReceiptViewer(item) {
-    const imgUrl =
-      item.receiptImageUrl || item.previewUrl || item.screenshotUrl;
+    const imgUrl = normalizeMediaUrl(
+      item.receiptImageUrl || item.previewUrl || item.screenshotUrl,
+    );
     if (!imgUrl) {
       showToast(
         "No hay imagen o recibo escaneado disponible para este registro.",
@@ -7306,17 +7393,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- MODAL VIEWER (SCREENSHOTS & VIDEOS) ---
   window.viewMedia = (url, title, isVideo = false) => {
+    const safeUrl = normalizeMediaUrl(url);
     modalTitle.textContent = title || "Comprobante";
     if (isVideo) {
       modalBody.innerHTML = `
         <video controls autoplay loop playsinline style="max-width:100%;max-height:70vh;border-radius:8px;">
-          <source src="${url}" type="video/webm">
+          <source src="${safeUrl}" type="video/webm">
           Tu navegador no soporta reproducción de video WebM.
         </video>
       `;
     } else {
       modalBody.innerHTML = `
-        <img src="${url}" alt="Comprobante" style="max-width:100%;max-height:70vh;border-radius:8px;">
+        <img src="${safeUrl}" alt="Comprobante" style="max-width:100%;max-height:70vh;border-radius:8px;">
       `;
     }
     mediaModal.classList.remove("hidden");
@@ -7446,8 +7534,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Progressive Web App (PWA) Lifecycle & Install Prompt ---
   function setupPWA() {
-    // 1. Register Service Worker
+    // 1. Service Worker Lifecycle & Automatic App Update / Reload
     if ("serviceWorker" in navigator) {
+      let isRefreshing = false;
+
+      // When the new Service Worker takes control, immediately reload the page to load new assets
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (isRefreshing) return;
+        isRefreshing = true;
+        console.log("[CombusTicket PWA] Nuevo Service Worker activado. Recargando aplicación...");
+        window.location.reload();
+      });
+
+      // Listen for activation messages broadcasted by the Service Worker
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        if (
+          event.data &&
+          (event.data.type === "SW_ACTIVATED" || event.data.type === "SW_UPDATED")
+        ) {
+          if (!isRefreshing) {
+            isRefreshing = true;
+            window.location.reload();
+          }
+        }
+      });
+
       window.addEventListener("load", () => {
         navigator.serviceWorker
           .register("/sw.js")
@@ -7456,6 +7567,38 @@ document.addEventListener("DOMContentLoaded", () => {
               "[CombusTicket PWA] Service Worker activo con alcance:",
               registration.scope,
             );
+
+            // Proactively check for an updated Service Worker on launch
+            registration.update().catch(() => {});
+
+            // If a worker is already waiting, tell it to take over immediately
+            if (registration.waiting) {
+              registration.waiting.postMessage({ type: "SKIP_WAITING" });
+            }
+
+            // Detect new updates while the user has the application open
+            registration.addEventListener("updatefound", () => {
+              const newWorker = registration.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener("statechange", () => {
+                if (newWorker.state === "installed") {
+                  if (navigator.serviceWorker.controller) {
+                    // A previous version was already controlling the page -> new update ready!
+                    console.log(
+                      "[CombusTicket PWA] Nueva versión disponible. Forzando actualización...",
+                    );
+                    showToast("Actualizando CombusTicket a la última versión...", "info");
+                    newWorker.postMessage({ type: "SKIP_WAITING" });
+                  }
+                }
+              });
+            });
+
+            // Periodically check for application updates every 15 minutes
+            setInterval(() => {
+              registration.update().catch(() => {});
+            }, 15 * 60 * 1000);
           })
           .catch((err) => {
             console.warn(
@@ -7463,6 +7606,17 @@ document.addEventListener("DOMContentLoaded", () => {
               err,
             );
           });
+      });
+
+      // Whenever the user switches back to the tab/PWA window, check for app updates
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          navigator.serviceWorker.ready
+            .then((reg) => {
+              reg.update().catch(() => {});
+            })
+            .catch(() => {});
+        }
       });
     }
 

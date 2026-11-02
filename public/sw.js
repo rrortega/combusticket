@@ -1,4 +1,4 @@
-const CACHE_NAME = 'combusticket-shell-v6';
+const CACHE_NAME = 'combusticket-shell-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -14,6 +14,14 @@ const STATIC_ASSETS = [
   '/icons/icon-maskable-192x192.png',
   '/icons/icon-maskable-512x512.png',
 ];
+
+// Message: Allow clients or install events to command immediate takeover
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[CombusTicket SW] SKIP_WAITING received. Taking control immediately...');
+    self.skipWaiting();
+  }
+});
 
 // Install: Pre-cache static shell assets
 self.addEventListener('install', (event) => {
@@ -44,6 +52,13 @@ self.addEventListener('activate', (event) => {
         );
       })
       .then(() => self.clients.claim())
+      .then(() => {
+        return self.clients.matchAll({ type: 'window' }).then((clients) => {
+          clients.forEach((client) => {
+            client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_NAME });
+          });
+        });
+      })
   );
 });
 

@@ -593,27 +593,8 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
       }
     }
 
-    // Step 3: Fill ticket number (with station prefix reconciliation if needed)
-    let trackingToUse = receipt.trackingNumber;
-    if (receipt.stationNumber && trackingToUse) {
-      const stationDigits = receipt.stationNumber.replace(/\D/g, "");
-      if (stationDigits.length >= 4 && !trackingToUse.startsWith(stationDigits)) {
-        const prefix = trackingToUse.slice(0, stationDigits.length);
-        if (prefix.length === stationDigits.length) {
-          let diffCount = 0;
-          for (let i = 0; i < stationDigits.length; i++) {
-            if (prefix[i] !== stationDigits[i]) diffCount++;
-          }
-          if (diffCount <= 2) {
-            Logger.warn(
-              "FacturasGas",
-              `Reconciled tracking number prefix from "${trackingToUse}" to start with station "${stationDigits}" (${stationDigits}${trackingToUse.slice(stationDigits.length)})`,
-            );
-            trackingToUse = stationDigits + trackingToUse.slice(stationDigits.length);
-          }
-        }
-      }
-    }
+    // Step 3: Resolve and auto-heal ticket number against FacturasGas validation endpoint
+    const trackingToUse = await this._resolveAndHealTrackingNumber(page, receipt);
 
     if (trackingToUse) {
       await page.evaluate(`
@@ -644,30 +625,203 @@ export class FacturasGasAdapter implements IBillingPortalAdapter {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(400);
 
-    // Step 4: Click "Agregar" to register ticket
+    // Step 4: Click "Agregar" to register ticket and wait for data_check.php AJAX callback to finish
     Logger.info("FacturasGas", `Registering ticket: ${trackingToUse}...`);
-    await page.click("#Button_Add", { timeout: options.timeoutMs || 30000 });
+    const ajaxValidationPromise = page
+      .waitForResponse((res) => res.url().includes("data_check.php"), {
+        timeout: 8000,
+      })
+      .catch(() => null);
 
-    // Wait for AJAX validation (data_check.php) or ticket list to settle
+    await page.click("#Button_Add", { timeout: options.timeoutMs || 30000 });
+    await ajaxValidationPromise;
+    // Allow onreadystatechange callback (removeTicket / ticketAlert) to finish DOM updates
+    await page.waitForTimeout(800);
+
+    // Ensure DOM state has settled if AJAX took longer or was cached
     const startWait = Date.now();
-    let isSettled = false;
-    while (Date.now() - startWait < 8000) {
+    while (Date.now() - startWait < 3000) {
       const state = await page.evaluate(() => {
         const ticketHelp = document.querySelector("#Ticket_help")?.textContent?.trim() || "";
         const ticketsVal = (document.querySelector("#Tickets") as HTMLInputElement)?.value || "";
         return { ticketHelp, ticketsVal };
       });
       if (state.ticketHelp.length > 0 || state.ticketsVal.length > 0) {
-        // Extra pause so removeTicket has time to run if AJAX resulted in an error
-        await page.waitForTimeout(1200);
-        isSettled = true;
         break;
       }
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(250);
     }
-    if (!isSettled) {
-      await page.waitForTimeout(2500);
+  }
+
+  /**
+   * Actively resolves and heals OCR digit confusions in GoGas/FacturasGas tracking numbers
+   * by testing candidates against the portal's own ticketValidate endpoint before form submission.
+   */
+  private async _resolveAndHealTrackingNumber(
+    page: Page,
+    receipt: ParsedReceiptData,
+  ): Promise<string> {
+    const rawDigits = (receipt.trackingNumber || "").replace(/\D/g, "");
+    if (!rawDigits || rawDigits.length < 12) {
+      return receipt.trackingNumber || "";
     }
+
+    const KNOWN_GOGAS_STATIONS = ["14764", "12009", "11001", "10549"];
+    const textContext = `${receipt.address || ""} ${receipt.rawText || ""}`;
+
+    let resolvedStation = (receipt.stationNumber || "").replace(/\D/g, "");
+    if (/BUQUE\s*DE\s*VELA|BVE190821/i.test(textContext)) {
+      resolvedStation = "14764";
+    } else if (/DELFINES|SDE070824/i.test(textContext)) {
+      resolvedStation = "10549";
+    } else if (/AN[EÉ]MONAS|SSA120627/i.test(textContext)) {
+      resolvedStation = "12009";
+    } else if (/KABAH/i.test(textContext)) {
+      resolvedStation = "11001";
+    }
+
+    const hammingDistance = (a: string, b: string): number => {
+      if (a.length !== b.length) return 99;
+      let d = 0;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) d++;
+      }
+      return d;
+    };
+
+    const candidates: string[] = [];
+    const addCandidate = (c: string) => {
+      if (c && c.length >= 12 && !candidates.includes(c)) {
+        candidates.push(c);
+      }
+    };
+
+    const prefix5 = rawDigits.slice(0, 5);
+
+    // 1. Station-prefixed candidate first if station has 5 digits and differs by <= 2 digits
+    if (
+      resolvedStation.length === 5 &&
+      !rawDigits.startsWith(resolvedStation) &&
+      hammingDistance(prefix5, resolvedStation) <= 2
+    ) {
+      addCandidate(resolvedStation + rawDigits.slice(5));
+    }
+
+    // 2. Original tracking number
+    addCandidate(rawDigits);
+
+    // 3. Any known GoGas 5-digit station within Hamming distance <= 2 of the prefix
+    for (const st of KNOWN_GOGAS_STATIONS) {
+      if (hammingDistance(prefix5, st) <= 2) {
+        addCandidate(st + rawDigits.slice(5));
+      }
+    }
+
+    // 4. Single-digit OCR confusion variants of top base candidates
+    const confusionMap: Record<string, string[]> = {
+      "0": ["6", "8", "9"],
+      "6": ["0", "8", "5"],
+      "8": ["0", "6", "3"],
+      "5": ["6"],
+      "1": ["7"],
+      "7": ["1", "2"],
+      "2": ["7"],
+      "3": ["8"],
+      "4": ["9"],
+      "9": ["4", "0"],
+    };
+
+    const baseList = [...candidates];
+    for (const base of baseList) {
+      // First vary the 5-digit station prefix positions, then the remaining positions
+      for (let i = 0; i < base.length; i++) {
+        const swaps = confusionMap[base[i]];
+        if (!swaps) continue;
+        for (const replacement of swaps) {
+          addCandidate(base.slice(0, i) + replacement + base.slice(i + 1));
+          if (candidates.length >= 48) break;
+        }
+        if (candidates.length >= 48) break;
+      }
+      if (candidates.length >= 48) break;
+    }
+
+    const defaultCandidate = candidates[0] || rawDigits;
+
+    try {
+      const probeResult = await page.evaluate(async (candidateList: string[]) => {
+        let alreadyBilledCandidate: string | null = null;
+        const batchSize = 6;
+        for (let i = 0; i < candidateList.length; i += batchSize) {
+          const batch = candidateList.slice(i, i + batchSize);
+          const results = await Promise.all(
+            batch.map(async (candidate) => {
+              try {
+                const url = `../ria/data_check.php?f_name=ticketValidate&ticket=${encodeURIComponent(
+                  candidate,
+                )}&tickets_all=${encodeURIComponent(candidate)}&apc=QVVU`;
+                const resp = await fetch(url, { method: "POST" });
+                const data: any = await resp.json();
+                return { candidate, data };
+              } catch {
+                return { candidate, data: null };
+              }
+            }),
+          );
+
+          for (const item of results) {
+            if (!item.data) continue;
+            if (Number(item.data.ret) === 1 || Number(item.data.msg_id) === 100) {
+              return {
+                validCandidate: item.candidate,
+                alreadyBilledCandidate,
+              };
+            }
+            if (Number(item.data.msg_id) === 743 && !alreadyBilledCandidate) {
+              alreadyBilledCandidate = item.candidate;
+            }
+          }
+        }
+        return { validCandidate: null, alreadyBilledCandidate };
+      }, candidates);
+
+      if (probeResult?.validCandidate) {
+        if (probeResult.validCandidate !== receipt.trackingNumber) {
+          Logger.info(
+            "FacturasGas",
+            `Auto-healed tracking number from "${receipt.trackingNumber}" to "${probeResult.validCandidate}" (verified by portal)`,
+          );
+        }
+        receipt.trackingNumber = probeResult.validCandidate;
+        return probeResult.validCandidate;
+      }
+
+      if (probeResult?.alreadyBilledCandidate) {
+        if (probeResult.alreadyBilledCandidate !== receipt.trackingNumber) {
+          Logger.info(
+            "FacturasGas",
+            `Auto-healed tracking number from "${receipt.trackingNumber}" to "${probeResult.alreadyBilledCandidate}" (already billed on portal)`,
+          );
+        }
+        receipt.trackingNumber = probeResult.alreadyBilledCandidate;
+        return probeResult.alreadyBilledCandidate;
+      }
+    } catch (err: any) {
+      Logger.debug(
+        "FacturasGas",
+        `Ticket auto-heal probe skipped/failed: ${err.message}`,
+      );
+    }
+
+    if (defaultCandidate !== receipt.trackingNumber) {
+      Logger.warn(
+        "FacturasGas",
+        `Reconciled tracking number prefix from "${receipt.trackingNumber}" to "${defaultCandidate}"`,
+      );
+      receipt.trackingNumber = defaultCandidate;
+    }
+
+    return defaultCandidate;
   }
 
   private resolvePaymentMethodCode(

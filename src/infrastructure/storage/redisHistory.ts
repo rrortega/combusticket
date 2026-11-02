@@ -155,11 +155,61 @@ export class RedisHistoryService {
     return false;
   }
 
+  private static readonly REJECTION_REGEX =
+    /rechaz[oó]|inv[aá]lido|incorrecto|no\s*admiti[oó]|no\s*existe|no\s*encontrado|ya\s*(?:fue|hab[ií]a\s*sido|se\s*encuentra)\s*facturado|no\s*avanz[oó]|no\s*devolvi[oó]\s*confirmaci[oó]n|no\s*se\s*pudo\s*confirmar|error|fall[oó]|alerta\s*del\s*portal|demasiados\s*intentos|fuera\s*de\s*tiempo|vencido|faltan\s*datos/i;
+
+  private static readonly POSITIVE_SUCCESS_REGEX =
+    /factura\s*(?:solicitada|generada|emitida|creada|enviada|registrada)|comprobante\s*fiscal|simulaci[oó]n\s*completada/i;
+
+  public static isRejectedOrFailed(entry: Partial<InvoiceHistoryEntry>): boolean {
+    if (entry.status === "waiting" || entry.status === "active") return false;
+    if (entry.status === "failed") return true;
+    const msg = entry.message || "";
+    const err = entry.error || "";
+    if (err && this.REJECTION_REGEX.test(err)) return true;
+    if (msg && this.REJECTION_REGEX.test(msg)) return true;
+    if (
+      entry.status === "completed" &&
+      entry.submitted === false &&
+      !entry.pdfUrl &&
+      !/simulaci[oó]n/i.test(msg) &&
+      !this.POSITIVE_SUCCESS_REGEX.test(msg)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  private static sanitizeEntry(entry: InvoiceHistoryEntry): InvoiceHistoryEntry {
+    if (entry.status === "waiting" || entry.status === "active") {
+      return {
+        ...entry,
+        error: undefined,
+      };
+    }
+    if (this.isRejectedOrFailed(entry)) {
+      return {
+        ...entry,
+        status: "failed",
+        submitted: false,
+        error: entry.error || entry.message || "La facturación fue rechazada por el portal.",
+      };
+    }
+    if (entry.status === "completed" || entry.status === "dry_run") {
+      return {
+        ...entry,
+        error: undefined,
+      };
+    }
+    return entry;
+  }
+
   public static deduplicateList(
     entries: InvoiceHistoryEntry[],
   ): InvoiceHistoryEntry[] {
     const result: InvoiceHistoryEntry[] = [];
-    for (const entry of entries) {
+    for (const rawEntry of entries) {
+      const entry = this.sanitizeEntry(rawEntry);
       const existingIndex = result.findIndex((item) =>
         this.entriesMatch(item, entry),
       );
@@ -179,11 +229,7 @@ export class RedisHistoryService {
         const isRetry =
           entry.status === "waiting" &&
           Boolean(entry.jobId && entry.jobId !== existing.jobId);
-        const hasRejectionOrError = Boolean(
-          entry.error ||
-          (entry.message &&
-            /rechaz[oó]|inv[aá]lido|error|fall[oó]|no\s*se\s*pudo\s*confirmar/i.test(entry.message))
-        );
+        const hasRejectionOrError = this.isRejectedOrFailed(entry);
 
         let preferredStatus: InvoiceHistoryEntry["status"];
         if (isRetry) {
@@ -196,12 +242,12 @@ export class RedisHistoryService {
 
         const isActuallyFailed = preferredStatus === "failed";
 
-        result[existingIndex] = {
+        result[existingIndex] = this.sanitizeEntry({
           ...existing,
           ...entry,
           status: preferredStatus,
           progress: Math.max(existing.progress || 0, entry.progress || 0),
-          submitted: isActuallyFailed ? Boolean(entry.submitted) : existing.submitted || !!entry.submitted,
+          submitted: isActuallyFailed ? false : existing.submitted || !!entry.submitted,
           screenshotUrl: entry.screenshotUrl || existing.screenshotUrl,
           videoUrl: entry.videoUrl || existing.videoUrl,
           pdfUrl: entry.pdfUrl || existing.pdfUrl,
@@ -212,8 +258,11 @@ export class RedisHistoryService {
           imageFileName: entry.imageFileName || existing.imageFileName,
           jsonFileName: entry.jsonFileName || existing.jsonFileName,
           message: entry.message || existing.message,
-          error: entry.error || (isActuallyFailed ? entry.message || existing.error : existing.error),
-        };
+          error:
+            preferredStatus === "waiting" || preferredStatus === "completed" || preferredStatus === "dry_run"
+              ? undefined
+              : entry.error || (isActuallyFailed ? entry.message || existing.error : existing.error),
+        });
       } else {
         result.push(entry);
       }
@@ -252,17 +301,48 @@ export class RedisHistoryService {
         let matched = false;
         for (let i = 0; i < existingEntries.length; i++) {
           if (this.entriesMatch(existingEntries[i], entry)) {
-            existingEntries[i] = {
-              ...existingEntries[i],
+            const prev = existingEntries[i];
+            const isDiskRehydration = entry.progress === undefined && entry.status !== "waiting" && entry.status !== "active";
+            const prevIsRunning = prev.status === "waiting" || prev.status === "active";
+
+            let nextStatus = (entry.status || prev.status) as InvoiceHistoryEntry["status"];
+            if (isDiskRehydration && prevIsRunning) {
+              nextStatus = prev.status;
+            } else if (this.isRejectedOrFailed(entry)) {
+              nextStatus = "failed";
+            } else if (
+              isDiskRehydration &&
+              prev.status === "failed" &&
+              entry.status === "completed" &&
+              entry.submitted === false
+            ) {
+              nextStatus = "failed";
+            }
+
+            existingEntries[i] = this.sanitizeEntry({
+              ...prev,
               ...entry,
-            };
+              status: nextStatus,
+              progress:
+                nextStatus === "waiting" && entry.progress !== undefined
+                  ? entry.progress
+                  : Math.max(prev.progress || 0, entry.progress || 0),
+              submitted:
+                nextStatus === "failed" || nextStatus === "waiting" || nextStatus === "active"
+                  ? false
+                  : Boolean(entry.submitted ?? prev.submitted),
+              error:
+                nextStatus === "waiting" || nextStatus === "active" || nextStatus === "completed" || nextStatus === "dry_run"
+                  ? undefined
+                  : entry.error || entry.message || prev.error || "La facturación fue rechazada por el portal.",
+            });
             matched = true;
             break;
           }
         }
 
         if (!matched) {
-          const fullEntry: InvoiceHistoryEntry = {
+          const fullEntry: InvoiceHistoryEntry = this.sanitizeEntry({
             id:
               entry.id ||
               `hist_${entry.jobId || Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -293,7 +373,7 @@ export class RedisHistoryService {
             receiptImageUrl: entry.receiptImageUrl,
             message: entry.message || "",
             error: entry.error,
-          };
+          });
           existingEntries.unshift(fullEntry);
         }
 

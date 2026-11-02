@@ -143,31 +143,100 @@ export class S3StorageService implements IStorageService {
     }
   }
 
-  public getUrl(key: string): string {
-    const cleanKey = this.sanitizeKey(key);
-
-    if (this.config.publicUrl) {
-      const baseUrl = this.config.publicUrl.replace(/\/+$/, '');
-      return `${baseUrl}/${cleanKey}`;
+  public static isExternalPublicUrl(urlStr?: string): boolean {
+    if (!urlStr || !urlStr.trim()) return false;
+    try {
+      const u = new URL(urlStr.trim());
+      const host = u.hostname.toLowerCase();
+      if (
+        host === 'localhost' ||
+        host === '127.0.0.1' ||
+        host === '0.0.0.0' ||
+        host === '::1' ||
+        !host.includes('.') ||
+        host.includes('minio') ||
+        u.port === '9000' ||
+        u.port === '9001'
+      ) {
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
     }
+  }
 
-    if (this.config.endpoint) {
-      const endpoint = this.config.endpoint.replace(/\/+$/, '');
-      const forcePathStyle =
-        this.config.forcePathStyle !== undefined
-          ? this.config.forcePathStyle
-          : true;
+  public static normalizePublicUrl(
+    rawUrl?: string,
+    bucket: string = 'combusticket',
+    publicUrl?: string
+  ): string | undefined {
+    if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return rawUrl;
 
-      if (forcePathStyle) {
-        return `${endpoint}/${this.config.bucket}/${cleanKey}`;
-      } else {
-        const urlObj = new URL(endpoint);
-        return `${urlObj.protocol}//${this.config.bucket}.${urlObj.host}/${cleanKey}`;
+    const validPublicBase = this.isExternalPublicUrl(publicUrl)
+      ? publicUrl!.trim().replace(/\/+$/, '')
+      : undefined;
+
+    if (/^https?:\/\//i.test(trimmed)) {
+      const cleanBucket = (bucket || 'combusticket').trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const internalRegex = new RegExp(
+        `^https?:\\/\\/(?:localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0|[a-zA-Z0-9_-]+(?::\\d+)?|[^/]+:900\\d)\\/(?:${cleanBucket}\\/)?(?:output\\/)?(.+)$`,
+        'i'
+      );
+      const m = trimmed.match(internalRegex);
+      if (m && m[1]) {
+        const relPath = m[1].replace(/^\/+/, '');
+        return validPublicBase ? `${validPublicBase}/${relPath}` : `/output/${relPath}`;
+      }
+
+      try {
+        const u = new URL(trimmed);
+        const host = u.hostname.toLowerCase();
+        const isInternal =
+          host === 'localhost' ||
+          host === '127.0.0.1' ||
+          host === '0.0.0.0' ||
+          host === '::1' ||
+          !host.includes('.') ||
+          host.includes('minio') ||
+          u.port === '9000' ||
+          u.port === '9001';
+
+        if (isInternal) {
+          let relPath = u.pathname.replace(/^\/+/, '');
+          const lowerBucket = (bucket || 'combusticket').trim().toLowerCase();
+          if (relPath.toLowerCase().startsWith(`${lowerBucket}/`)) {
+            relPath = relPath.slice(lowerBucket.length + 1);
+          }
+          if (relPath.startsWith('output/')) {
+            relPath = relPath.slice('output/'.length);
+          }
+          relPath = relPath.replace(/^\/+/, '');
+          if (!relPath) return trimmed;
+          return validPublicBase ? `${validPublicBase}/${relPath}` : `/output/${relPath}`;
+        }
+      } catch {
+        // Ignore URL parse error
       }
     }
 
-    const region = this.config.region || 'us-east-1';
-    return `https://${this.config.bucket}.s3.${region}.amazonaws.com/${cleanKey}`;
+    return trimmed;
+  }
+
+  public getUrl(key: string): string {
+    const cleanKey = this.sanitizeKey(key);
+
+    if (
+      this.config.publicUrl &&
+      S3StorageService.isExternalPublicUrl(this.config.publicUrl)
+    ) {
+      const baseUrl = this.config.publicUrl.trim().replace(/\/+$/, '');
+      return `${baseUrl}/${cleanKey}`;
+    }
+
+    return `/output/${cleanKey}`;
   }
 
   public async init(): Promise<void> {

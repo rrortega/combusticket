@@ -8,11 +8,26 @@ import {
   ReceiptTransactionRecord,
 } from "../core/types.js";
 import { StorageFactory } from "../infrastructure/storage/storageFactory.js";
+import { S3StorageService } from "../infrastructure/storage/S3StorageService.js";
 import { IStorageService } from "../core/interfaces/IStorageService.js";
 import { RedisHistoryService } from "../infrastructure/storage/redisHistory.js";
 
+const REJECTION_MESSAGE_REGEX =
+  /rechaz[oó]|inv[aá]lido|incorrecto|no\s*admiti[oó]|no\s*existe|no\s*encontrado|ya\s*(?:fue|hab[ií]a\s*sido|se\s*encuentra)\s*facturado|no\s*avanz[oó]|no\s*devolvi[oó]\s*confirmaci[oó]n|no\s*se\s*pudo\s*confirmar|error|fall[oó]|alerta\s*del\s*portal|demasiados\s*intentos|fuera\s*de\s*tiempo|vencido|faltan\s*datos/i;
+
+const POSITIVE_SUCCESS_MESSAGE_REGEX =
+  /factura\s*(?:solicitada|generada|emitida|creada|enviada|registrada)|comprobante\s*fiscal|simulaci[oó]n\s*completada/i;
+
 export class ReceiptMetadataService {
   private static storageService: IStorageService | null = null;
+
+  public static normalizeUrl(url?: string): string | undefined {
+    return S3StorageService.normalizePublicUrl(
+      url,
+      ENV.S3_BUCKET,
+      ENV.S3_PUBLIC_URL,
+    );
+  }
 
   private static getStorage(): IStorageService {
     if (!this.storageService) {
@@ -560,14 +575,22 @@ export class ReceiptMetadataService {
         return;
       }
 
-      record.status = status === "completed" && !submitted ? "dry_run" : status;
+      const hasRejection = REJECTION_MESSAGE_REGEX.test(message || "");
+      let resolvedStatus: "dry_run" | "completed" | "failed" = status;
+      if (hasRejection || status === "failed") {
+        resolvedStatus = "failed";
+      } else if (status === "completed" && !submitted) {
+        resolvedStatus = /simulaci[oó]n/i.test(message || "") ? "dry_run" : "failed";
+      }
+
+      record.status = resolvedStatus;
       record.completedAt = new Date().toISOString();
       record.updatedAt = new Date().toISOString();
       record.invoiceResult = {
-        submitted,
-        pdfUrl,
-        screenshotUrl,
-        videoUrl,
+        submitted: resolvedStatus === "completed" ? submitted : false,
+        pdfUrl: this.normalizeUrl(pdfUrl),
+        screenshotUrl: this.normalizeUrl(screenshotUrl),
+        videoUrl: this.normalizeUrl(videoUrl),
         message,
       };
 
@@ -630,6 +653,22 @@ export class ReceiptMetadataService {
           if (realImageFileName && fs.existsSync(path.join(localDir, realImageFileName))) {
             record.imageFileName = realImageFileName;
             record.imageUrl = `/output/${rfcFolder}/receipts/${realImageFileName}`;
+          } else if (record.imageUrl) {
+            record.imageUrl = this.normalizeUrl(record.imageUrl) || record.imageUrl;
+          }
+          if (record.jsonUrl) {
+            record.jsonUrl = this.normalizeUrl(record.jsonUrl) || record.jsonUrl;
+          }
+          if (record.invoiceResult) {
+            record.invoiceResult.screenshotUrl = this.normalizeUrl(
+              record.invoiceResult.screenshotUrl,
+            );
+            record.invoiceResult.videoUrl = this.normalizeUrl(
+              record.invoiceResult.videoUrl,
+            );
+            record.invoiceResult.pdfUrl = this.normalizeUrl(
+              record.invoiceResult.pdfUrl,
+            );
           }
           records.push(record);
         }
@@ -698,8 +737,28 @@ export class ReceiptMetadataService {
       if (isTombstoned) continue;
 
       const imgUrl =
-        r.imageUrl ||
+        this.normalizeUrl(r.imageUrl) ||
         (r.imageFileName ? `/output/${rfcFolder}/receipts/${r.imageFileName}` : undefined);
+
+      const rawStatus = (r.status as string) || "completed";
+      const invMsg = r.invoiceResult?.message || "";
+      const hasRejectionMessage = Boolean(invMsg && REJECTION_MESSAGE_REGEX.test(invMsg));
+      const isSubmitted = Boolean(r.invoiceResult?.submitted);
+      const isDryRun = rawStatus === "dry_run" || /simulaci[oó]n/i.test(invMsg);
+      const hasPositiveSuccess =
+        Boolean(r.invoiceResult?.pdfUrl) ||
+        (invMsg ? POSITIVE_SUCCESS_MESSAGE_REGEX.test(invMsg) : false);
+
+      const isRejectedOrFailed =
+        rawStatus === "failed" ||
+        hasRejectionMessage ||
+        (rawStatus === "completed" && !isDryRun && !isSubmitted && !hasPositiveSuccess);
+
+      const resolvedStatus = isRejectedOrFailed
+        ? "failed"
+        : isDryRun
+          ? "dry_run"
+          : (rawStatus as any);
 
       await RedisHistoryService.upsertEntry({
         id: r.id,
@@ -714,7 +773,7 @@ export class ReceiptMetadataService {
         paymentMethod: r.ticket?.paymentMethod,
         liters: r.ticket?.liters,
         fileHash: r.fileHash,
-        receiptJsonUrl: r.jsonUrl || `/output/${rfcFolder}/receipts/${r.id}.json`,
+        receiptJsonUrl: this.normalizeUrl(r.jsonUrl) || `/output/${rfcFolder}/receipts/${r.id}.json`,
         receiptBaseName: r.id,
         imageFileName: r.imageFileName,
         jsonFileName: r.jsonFileName || `${r.id}.json`,
@@ -722,13 +781,16 @@ export class ReceiptMetadataService {
         amount: r.ticket?.amount || 0,
         date: r.ticket?.date || (r.createdAt ? r.createdAt.split("T")[0] : ""),
         timestamp: r.createdAt || new Date().toISOString(),
-        status: (r.status as any) || "completed",
-        submitted: Boolean(r.invoiceResult?.submitted),
-        screenshotUrl: r.invoiceResult?.screenshotUrl,
-        videoUrl: r.invoiceResult?.videoUrl,
-        pdfUrl: r.invoiceResult?.pdfUrl,
+        status: resolvedStatus,
+        submitted: isRejectedOrFailed ? false : isSubmitted,
+        screenshotUrl: this.normalizeUrl(r.invoiceResult?.screenshotUrl),
+        videoUrl: this.normalizeUrl(r.invoiceResult?.videoUrl),
+        pdfUrl: this.normalizeUrl(r.invoiceResult?.pdfUrl),
         receiptImageUrl: imgUrl,
-        message: r.invoiceResult?.message || "Factura registrada",
+        message: invMsg || (isRejectedOrFailed ? "La facturación fue rechazada por el portal." : "Factura registrada"),
+        error: isRejectedOrFailed
+          ? invMsg || "La facturación fue rechazada por el portal."
+          : undefined,
       });
 
       if (r.fileHash) {
